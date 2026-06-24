@@ -1,8 +1,26 @@
-# Business Source License 1.1 (BSL)
+# GNU Affero General Public License v3.0
 
-This software is completely free to modify, run, host, and utilize for individual, non-commercial home cultivation purposes. 
+Copyright (c) 2026 Matthew DiPietro (or your legal name)
 
-### Commercial Licensing Terms
-Any commercial enterprise, licensed cultivation facility, dispensary operation, or paid consulting entity with a gross annual revenue exceeding $50,000 USD is strictly prohibited from running this software internally or commercially without purchasing a Commercial Operating License.
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-For commercial license inquiries, please contact the repository owner.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+---
+
+## Important Commercial Licensing Note
+
+**This software is free for personal, non-commercial home cultivation only.**
+
+If you are a commercial entity (including but not limited to licensed dispensaries, cultivation facilities, consultants, or any business using this software to generate revenue), you **must** purchase a commercial license. See [COMMERCIAL-LICENSE.md](./COMMERCIAL-LICENSE.md) for terms and pricing.
+
+For full license text, visit: https://www.gnu.org/licenses/agpl-3.0.en.html
