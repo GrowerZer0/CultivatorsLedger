@@ -1,10 +1,10 @@
-# Cultivation Telemetry Engine
+# Cultivators Ledger ![Project Status](https://img.shields.io/badge/status-alpha-orange)
 
-A local-first cultivation analytics suite built for home growers who want precision data without cloud dependency or subscription fees.
+A local-first cultivation analytics suite for growers who want precision data and full control over their environment.
 
 ## Overview
 
-This is a **local-first** telemetry engine that runs entirely on your own hardware. No cloud fees. No data sharing. No corporate surveillance. Just you, your plants, and your data.
+This is a **local-first** telemetry engine that runs entirely on your own hardware. The core platform is open-source and self-hosted—your data stays on your network unless you choose otherwise.
 
 Key features:
 
@@ -17,22 +17,49 @@ Key features:
 
 ## Philosophy
 
-This software follows the **Showroom Model**:
+This software is built on a few core principles:
 
-- The core engine is open-source (AGPLv3) and free for personal home growers
-- Commercial facilities pay a fair license fee (see [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md))
-- Your data stays local – optional encrypted cloud backup is user-controlled
+- **Open core** – The local-first engine is open-source (AGPLv3) and free to use
+- **Commercial use** – Facilities operating at scale pay a fair license fee (see [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md))
+- **Data sovereignty** – Your data stays local; optional cloud sync is an add-on convenience, not a requirement
+
+## Architecture
+
+```mermaid
+flowchart TD
+    Sensors[Sensors / IoT Devices] -->|HTTP POST| API[Next.js API Route]
+    API -->|"pgmq.send()"| PGMQ[PGMQ Queue]
+    PGMQ -->|"pgmq.read()"| Worker[Consumer Worker]
+    Worker -->|Prisma| DB[(PostgreSQL Database)]
+    DB -->|Prisma| Dashboard[Next.js Dashboard]
+    Dashboard -->|VPD Calculation| UI[User Interface]
+    
+    Worker -->|"pgmq.delete()"| PGMQ
+
+```
 
 ## Quick Start
 
-### Prerequisites
+Prerequisites
 
-- Docker and Docker Compose
-- Python 3.10+ (for sensor scripts)
-- PostgreSQL 15+ (handled by Docker)
+ - Docker and Docker Compose
+ - Python 3.10+ (for sensor scripts)
+ - PostgreSQL 15+ (handled by Docker)
 
-### 1. Clone the repository
-
+1. Clone the repository
+   
 ```bash
-git clone https://github.com/mdipietro22/cultivation-telemetry-engine.git
-cd cultivation-telemetry-engine
+git clone https://github.com/growerzer0/cultivatorsledger.git
+cd cultivatorsledger
+```
+
+Get Involved
+
+- Report bugs – Open an issue with the bug label
+- Suggest features – Open an issue with the enhancement label
+- Submit code – Fork the repo and open a pull request
+- Ask questions – Start a discussion (if enabled)
+
+⭐ Support
+
+If this project is useful to you, consider starring the repo to help others find it.
