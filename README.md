@@ -60,6 +60,8 @@ Get Involved
 - Submit code – Fork the repo and open a pull request
 - Ask questions – Start a discussion (if enabled)
 
-⭐ Support
+```markdown
+## ⭐ Support
 
 If this project is useful to you, consider starring the repo to help others find it.
+```
