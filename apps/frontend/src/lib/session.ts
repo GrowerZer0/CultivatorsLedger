@@ -1,8 +1,14 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
+
+
 export async function getRequiredUserId() {
   const cookieStore = await cookies();
+  
+  if (process.env.NODE_ENV === 'development') {
+    return 'local-dev-user';
+  }
 
   // 🌟 Use the new, clean 2-argument signature
   const supabase = createServerClient(
@@ -35,4 +41,5 @@ export async function getRequiredUserId() {
   if (!user) throw new Error("Unauthorized: Active user session required.");
   
   return user.id;
+
 }
