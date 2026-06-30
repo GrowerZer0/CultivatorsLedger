@@ -17,7 +17,7 @@ import {
   Layers,
   Upload
 } from "lucide-react";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import {
   Area,
   AreaChart,
@@ -130,34 +130,54 @@ const [csvImporting, setCsvImporting] = useState(false);
   }, [activeLineId, combinedSchedules]);
 
   // --- 5. REAL-TIME DATA FETCH LOOP ---
-  useEffect(() => {
-    async function loadData() {
-      try {
-        setLoading(true);
-        const data = await getDashboardData();
-        setDbDryBackLogs(data.dryBackLogs || []);
-        setDbEnvironmentReadings(data.environmentReadings || []);
-        
-        const blueprints = await getCustomBlueprints();
-        setCustomBlueprints(blueprints || []);
-        
-        const activeProfile = await getUserProfile() as any;
-        if (activeProfile) {
-          setProfile({
-            experienceLevel: activeProfile.experienceLevel || "Beginner",
-            hasEcmeter: activeProfile.hasEcmeter,
-            hasScales: activeProfile.hasScales,
-            hasClimateHub: activeProfile.hasClimateHub
-          });
-        }
-      } catch (err) {
-        console.error("Error running dashboard sync updates:", err);
-      } finally {
-        setLoading(false);
+  const loadData = useCallback(async (skipLoading = false) => {
+    try {
+      if (!skipLoading) setLoading(true);
+      const data = await getDashboardData();
+      console.log("📊 data from API:", data);
+      setDbDryBackLogs(data.dryBackLogs || []);
+      setDbEnvironmentReadings(data.environmentReadings || []);
+      console.log("🔄 setDbEnvironmentReadings called with:", data.environmentReadings.length, "items");
+      const blueprints = await getCustomBlueprints();
+      setCustomBlueprints(blueprints || []);
+    
+      const activeProfile = await getUserProfile() as any;
+      if (activeProfile) {
+        setProfile({
+          experienceLevel: activeProfile.experienceLevel || "Beginner",
+          hasEcmeter: activeProfile.hasEcmeter,
+          hasScales: activeProfile.hasScales,
+          hasClimateHub: activeProfile.hasClimateHub
+        });
       }
+    } catch (err) {
+      console.error("Error running dashboard sync updates:", err);
+    } finally {
+      if (!skipLoading) setLoading(false);
     }
-    loadData();
   }, []);
+
+  useEffect(() => {
+    console.log("📈 state updated:", {
+      count: dbEnvironmentReadings.length,
+      last: dbEnvironmentReadings.at(-1),
+    });
+  }, [dbEnvironmentReadings]);
+
+  // Initial load (spinner shown)
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Poll every 10 seconds (silent refresh – no spinner)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log("⏰ poll fired");
+      loadData(true); // skipLoading = true
+    }, 10000); // 10 seconds
+
+    return () => clearInterval(interval);
+  }, [loadData]);
 
   // --- 6. DATA PERSISTENCE HANDLER ---
   async function handleSaveLog() {
@@ -476,17 +496,27 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
           </div>
 
           {profile.hasClimateHub && (
-            <div className="bg-zinc-900/90 border border-zinc-800/80 rounded-2xl p-4 shadow-xl flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 shadow-inner">
-                <ThermometerSun className="size-6" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-[11px] uppercase tracking-wider font-bold text-zinc-500 block">Room Climate</span>
-                <span className="text-2xl font-black text-white block mt-0.5">{currentTemperature}°F</span>
-                <span className="text-[11px] text-zinc-400 block truncate mt-0.5">{currentHumidity}% RH • {averageVpd(dbEnvironmentReadings)} VPD</span>
-              </div>
-            </div>
-          )}
+  <div className="bg-zinc-900/90 border border-zinc-800/80 rounded-2xl p-4 shadow-xl flex items-center gap-4">
+    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 shadow-inner">
+      <ThermometerSun className="size-6" />
+    </div>
+    <div className="flex-1 min-w-0">
+      <span className="text-[11px] uppercase tracking-wider font-bold text-zinc-500 block">Room Climate</span>
+      {dbEnvironmentReadings.length > 0 ? (
+        <>
+          <span className="text-2xl font-black text-white block mt-0.5">
+            {(dbEnvironmentReadings.at(-1)?.temperatureF ?? 0).toFixed(1)}°F
+          </span>
+          <span className="text-[11px] text-zinc-400 block truncate mt-0.5">
+            {(dbEnvironmentReadings.at(-1)?.humidity ?? 0).toFixed(0)}% RH • {(dbEnvironmentReadings.at(-1)?.vpd ?? 0).toFixed(2)} VPD
+          </span>
+        </>
+      ) : (
+        <span className="text-sm text-zinc-500 block mt-0.5">Waiting for data...</span>
+      )}
+    </div>
+  </div>
+)}
 
           {profile.hasEcmeter && (
             <div className="bg-zinc-900/90 border border-zinc-800/80 rounded-2xl p-4 shadow-xl flex items-center gap-4">
@@ -544,9 +574,7 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
                 </div>
                 <div className="h-56 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={dbEnvironmentReadings} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>
-                      <CartesianGrid stroke="#1F2937" className="opacity-40" strokeDasharray="3 3" />
-                      <XAxis dataKey="recordedAt" stroke="#4B5563" fontSize={10} tickLine={false} />
+                  <AreaChart key={dbEnvironmentReadings.length} data={dbEnvironmentReadings} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>                      <XAxis dataKey="recordedAt" stroke="#4B5563" fontSize={10} tickLine={false} />
                       <YAxis stroke="#4B5563" fontSize={10} tickLine={false} />
                       <Tooltip contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', color: '#fff', fontSize: '12px' }} />
                       <Area type="monotone" dataKey="vpd" name="VPD" stroke="#06B6D4" fill="url(#colorVpd)" strokeWidth={2} />

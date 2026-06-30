@@ -17,35 +17,37 @@ function computeVPD(tempC: number, rh: number): number {
 export async function getDashboardData() {
   const userId = await getRequiredUserId();
 
+  // Fetch the 30 most recent climate logs (descending)
   const climateLogs = await db.climateLog.findMany({
     orderBy: { timestamp: "desc" },
     take: 30,
   });
 
-  const latestBatch = await db.batchHarvest.findFirst({
-    orderBy: { startDate: "desc" },
-  });
+  // Reverse to get ascending order for charts (oldest → newest)
+  const sortedLogs = [...climateLogs].reverse();
 
-  // Fallback values
-  const defaultWetWeight = 18.4;
-  const defaultDryTarget = 13.2;
-  const wetWeight = latestBatch?.totalDryYieldG
-    ? Number(latestBatch.totalDryYieldG) * 0.00220462 // grams to lbs
-    : defaultWetWeight;
-  const dryTargetWeight = latestBatch?.totalDryYieldG
-    ? Number(latestBatch.totalDryYieldG) * 0.0015 // placeholder logic
-    : defaultDryTarget;
+  // Build environmentReadings from sorted logs
+  const environmentReadings = sortedLogs.map((log) => ({
+    id: String(log.id),
+    temperatureF: Number(log.airTempC) * 9/5 + 32,
+    temperature: Number(log.airTempC),
+    humidity: Number(log.relativeHumidity),
+    vpd: log.calculatedVpdKpa ? Number(log.calculatedVpdKpa) : computeVPD(Number(log.airTempC), Number(log.relativeHumidity)),
+    runoff_ec: 0,
+    dry_back: 0,
+    recordedAt: log.timestamp.toISOString(),
+  }));
 
-  // Build dryBackLogs – match the DryBackLog type exactly
-  const dryBackLogs: DryBackLog[] = climateLogs.map((log) => {
+  // Build dryBackLogs from sorted logs
+  const dryBackLogs = sortedLogs.map((log) => {
     const dryBackPercent = Math.min(100, Math.max(0, 100 - Number(log.relativeHumidity)));
     return {
-      id: String(log.id), // convert to string
-      cultivar: log.zoneId || "Unknown", // required field – use zoneId as cultivar
+      id: String(log.id),
+      cultivar: log.zoneId || "Unknown",
       stage: log.zoneId || "Main",
       containerGallons: 5,
-      wetWeight: wetWeight,
-      dryTargetWeight: dryTargetWeight,
+      wetWeight: 18.4,
+      dryTargetWeight: 13.2,
       weight: dryBackPercent,
       dryBackPercent: dryBackPercent,
       runoff_ec: 0,
@@ -53,27 +55,11 @@ export async function getDashboardData() {
     };
   });
 
-  // Build environmentReadings – match the EnvironmentReading type exactly
-  const environmentReadings: EnvironmentReading[] = climateLogs.map((log) => ({
-    id: String(log.id),
-    temperatureF: Number(log.airTempC) * 9/5 + 32,
-    temperature: Number(log.airTempC),
-    humidity: Number(log.relativeHumidity),
-    vpd: log.calculatedVpdKpa
-      ? Number(log.calculatedVpdKpa)
-      : computeVPD(Number(log.airTempC), Number(log.relativeHumidity)),
-    runoff_ec: 0,
-    dry_back: 0,
-    recordedAt: log.timestamp.toISOString(),
-  }));
-
   return {
     environmentReadings,
     dryBackLogs,
   };
 }
-
-
 
 export async function addManualClimateLog(data: {
   temperature: number;
