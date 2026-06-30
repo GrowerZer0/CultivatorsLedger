@@ -14,7 +14,8 @@ import {
   ShieldAlert,
   Sliders,
   TrendingUp,
-  Layers
+  Layers,
+  Upload
 } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import {
@@ -42,7 +43,7 @@ import {
   type FeedSchedule,
   type NutrientDose
 } from "@/lib/cultivation";
-import { addDryBackLog, getDashboardData, getUserProfile, getCustomBlueprints } from "@/app/actions";
+import { addDryBackLog, getDashboardData, getUserProfile, getCustomBlueprints, addManualClimateLog } from "@/app/actions";
 import AIChatWidget from "@/components/AIChatWidget";
 
 export default function Page() {
@@ -59,6 +60,10 @@ export default function Page() {
   const [dbEnvironmentReadings, setDbEnvironmentReadings] = useState<EnvironmentReading[]>([]);
   const [customBlueprints, setCustomBlueprints] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showManualForm, setShowManualForm] = useState(false);
+  const [manualTemp, setManualTemp] = useState(22);
+  const [manualHumidity, setManualHumidity] = useState(60);
+  const [isSubmittingManual, setIsSubmittingManual] = useState(false);
 
   // --- 3. CORE INPUT CALCULATOR STATES ---
   const [containerGallons, setContainerGallons] = useState(5);
@@ -70,6 +75,20 @@ export default function Page() {
   const [currentEc, setCurrentEc] = useState(1.4);
   const [isSaving, setIsSaving] = useState(false);
   
+  // --- CSV Import Column Mapping State ---
+const [showMappingModal, setShowMappingModal] = useState(false);
+const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+const [csvPreview, setCsvPreview] = useState<string[][]>([]);
+const [csvFile, setCsvFile] = useState<File | null>(null);
+const [csvMapping, setCsvMapping] = useState({
+  timestampCol: "",
+  temperatureCol: "",
+  humidityCol: "",
+  roomIdCol: "",
+  zoneIdCol: "",
+});
+const [csvImporting, setCsvImporting] = useState(false);
+
   // LOCAL DROPDOWN OVERRIDE STATE
   const [activeLineId, setActiveLineId] = useState("ff-trio");
 
@@ -254,6 +273,73 @@ export default function Page() {
     runoff_ec: log.runoff_ec ?? 0
   }));
 
+  // Manual entry submission handler
+async function handleManualSubmit(e: React.FormEvent) {
+  e.preventDefault();
+  setIsSubmittingManual(true);
+  try {
+    const result = await addManualClimateLog({
+      temperature: manualTemp,
+      humidity: manualHumidity,
+    });
+    if (result.success) {
+      // Refetch dashboard data to show the new entry
+      const data = await getDashboardData();
+      setDbDryBackLogs(data.dryBackLogs || []);
+      setDbEnvironmentReadings(data.environmentReadings || []);
+      setShowManualForm(false);
+      // Reset form to default values
+      setManualTemp(22);
+      setManualHumidity(60);
+    }
+  } catch (error) {
+    console.error("Failed to submit manual log:", error);
+    alert("Failed to save manual entry. Check console for details.");
+  } finally {
+    setIsSubmittingManual(false);
+  }
+}
+
+// CSV file selection handler – reads headers and preview rows
+async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  
+  setCsvFile(file);
+  const text = await file.text();
+  const lines = text.split("\n").filter(line => line.trim() !== "");
+  if (lines.length === 0) {
+    alert("File is empty");
+    return;
+  }
+  
+  // Parse headers
+  const headers = lines[0].split(",").map(h => h.trim());
+  setCsvHeaders(headers);
+  
+  // Parse first 5 rows for preview (or all if less)
+  const previewRows = lines.slice(1, Math.min(6, lines.length)).map(line => 
+    line.split(",").map(v => v.trim())
+  );
+  setCsvPreview(previewRows);
+  
+  // Auto-detect common column names
+  const findCol = (patterns: string[]) => {
+    return headers.find(h => patterns.some(p => h.toLowerCase().includes(p))) || "";
+  };
+  
+  setCsvMapping({
+    timestampCol: findCol(["time", "date", "timestamp"]),
+    temperatureCol: findCol(["temp", "temperature"]),
+    humidityCol: findCol(["humid", "rh"]),
+    roomIdCol: findCol(["room", "zone", "sensor"]),
+    zoneIdCol: findCol(["zone", "area"]),
+  });
+  
+  setShowMappingModal(true);
+  e.target.value = ""; // reset input
+}
+
   if (loading) {
     return (
       <AppShell>
@@ -278,6 +364,32 @@ export default function Page() {
             </div>
             <h1 className="text-2xl font-black tracking-tight text-white mt-1">Facility Control Room</h1>
             <p className="text-xs text-zinc-400 mt-0.5">Real-time telemetry aggregation and structural crop-steering optimization arrays.</p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowManualForm(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-xs font-bold text-white shadow-lg shadow-emerald-900/30 transition-all cursor-pointer"
+          >
+            <Plus className="size-4" />
+              Log Manual Reading
+            </button>
+            <button
+              type="button"
+              onClick={() => document.getElementById("csv-upload")?.click()}
+              className="inline-flex items-center gap-2 rounded-xl border border-zinc-700 hover:border-zinc-500 px-4 py-2 text-xs font-bold text-zinc-300 transition-all cursor-pointer"
+            >
+            <Upload className="size-4" />
+              Import CSV
+            </button>
+            <input
+              id="csv-upload"
+              type="file"
+              accept=".csv"
+              className="hidden"
+              onChange={handleCsvFileSelect}
+            />
           </div>
 
           {/* SENSOR INGESTION MASTER CONTROL */}
@@ -608,6 +720,260 @@ export default function Page() {
           leftoverGallons={leftoverGallons}
         />
       </div>
+
+      {/* MANUAL ENTRY MODAL */}
+{showManualForm && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-lg font-bold text-white">Manual Climate Log</h2>
+        <button
+          type="button"
+          onClick={() => setShowManualForm(false)}
+          className="rounded-lg p-1 hover:bg-zinc-800 transition-colors"
+        >
+          <span className="text-zinc-400 text-xl leading-none">✕</span>
+        </button>
+      </div>
+
+      <form onSubmit={handleManualSubmit} className="space-y-4">
+        {/* Temperature */}
+        <div>
+          <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1">
+            Temperature (°C)
+          </label>
+          <input
+            type="number"
+            step="0.1"
+            min="-10"
+            max="50"
+            value={manualTemp}
+            onChange={(e) => setManualTemp(parseFloat(e.target.value))}
+            className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all"
+            required
+          />
+        </div>
+
+        {/* Humidity */}
+        <div>
+          <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1">
+            Relative Humidity (%)
+          </label>
+          <input
+            type="number"
+            step="0.1"
+            min="0"
+            max="100"
+            value={manualHumidity}
+            onChange={(e) => setManualHumidity(parseFloat(e.target.value))}
+            className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all"
+            required
+          />
+        </div>
+
+        {/* Timestamp (optional) — hidden for simplicity, defaults to now */}
+
+        {/* Actions */}
+        <div className="flex gap-3 pt-2">
+          <button
+            type="button"
+            onClick={() => setShowManualForm(false)}
+            className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm font-bold text-zinc-300 hover:bg-zinc-800 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmittingManual}
+            className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSubmittingManual ? "Saving..." : "Save Entry"}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+)}
+
+{/* CSV COLUMN MAPPING MODAL */}
+{showMappingModal && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
+    <div className="w-full max-w-3xl rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-lg font-bold text-white">Map CSV Columns</h2>
+        <button
+          type="button"
+          onClick={() => setShowMappingModal(false)}
+          className="rounded-lg p-1 hover:bg-zinc-800 transition-colors"
+        >
+          <span className="text-zinc-400 text-xl leading-none">✕</span>
+        </button>
+      </div>
+
+      {/* File info */}
+      <p className="text-xs text-zinc-400 mb-4">
+        File: <span className="text-zinc-200 font-medium">{csvFile?.name}</span>
+      </p>
+
+      {/* Column mapping grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1">
+            Timestamp *
+          </label>
+          <select
+            value={csvMapping.timestampCol}
+            onChange={(e) => setCsvMapping({ ...csvMapping, timestampCol: e.target.value })}
+            className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+          >
+            <option value="">-- Select column --</option>
+            {csvHeaders.map((h) => (
+              <option key={h} value={h}>{h}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1">
+            Temperature *
+          </label>
+          <select
+            value={csvMapping.temperatureCol}
+            onChange={(e) => setCsvMapping({ ...csvMapping, temperatureCol: e.target.value })}
+            className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+          >
+            <option value="">-- Select column --</option>
+            {csvHeaders.map((h) => (
+              <option key={h} value={h}>{h}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1">
+            Humidity *
+          </label>
+          <select
+            value={csvMapping.humidityCol}
+            onChange={(e) => setCsvMapping({ ...csvMapping, humidityCol: e.target.value })}
+            className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+          >
+            <option value="">-- Select column --</option>
+            {csvHeaders.map((h) => (
+              <option key={h} value={h}>{h}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1">
+            Room ID (optional)
+          </label>
+          <select
+            value={csvMapping.roomIdCol}
+            onChange={(e) => setCsvMapping({ ...csvMapping, roomIdCol: e.target.value })}
+            className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+          >
+            <option value="">-- None --</option>
+            {csvHeaders.map((h) => (
+              <option key={h} value={h}>{h}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="md:col-span-2">
+          <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1">
+            Zone ID (optional)
+          </label>
+          <select
+            value={csvMapping.zoneIdCol}
+            onChange={(e) => setCsvMapping({ ...csvMapping, zoneIdCol: e.target.value })}
+            className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+          >
+            <option value="">-- None --</option>
+            {csvHeaders.map((h) => (
+              <option key={h} value={h}>{h}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Preview table */}
+      {csvPreview.length > 0 && (
+        <div className="mb-4">
+          <p className="text-xs text-zinc-400 mb-2">Preview (first {csvPreview.length} rows)</p>
+          <div className="overflow-x-auto rounded-xl border border-zinc-800">
+            <table className="w-full text-xs">
+              <thead className="bg-zinc-950">
+                <tr>
+                  {csvHeaders.map((h) => (
+                    <th key={h} className="px-3 py-2 text-left text-zinc-400 font-bold">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {csvPreview.map((row, idx) => (
+                  <tr key={idx} className="border-t border-zinc-800">
+                    {row.map((cell, cellIdx) => (
+                      <td key={cellIdx} className="px-3 py-2 text-zinc-200 truncate max-w-[120px]">
+                        {cell || "—"}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex gap-3 pt-2 border-t border-zinc-800 mt-2">
+        <button
+          type="button"
+          onClick={() => setShowMappingModal(false)}
+          className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm font-bold text-zinc-300 hover:bg-zinc-800 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          disabled={csvImporting || !csvMapping.timestampCol || !csvMapping.temperatureCol || !csvMapping.humidityCol}
+          onClick={async () => {
+            if (!csvFile) return;
+            setCsvImporting(true);
+            try {
+              const formData = new FormData();
+              formData.append("file", csvFile);
+              formData.append("mapping", JSON.stringify(csvMapping));
+              
+              const res = await fetch("/api/import/csv", { method: "POST", body: formData });
+              const data = await res.json();
+              
+              if (data.success) {
+                alert(`✅ Imported ${data.imported} records${data.skipped > 0 ? `, ${data.skipped} skipped` : ""}`);
+                // Refetch dashboard data
+                const fresh = await getDashboardData();
+                setDbDryBackLogs(fresh.dryBackLogs || []);
+                setDbEnvironmentReadings(fresh.environmentReadings || []);
+                setShowMappingModal(false);
+              } else {
+                alert(`❌ Import failed: ${data.error}`);
+              }
+            } catch (err) {
+              alert(`❌ Import failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+            } finally {
+              setCsvImporting(false);
+            }
+          }}
+          className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {csvImporting ? "Importing..." : "Import Data"}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </AppShell>
   );
 }
