@@ -370,7 +370,7 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
   if (loading) {
     return (
       <AppShell>
-        <div className="flex h-[75vh] items-center justify-center bg-[#0B0F19] text-sm font-semibold text-zinc-400 tracking-wide animate-pulse">
+        <div className="flex h-[75vh] items-center justify-center bg-white dark:bg-[#0B0F19] text-sm font-semibold text-gray-500 dark:text-zinc-400 tracking-wide animate-pulse">
           Initializing secure telemetry pipelines and core ledger nodes...
         </div>
       </AppShell>
@@ -379,10 +379,10 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
 
   return (
     <AppShell>
-      <div className="min-h-screen bg-[#0B0F19] text-zinc-100 p-1 lg:p-4 font-sans selection:bg-emerald-500/30">
+      <div className="min-h-screen bg-white dark:bg-[#0B0F19] text-gray-900 dark:text-zinc-100 p-1 lg:p-4 font-sans selection:bg-emerald-500/30">
         
         {/* TOP COMMAND NAVIGATION BAR */}
-        <header className="mb-6 flex flex-col gap-4 border-b border-zinc-800 pb-5">
+        <header className="mb-6 flex flex-col gap-4 border-b border-gray-200 dark:border-zinc-800 pb-5">
   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div>
       <div className="flex items-center gap-2">
@@ -390,15 +390,15 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
           Production Environment
         </span>
       </div>
-      <h1 className="text-2xl font-black tracking-tight text-white mt-1">Facility Control Room</h1>
-      <p className="text-xs text-zinc-400 mt-0.5">Real-time telemetry aggregation and structural crop-steering optimization arrays.</p>
+      <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white mt-1">Facility Control Room</h1>
+      <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">Real-time telemetry aggregation and structural crop-steering optimization arrays.</p>
     </div>
 
     <div className="flex items-center gap-3 flex-wrap">
       <button
         type="button"
         onClick={() => setShowManualForm(true)}
-        className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-xs font-bold text-white shadow-lg shadow-emerald-900/30 transition-all cursor-pointer"
+        className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-xs font-bold text-gray-900 dark:text-white shadow-lg shadow-emerald-900/30 transition-all cursor-pointer"
       >
         <Plus className="size-4" />
         Log Manual Reading
@@ -406,7 +406,7 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
       <button
         type="button"
         onClick={() => document.getElementById("csv-upload")?.click()}
-        className="inline-flex items-center gap-2 rounded-xl border border-zinc-700 hover:border-zinc-500 px-4 py-2 text-xs font-bold text-zinc-300 transition-all cursor-pointer"
+        className="inline-flex items-center gap-2 rounded-xl border border-gray-300 dark:border-zinc-700 hover:border-zinc-500 px-4 py-2 text-xs font-bold text-gray-700 dark:text-zinc-300 transition-all cursor-pointer"
       >
         <Upload className="size-4" />
         Import CSV
@@ -422,13 +422,13 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
   </div>
 
   {/* Room & Strain Selectors + Batch Input */}
-  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap border-t border-zinc-800 pt-4 mt-1">
+  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap border-t border-gray-200 dark:border-zinc-800 pt-4 mt-1">
     <div className="flex items-center gap-2">
-      <span className="text-xs font-bold text-zinc-400">Room:</span>
+      <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Room:</span>
       <select
         value={selectedRoom}
         onChange={(e) => setSelectedRoom(e.target.value)}
-        className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-white outline-none focus:border-emerald-500 transition-all"
+        className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 transition-all"
       >
         <option value="tent_1">Tent 1</option>
         <option value="tent_2">Tent 2</option>
@@ -438,11 +438,11 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     </div>
 
     <div className="flex items-center gap-2">
-      <span className="text-xs font-bold text-zinc-400">Strain:</span>
+      <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Strain:</span>
       <select
         value={selectedStrain}
         onChange={(e) => setSelectedStrain(e.target.value)}
-        className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-white outline-none focus:border-emerald-500 transition-all"
+        className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 transition-all"
       >
         <option value="Blueberry Muffin">Blueberry Muffin</option>
         <option value="Gelato">Gelato</option>
@@ -452,25 +452,25 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     </div>
 
     <div className="flex items-center gap-2">
-      <span className="text-xs font-bold text-zinc-400">Batch:</span>
+      <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Batch:</span>
       <input
         type="text"
         placeholder="e.g. BM #3"
-        className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-white outline-none focus:border-emerald-500 w-32"
+        className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 w-32"
         value={batchName}
         onChange={(e) => setBatchName(e.target.value)}
       />
     </div>
 
     {/* Sensor Mode Toggle - moved here for consistency */}
-    <div className="inline-flex rounded-xl bg-zinc-950 p-1 border border-zinc-800 ml-auto">
+    <div className="inline-flex rounded-xl bg-gray-50 dark:bg-zinc-950 p-1 border border-gray-200 dark:border-zinc-800 ml-auto">
       <button
         type="button"
         onClick={() => setIsSensorDriven(false)}
         className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
           !isSensorDriven
-            ? "bg-zinc-800 text-white shadow-md ring-1 ring-zinc-700/50"
-            : "text-zinc-500 hover:text-zinc-300"
+            ? "bg-zinc-800 text-gray-900 dark:text-white shadow-md ring-1 ring-zinc-700/50"
+            : "text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:text-zinc-300"
         }`}
       >
         <Keyboard className="size-3.5" /> Manual
@@ -480,8 +480,8 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
         onClick={() => setIsSensorDriven(true)}
         className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
           isSensorDriven
-            ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/20 ring-1 ring-emerald-500/30"
-            : "text-zinc-500 hover:text-zinc-300"
+            ? "bg-emerald-600 text-gray-900 dark:text-white shadow-md shadow-emerald-900/20 ring-1 ring-emerald-500/30"
+            : "text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:text-zinc-300"
         }`}
       >
         <Cpu className="size-3.5" /> Hardware
@@ -501,7 +501,7 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
                   alert.type === "danger" ? "bg-red-950/20 text-red-400 border-red-950/50" :
                   alert.type === "warning" ? "bg-amber-950/30 text-amber-300 border-amber-900/40" :
                   alert.type === "success" ? "bg-emerald-950/30 text-emerald-400 border-emerald-900/40" :
-                  "bg-zinc-900/50 text-zinc-300 border-zinc-800"
+                  "bg-white dark:bg-zinc-900/50 text-gray-700 dark:text-zinc-300 border-gray-200 dark:border-zinc-800"
                 }`}
               >
                 {alert.type === "critical" ? (
@@ -524,15 +524,15 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
 <div className="grid gap-4 md:grid-cols-2 mb-6">
   {/* Dry-Back Progress Card */}
   {profile.hasScales && (
-    <div className="bg-zinc-900/90 border border-zinc-800/80 rounded-2xl p-5 shadow-xl flex items-center gap-5">
+    <div className="bg-white/90 dark:bg-white dark:bg-zinc-900/90 border border-gray-200/80 dark:border-gray-200 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl flex items-center gap-5">
       <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-inner shrink-0">
         <Weight className="size-7" />
       </div>
       <div className="flex-1 min-w-0">
-        <span className="text-[11px] uppercase tracking-wider font-bold text-zinc-500 block">Dry-Back Progress</span>
+        <span className="text-[11px] uppercase tracking-wider font-bold text-gray-400 dark:text-zinc-500 block">Dry-Back Progress</span>
         <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-black text-white">{activeDryBack.dryBackPercent.toFixed(0)}%</span>
-          <span className="text-xs text-zinc-400">
+          <span className="text-3xl font-black text-gray-900 dark:text-white">{activeDryBack.dryBackPercent.toFixed(0)}%</span>
+          <span className="text-xs text-gray-500 dark:text-zinc-400">
             ({activeDryBack.poundsUntilIrrigation.toFixed(1)} {weightUnit} to limit)
           </span>
         </div>
@@ -548,19 +548,19 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
 
   {/* Environment Card */}
   {profile.hasClimateHub && (
-    <div className="bg-zinc-900/90 border border-zinc-800/80 rounded-2xl p-5 shadow-xl flex items-center gap-5">
+    <div className="bg-white/90 dark:bg-white dark:bg-zinc-900/90 border border-gray-200/80 dark:border-gray-200 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl flex items-center gap-5">
       <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 shadow-inner shrink-0">
         <ThermometerSun className="size-7" />
       </div>
       <div className="flex-1 min-w-0">
-        <span className="text-[11px] uppercase tracking-wider font-bold text-zinc-500 block">Room Climate</span>
+        <span className="text-[11px] uppercase tracking-wider font-bold text-gray-400 dark:text-zinc-500 block">Room Climate</span>
         {dbEnvironmentReadings.length > 0 ? (
           <>
             <div className="flex items-baseline gap-3 flex-wrap">
-              <span className="text-3xl font-black text-white">
+              <span className="text-3xl font-black text-gray-900 dark:text-white">
                 {(dbEnvironmentReadings.at(-1)?.temperatureF ?? 0).toFixed(1)}°F
               </span>
-              <span className="text-sm text-zinc-400">
+              <span className="text-sm text-gray-500 dark:text-zinc-400">
                 {(dbEnvironmentReadings.at(-1)?.humidity ?? 0).toFixed(0)}% RH
               </span>
               <span className={`text-sm font-bold ${
@@ -572,13 +572,13 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
               </span>
             </div>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-[10px] text-zinc-500">
+              <span className="text-[10px] text-gray-400 dark:text-zinc-500">
                 {selectedRoom} • {selectedStrain} • Batch: {batchName}
               </span>
             </div>
           </>
         ) : (
-          <span className="text-sm text-zinc-500">Waiting for data...</span>
+          <span className="text-sm text-gray-400 dark:text-zinc-500">Waiting for data...</span>
         )}
       </div>
     </div>
@@ -590,86 +590,90 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
   
   {/* LEFT COLUMN: Dry-Back Analytics (Inputs + Chart) */}
   <div className="space-y-4">
-    {/* Dry-Back Inputs */}
+        {/* Precision Dry-Back Analytics */}
     {profile.hasScales && (
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-xl">
-        <div className="flex items-center justify-between mb-4 border-b border-zinc-800 pb-3">
-          <div className="flex items-center gap-2">
-            <Sliders className="size-4 text-emerald-400" />
-            <h3 className="text-sm font-bold text-white">Dry-Back Analytics</h3>
-          </div>
-          {/* Unit Toggle */}
-          <div className="flex items-center gap-1 bg-zinc-950 rounded-lg p-1 border border-zinc-800">
-            <button
-              type="button"
-              onClick={() => setWeightUnit('lbs')}
-              className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
-                weightUnit === 'lbs' ? 'bg-emerald-600 text-white' : 'text-zinc-400 hover:text-zinc-200'
-              }`}
-            >
-              lbs
-            </button>
-            <button
-              type="button"
-              onClick={() => setWeightUnit('g')}
-              className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
-                weightUnit === 'g' ? 'bg-emerald-600 text-white' : 'text-zinc-400 hover:text-zinc-200'
-              }`}
-            >
-              g
-            </button>
-          </div>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-3">
-          <DarkNumberField
-            label={`Current Weight (${weightUnit})`}
-            value={currentWeight}
-            onChange={setCurrentWeight}
-          />
-          <DarkNumberField
-            label={`Target Dry (${weightUnit})`}
-            value={dryTargetWeight}
-            onChange={setDryTargetWeight}
-          />
-          <DarkNumberField
-            label={`Target Saturated (${weightUnit})`}
-            value={wetWeight}
-            onChange={setWetWeight}
-          />
-        </div>
-
-        <div className={`mt-4 rounded-xl p-3 border transition-all ${activeDryBack.isClamped ? "bg-amber-950/20 border-amber-900/50" : "bg-zinc-950/60 border-zinc-800"}`}>
-          <div className={`flex items-center gap-2 text-xs font-bold tracking-wide uppercase ${activeDryBack.isClamped ? "text-amber-400" : "text-emerald-400"}`}>
-            <Activity className="size-3.5" />
-            Watering Window
-          </div>
-          <p className="mt-1 text-xs leading-relaxed text-zinc-300">
-            {activeDryBack.isClamped ? (
-              "Calculations suspended. Re-verify inputs."
-            ) : (
-              <>Current root media is <span className="font-bold text-white">{activeDryBack.dryBackPercent.toFixed(1)}%</span> through dry-back. Irrigation trigger in <span className="font-bold text-emerald-400">{activeDryBack.estimatedHoursUntilWater} hours</span>.</>
-            )}
-          </p>
-        </div>
-
-        <button
-          type="button"
-          disabled={isSaving || activeDryBack.isClamped}
-          onClick={handleSaveLog}
-          className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] font-bold text-white text-xs px-4 py-3 shadow-lg shadow-emerald-950/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
-        >
-          {isSaving ? "Saving..." : "Log Dry-Back Reading"}
-        </button>
+  <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xl">
+    <div className="flex items-center gap-2 mb-4 border-b border-gray-200 dark:border-zinc-800 pb-3">
+      <Sliders className="size-4 text-emerald-400" />
+      <div>
+        <h3 className="text-sm font-bold text-gray-900 dark:text-white">Precision Dry-Back Analytics</h3>
+        <p className="text-[11px] text-gray-500 dark:text-zinc-400">Calibrate volumetric container dry targets down to single grams.</p>
       </div>
-    )}
+    </div>
+
+    {/* Unit Toggle */}
+    <div className="flex items-center gap-2 mb-3">
+      <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Unit:</span>
+      <button
+        type="button"
+        onClick={() => setWeightUnit('lbs')}
+        className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+          weightUnit === 'lbs' ? 'bg-emerald-600 text-gray-900 dark:text-white' : 'bg-zinc-800 text-gray-500 dark:text-zinc-400'
+        }`}
+      >
+        lbs
+      </button>
+      <button
+        type="button"
+        onClick={() => setWeightUnit('g')}
+        className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+          weightUnit === 'g' ? 'bg-emerald-600 text-gray-900 dark:text-white' : 'bg-zinc-800 text-gray-500 dark:text-zinc-400'
+        }`}
+      >
+        g
+      </button>
+    </div>
+
+    <div className="grid gap-4 sm:grid-cols-2">
+      <DarkNumberField
+        label={`Current Container Weight (${weightUnit})`}
+        value={currentWeight}
+        onChange={setCurrentWeight}
+      />
+      <DarkNumberField
+        label={`Target Dry Weight (${weightUnit})`}
+        value={dryTargetWeight}
+        onChange={setDryTargetWeight}
+      />
+      <DarkNumberField
+        label={`Target Saturated Weight (${weightUnit})`}
+        value={wetWeight}
+        onChange={setWetWeight}
+      />
+    </div>
+
+    <div className={`mt-5 rounded-xl p-4 border transition-all ${activeDryBack.isClamped ? "bg-amber-950/20 border-amber-900/50" : "bg-gray-50/60 dark:bg-gray-50 dark:bg-zinc-950/60 border-gray-200 dark:border-zinc-800"}`}>
+      <div className={`flex items-center gap-2 text-xs font-bold tracking-wide uppercase ${activeDryBack.isClamped ? "text-amber-400" : "text-emerald-400"}`}>
+        <Activity className="size-3.5" />
+        Watering Window Forecasting Matrix
+      </div>
+      <p className="mt-2 text-xs leading-relaxed text-gray-700 dark:text-zinc-300">
+        {activeDryBack.isClamped ? (
+          "Calculations suspended due to telemetry boundary violation error. Re-verify input configurations above."
+        ) : (
+          <>Current root media is <span className="font-bold text-gray-900 dark:text-white">{activeDryBack.dryBackPercent.toFixed(1)}%</span> through dry-back cycle target. Estimated irrigation trigger in <span className="font-bold text-emerald-400 underline decoration-emerald-500/30">{activeDryBack.estimatedHoursUntilWater} hours</span>.</>
+        )}
+      </p>
+    </div>
+
+    <button
+      type="button"
+      disabled={isSaving || activeDryBack.isClamped}
+      onClick={handleSaveLog}
+      className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] font-bold text-gray-900 dark:text-white text-xs px-4 py-3 shadow-lg shadow-emerald-950/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+    >
+      {isSaving ? "Saving..." : "Log Dry-Back Reading"}
+    </button>
+  </div>
+)}
+  </div>
 
     {/* Dry-Back Chart */}
     {profile.hasScales && (
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 shadow-xl">
+      <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 shadow-xl">
         <div className="flex justify-between items-center mb-3">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">Dry-Back Trend</h3>
-          <span className="text-[10px] font-mono text-zinc-500">{dbDryBackLogs.length} points</span>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400">Dry-Back Trend</h3>
+          <span className="text-[10px] font-mono text-gray-400 dark:text-zinc-500">{dbDryBackLogs.length} points</span>
         </div>
         <div className="h-48 w-full">
           <ResponsiveContainer width="100%" height="100%">
@@ -699,13 +703,13 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
 
   {/* RIGHT COLUMN: VPD Chart */}
   {profile.hasClimateHub && (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 shadow-xl">
+    <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 shadow-xl">
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-2">
           <Layers className="size-4 text-cyan-400" />
-          <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">Atmospheric VPD</h3>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400">Atmospheric VPD</h3>
         </div>
-        <span className="text-[10px] font-mono text-zinc-500">Continuous feed</span>
+        <span className="text-[10px] font-mono text-gray-400 dark:text-zinc-500">Continuous feed</span>
       </div>
       <div className="h-64 w-full">
         <ResponsiveContainer width="100%" height="100%">
@@ -754,90 +758,12 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
   )}
 </div>
             
-{/* CALCULATOR LOG CONSOLE */}
-{profile.hasScales && (
-  <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-xl">
-    <div className="flex items-center gap-2 mb-4 border-b border-zinc-800 pb-3">
-      <Sliders className="size-4 text-emerald-400" />
-      <div>
-        <h3 className="text-sm font-bold text-white">Precision Dry-Back Analytics</h3>
-        <p className="text-[11px] text-zinc-400">Calibrate volumetric container dry targets down to single grams.</p>
-      </div>
-    </div>
-
-    {/* Unit Toggle */}
-    <div className="flex items-center gap-2 mb-3">
-      <span className="text-xs font-bold text-zinc-400">Unit:</span>
-      <button
-        type="button"
-        onClick={() => setWeightUnit('lbs')}
-        className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-          weightUnit === 'lbs' ? 'bg-emerald-600 text-white' : 'bg-zinc-800 text-zinc-400'
-        }`}
-      >
-        lbs
-      </button>
-      <button
-        type="button"
-        onClick={() => setWeightUnit('g')}
-        className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-          weightUnit === 'g' ? 'bg-emerald-600 text-white' : 'bg-zinc-800 text-zinc-400'
-        }`}
-      >
-        g
-      </button>
-    </div>
-
-    <div className="grid gap-4 sm:grid-cols-2">
-      <DarkNumberField
-        label={`Current Container Weight (${weightUnit})`}
-        value={currentWeight}
-        onChange={setCurrentWeight}
-      />
-      <DarkNumberField
-        label={`Target Dry Weight (${weightUnit})`}
-        value={dryTargetWeight}
-        onChange={setDryTargetWeight}
-      />
-      <DarkNumberField
-        label={`Target Saturated Weight (${weightUnit})`}
-        value={wetWeight}
-        onChange={setWetWeight}
-      />
-    </div>
-
-    <div className={`mt-5 rounded-xl p-4 border transition-all ${activeDryBack.isClamped ? "bg-amber-950/20 border-amber-900/50" : "bg-zinc-950/60 border-zinc-800"}`}>
-      <div className={`flex items-center gap-2 text-xs font-bold tracking-wide uppercase ${activeDryBack.isClamped ? "text-amber-400" : "text-emerald-400"}`}>
-        <Activity className="size-3.5" />
-        Watering Window Forecasting Matrix
-      </div>
-      <p className="mt-2 text-xs leading-relaxed text-zinc-300">
-        {activeDryBack.isClamped ? (
-          "Calculations suspended due to telemetry boundary violation error. Re-verify input configurations above."
-        ) : (
-          <>Current root media is <span className="font-bold text-white">{activeDryBack.dryBackPercent.toFixed(1)}%</span> through dry-back cycle target. Estimated irrigation trigger in <span className="font-bold text-emerald-400 underline decoration-emerald-500/30">{activeDryBack.estimatedHoursUntilWater} hours</span>.</>
-        )}
-      </p>
-    </div>
-
-    <button
-      type="button"
-      disabled={isSaving || activeDryBack.isClamped}
-      onClick={handleSaveLog}
-      className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] font-bold text-white text-xs px-4 py-3 shadow-lg shadow-emerald-950/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
-    >
-      {isSaving ? "Syncing to Cloud Ledger..." : "Commit Diagnostics to Supabase"}
-    </button>
-  </div>
-)}
-  </div>
-
-  {/* FEEDING CALCULATOR (Collapsible) */}
+{/* FEEDING CALCULATOR (Collapsible) */}
 <div className="mt-6">
   <button
     type="button"
     onClick={() => setShowFeeding(!showFeeding)}
-    className="flex items-center gap-2 text-sm font-bold text-zinc-400 hover:text-white transition-colors cursor-pointer"
+    className="flex items-center gap-2 text-sm font-bold text-gray-500 dark:text-zinc-400 hover:text-gray-900 dark:text-white transition-colors cursor-pointer"
   >
     {showFeeding ? '▼' : '▶'} Feeding Calculator
     <span className="text-[10px] text-zinc-600 font-normal">
@@ -846,14 +772,14 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
   </button>
 
   {showFeeding && (
-    <div className="mt-3 bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-xl">
+    <div className="mt-3 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xl">
       {/* Header with Brand Selector */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-zinc-800 pb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-gray-200 dark:border-zinc-800 pb-3">
         <div className="flex items-center gap-2">
           <Droplets className="size-4 text-cyan-400" />
           <div>
-            <h3 className="text-sm font-bold text-white">Dynamic Reservoir Dosing</h3>
-            <p className="text-[11px] text-zinc-400">Top off system reservoirs while maintaining targeted chemical balances.</p>
+            <h3 className="text-sm font-bold text-gray-900 dark:text-white">Dynamic Reservoir Dosing</h3>
+            <p className="text-[11px] text-gray-500 dark:text-zinc-400">Top off system reservoirs while maintaining targeted chemical balances.</p>
           </div>
         </div>
 
@@ -861,10 +787,10 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
         <select
           value={activeLineId}
           onChange={(e) => setActiveLineId(e.target.value)}
-          className="text-xs font-bold rounded-lg border border-zinc-800 bg-zinc-950 p-2 outline-none text-zinc-200 cursor-pointer focus:border-cyan-500 transition-all shadow-inner"
+          className="text-xs font-bold rounded-lg border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 p-2 outline-none text-gray-800 dark:text-zinc-200 cursor-pointer focus:border-cyan-500 transition-all shadow-inner"
         >
           {combinedSchedules.map((s) => (
-            <option key={s.id} value={s.id} className="bg-zinc-900 text-zinc-100">
+            <option key={s.id} value={s.id} className="bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100">
               {s.brand} {s.stage ? `(${s.stage})` : ""}
             </option>
           ))}
@@ -876,9 +802,9 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
         <DarkNumberField label="Tank Capacity (Gal)" value={reservoirGallons} onChange={setReservoirGallons} />
         <DarkNumberField label="Current Backlog Vol (Gal)" value={leftoverGallons} onChange={setLeftoverGallons} />
         <div className="grid gap-1">
-          <span className="text-xs font-bold text-zinc-400 tracking-wide">Current Solution EC</span>
+          <span className="text-xs font-bold text-gray-500 dark:text-zinc-400 tracking-wide">Current Solution EC</span>
           <input
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-sm font-semibold text-white outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 disabled:opacity-40 disabled:bg-zinc-900 transition-all"
+            className="w-full rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 px-3 py-2.5 text-sm font-semibold text-gray-900 dark:text-white outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 disabled:opacity-40 disabled:bg-white dark:bg-zinc-900 transition-all"
             type="number"
             step="0.05"
             value={effectiveEc}
@@ -893,16 +819,16 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
       <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
         {activeSchedule.doses.map((dose: NutrientDose, index: number) => (
           <div key={`${dose.product}-${index}`} className="grid gap-3 grid-cols-[1fr_80px_90px] items-center">
-            <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 text-zinc-300 px-3 py-2 text-xs truncate font-medium">
+            <div className="rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50/40 dark:bg-gray-50 dark:bg-zinc-950/40 text-gray-700 dark:text-zinc-300 px-3 py-2 text-xs truncate font-medium">
               {dose.product}
             </div>
-            <div className="rounded-xl border border-zinc-800 bg-zinc-950/20 text-zinc-400 px-2 py-2 text-xs font-mono text-center">
+            <div className="rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50/20 dark:bg-gray-50 dark:bg-zinc-950/20 text-gray-500 dark:text-zinc-400 px-2 py-2 text-xs font-mono text-center">
               {dose.mlPerGallon} mL/g
             </div>
             <div className={`rounded-xl border px-3 py-2 text-xs font-black font-mono text-center transition-all ${
               reservoirDelta.isCriticalClamp
                 ? "bg-red-950/30 border-red-900/50 text-red-400 shadow-sm"
-                : "bg-zinc-950 text-orange-400 border-zinc-800"
+                : "bg-gray-50 dark:bg-zinc-950 text-orange-400 border-gray-200 dark:border-zinc-800"
             }`}>
               {reservoirDelta.nutrientsToAdd[index]?.totalMl ?? 0} mL
             </div>
@@ -912,22 +838,22 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
 
       {/* Footer: Dynamic Output Targets */}
       <div className={`mt-4 rounded-xl border p-4 transition-all ${
-        reservoirDelta.isCriticalClamp ? "bg-red-950/20 border-red-900/60" : "border-zinc-800 bg-zinc-950/30"
+        reservoirDelta.isCriticalClamp ? "bg-red-950/20 border-red-900/60" : "border-gray-200 dark:border-zinc-800 bg-gray-50/30 dark:bg-gray-50 dark:bg-zinc-950/30"
       }`}>
         <div className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider ${reservoirDelta.isCriticalClamp ? "text-red-400" : "text-emerald-400"}`}>
           <Sprout className="size-4" />
           Dynamic Output Targets • {activeSchedule.brand} ({activeSchedule.stage})
         </div>
-        <p className="mt-2 text-xs leading-relaxed text-zinc-300 font-medium">
+        <p className="mt-2 text-xs leading-relaxed text-gray-700 dark:text-zinc-300 font-medium">
           {effectiveEc === 0 ? (
             <>
-              <span className="text-white font-bold">Standard Delivery:</span> Mix base concentrates into fresh top‑off water to achieve <span className="font-extrabold text-white bg-zinc-950 px-1.5 py-0.5 rounded border border-zinc-800">{activeSchedule.targetEc} EC</span>.
+              <span className="text-gray-900 dark:text-white font-bold">Standard Delivery:</span> Mix base concentrates into fresh top‑off water to achieve <span className="font-extrabold text-gray-900 dark:text-white bg-gray-50 dark:bg-zinc-950 px-1.5 py-0.5 rounded border border-gray-200 dark:border-zinc-800">{activeSchedule.targetEc} EC</span>.
             </>
           ) : (
             <>
-              Target base blueprint: <span className="text-white font-bold">{activeSchedule.targetEc} EC</span>. 
-              Accounting for residual solution (<span className="text-white font-mono font-bold">{effectiveEc} EC</span>), 
-              blend top‑off to <span className={`font-black font-mono bg-zinc-950 px-1.5 py-0.5 rounded border ${reservoirDelta.isCriticalClamp ? 'text-red-400 border-red-900' : 'text-orange-400 border-zinc-800'}`}>{reservoirDelta.adjustedTopOffEc} EC</span>.
+              Target base blueprint: <span className="text-gray-900 dark:text-white font-bold">{activeSchedule.targetEc} EC</span>. 
+              Accounting for residual solution (<span className="text-gray-900 dark:text-white font-mono font-bold">{effectiveEc} EC</span>), 
+              blend top‑off to <span className={`font-black font-mono bg-gray-50 dark:bg-zinc-950 px-1.5 py-0.5 rounded border ${reservoirDelta.isCriticalClamp ? 'text-red-400 border-red-900' : 'text-orange-400 border-gray-200 dark:border-zinc-800'}`}>{reservoirDelta.adjustedTopOffEc} EC</span>.
             </>
           )}
         </p>
@@ -949,22 +875,22 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
       {/* MANUAL ENTRY MODAL */}
 {showManualForm && (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-    <div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+    <div className="w-full max-w-md rounded-2xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 shadow-2xl">
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-lg font-bold text-white">Manual Climate Log</h2>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">Manual Climate Log</h2>
         <button
           type="button"
           onClick={() => setShowManualForm(false)}
           className="rounded-lg p-1 hover:bg-zinc-800 transition-colors"
         >
-          <span className="text-zinc-400 text-xl leading-none">✕</span>
+          <span className="text-gray-500 dark:text-zinc-400 text-xl leading-none">✕</span>
         </button>
       </div>
 
       <form onSubmit={handleManualSubmit} className="space-y-4">
         {/* Temperature */}
         <div>
-          <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1">
+          <label className="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
             Temperature (°C)
           </label>
           <input
@@ -974,14 +900,14 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
             max="50"
             value={manualTemp}
             onChange={(e) => setManualTemp(parseFloat(e.target.value))}
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all"
+            className="w-full rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 px-4 py-3 text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all"
             required
           />
         </div>
 
         {/* Humidity */}
         <div>
-          <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1">
+          <label className="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
             Relative Humidity (%)
           </label>
           <input
@@ -991,7 +917,7 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
             max="100"
             value={manualHumidity}
             onChange={(e) => setManualHumidity(parseFloat(e.target.value))}
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all"
+            className="w-full rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 px-4 py-3 text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all"
             required
           />
         </div>
@@ -1003,14 +929,14 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
           <button
             type="button"
             onClick={() => setShowManualForm(false)}
-            className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm font-bold text-zinc-300 hover:bg-zinc-800 transition-colors"
+            className="flex-1 rounded-xl border border-gray-300 dark:border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm font-bold text-gray-700 dark:text-zinc-300 hover:bg-zinc-800 transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isSubmittingManual}
-            className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-gray-900 dark:text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmittingManual ? "Saving..." : "Save Entry"}
           </button>
@@ -1023,33 +949,33 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
 {/* CSV COLUMN MAPPING MODAL */}
  {showMappingModal && (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
-    <div className="w-full max-w-3xl rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+    <div className="w-full max-w-3xl rounded-2xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-lg font-bold text-white">Map CSV Columns</h2>
+        <h2 className="text-lg font-bold text-gray-900 dark:text-white">Map CSV Columns</h2>
         <button
           type="button"
           onClick={() => setShowMappingModal(false)}
           className="rounded-lg p-1 hover:bg-zinc-800 transition-colors"
         >
-          <span className="text-zinc-400 text-xl leading-none">✕</span>
+          <span className="text-gray-500 dark:text-zinc-400 text-xl leading-none">✕</span>
         </button>
       </div>
 
       {/* File info */}
-      <p className="text-xs text-zinc-400 mb-4">
-        File: <span className="text-zinc-200 font-medium">{csvFile?.name}</span>
+      <p className="text-xs text-gray-500 dark:text-zinc-400 mb-4">
+        File: <span className="text-gray-800 dark:text-zinc-200 font-medium">{csvFile?.name}</span>
       </p>
 
       {/* Column mapping grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div>
-          <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1">
+          <label className="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
             Timestamp *
           </label>
           <select
             value={csvMapping.timestampCol}
             onChange={(e) => setCsvMapping({ ...csvMapping, timestampCol: e.target.value })}
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+            className="w-full rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
           >
             <option value="">-- Select column --</option>
             {csvHeaders.map((h) => (
@@ -1059,13 +985,13 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1">
+          <label className="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
             Temperature *
           </label>
           <select
             value={csvMapping.temperatureCol}
             onChange={(e) => setCsvMapping({ ...csvMapping, temperatureCol: e.target.value })}
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+            className="w-full rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
           >
             <option value="">-- Select column --</option>
             {csvHeaders.map((h) => (
@@ -1075,13 +1001,13 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1">
+          <label className="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
             Humidity *
           </label>
           <select
             value={csvMapping.humidityCol}
             onChange={(e) => setCsvMapping({ ...csvMapping, humidityCol: e.target.value })}
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+            className="w-full rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
           >
             <option value="">-- Select column --</option>
             {csvHeaders.map((h) => (
@@ -1091,13 +1017,13 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1">
+          <label className="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
             Room ID (optional)
           </label>
           <select
             value={csvMapping.roomIdCol}
             onChange={(e) => setCsvMapping({ ...csvMapping, roomIdCol: e.target.value })}
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+            className="w-full rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
           >
             <option value="">-- None --</option>
             {csvHeaders.map((h) => (
@@ -1107,13 +1033,13 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
         </div>
 
         <div className="md:col-span-2">
-          <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1">
+          <label className="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
             Zone ID (optional)
           </label>
           <select
             value={csvMapping.zoneIdCol}
             onChange={(e) => setCsvMapping({ ...csvMapping, zoneIdCol: e.target.value })}
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+            className="w-full rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
           >
             <option value="">-- None --</option>
             {csvHeaders.map((h) => (
@@ -1126,21 +1052,21 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
       {/* Preview table */}
       {csvPreview.length > 0 && (
         <div className="mb-4">
-          <p className="text-xs text-zinc-400 mb-2">Preview (first {csvPreview.length} rows)</p>
-          <div className="overflow-x-auto rounded-xl border border-zinc-800">
+          <p className="text-xs text-gray-500 dark:text-zinc-400 mb-2">Preview (first {csvPreview.length} rows)</p>
+          <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-zinc-800">
             <table className="w-full text-xs">
-              <thead className="bg-zinc-950">
+              <thead className="bg-gray-50 dark:bg-zinc-950">
                 <tr>
                   {csvHeaders.map((h) => (
-                    <th key={h} className="px-3 py-2 text-left text-zinc-400 font-bold">{h}</th>
+                    <th key={h} className="px-3 py-2 text-left text-gray-500 dark:text-zinc-400 font-bold">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {csvPreview.map((row, idx) => (
-                  <tr key={idx} className="border-t border-zinc-800">
+                  <tr key={idx} className="border-t border-gray-200 dark:border-zinc-800">
                     {row.map((cell, cellIdx) => (
-                      <td key={cellIdx} className="px-3 py-2 text-zinc-200 truncate max-w-[120px]">
+                      <td key={cellIdx} className="px-3 py-2 text-gray-800 dark:text-zinc-200 truncate max-w-[120px]">
                         {cell || "—"}
                       </td>
                     ))}
@@ -1153,11 +1079,11 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
       )}
 
       {/* Actions */}
-      <div className="flex gap-3 pt-2 border-t border-zinc-800 mt-2">
+      <div className="flex gap-3 pt-2 border-t border-gray-200 dark:border-zinc-800 mt-2">
         <button
           type="button"
           onClick={() => setShowMappingModal(false)}
-          className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm font-bold text-zinc-300 hover:bg-zinc-800 transition-colors"
+          className="flex-1 rounded-xl border border-gray-300 dark:border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm font-bold text-gray-700 dark:text-zinc-300 hover:bg-zinc-800 transition-colors"
         >
           Cancel
         </button>
@@ -1191,7 +1117,7 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
               setCsvImporting(false);
             }
           }}
-          className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-gray-900 dark:text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {csvImporting ? "Importing..." : "Import Data"}
         </button>
@@ -1212,10 +1138,10 @@ type DarkNumberFieldProps = {
 
 function DarkNumberField({ label, value, onChange }: DarkNumberFieldProps) {
   return (
-    <label className="grid gap-1 text-xs font-bold text-zinc-400 tracking-wide">
+    <label className="grid gap-1 text-xs font-bold text-gray-500 dark:text-zinc-400 tracking-wide">
       {label}
       <input
-        className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-sm font-semibold text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all"
+        className="w-full rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 px-3 py-2.5 text-sm font-semibold text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all"
         min={0}
         step="0.05"
         type="number"

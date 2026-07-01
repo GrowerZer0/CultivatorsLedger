@@ -32,6 +32,8 @@ import {
 } from "@/app/actions";
 import { createClient } from "@supabase/supabase-js";
 
+type UserProfile = any;
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -72,7 +74,7 @@ export default function SettingsPage() {
       const dbBlueprints = await getCustomBlueprints();
       setCustomSchedules(dbBlueprints || []);
       
-      const profile = await getUserProfile();
+      const profile = await getUserProfile() as UserProfile;
       if (profile) {
         if (profile.activeFeedLine) setActiveFeedLine(profile.activeFeedLine);
         
@@ -197,12 +199,17 @@ export default function SettingsPage() {
   async function handleDelete(id: string) {
     if (!confirm("Are you absolutely sure you want to delete this custom nutrient profile? This change will immediately affect dashboard execution targets.")) return;
     
-    const result = await deleteCustomBlueprint(id);
-    if (result.success) {
-      setEditingSchedule(null);
-      loadProfileAndBlueprints();
-    } else {
-      alert(`Deletion failure: ${result.error || "Could not clear record."}`);
+    try {
+      const result = await deleteCustomBlueprint(id);
+      if (result && result.success) {
+        setEditingSchedule(null);
+        loadProfileAndBlueprints();
+      } else {
+        alert("Deletion failure: Could not clear record.");
+      }
+    } catch (err) {
+      console.error("Failed to delete blueprint:", err);
+      alert("Deletion failure: Could not clear record.");
     }
   }
 
