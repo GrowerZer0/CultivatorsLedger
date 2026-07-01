@@ -76,7 +76,10 @@ export default function Page() {
   const [currentEc, setCurrentEc] = useState(1.4);
   const [isSaving, setIsSaving] = useState(false);
   const [weightUnit, setWeightUnit] = useState<'lbs' | 'g'>('lbs');
-  
+  const [selectedRoom, setSelectedRoom] = useState('tent_1');
+  const [selectedStrain, setSelectedStrain] = useState('Blueberry Muffin');
+  const [batchName, setBatchName] = useState("Blueberry Muffin #3");
+
   // --- CSV Import Column Mapping State ---
 const [showMappingModal, setShowMappingModal] = useState(false);
 const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
@@ -378,79 +381,113 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
       <div className="min-h-screen bg-[#0B0F19] text-zinc-100 p-1 lg:p-4 font-sans selection:bg-emerald-500/30">
         
         {/* TOP COMMAND NAVIGATION BAR */}
-        <header className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-5">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded">
-                Production Environment
-              </span>
-            </div>
-            <h1 className="text-2xl font-black tracking-tight text-white mt-1">Facility Control Room</h1>
-            <div className="flex items-center gap-3 mt-1">
-  <span className="text-xs text-zinc-400">Current Batch:</span>
-  <input
-    type="text"
-    placeholder="e.g. Blueberry Muffin #3"
-    className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1 text-sm text-white outline-none focus:border-emerald-500"
-    value="Blueberry Muffin"
-    onChange={(e) => {} /* we'll wire this later */}
-  />
-</div>
-            <p className="text-xs text-zinc-400 mt-0.5">Real-time telemetry aggregation and structural crop-steering optimization arrays.</p>
-          </div>
+        <header className="mb-6 flex flex-col gap-4 border-b border-zinc-800 pb-5">
+  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+      <div className="flex items-center gap-2">
+        <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded">
+          Production Environment
+        </span>
+      </div>
+      <h1 className="text-2xl font-black tracking-tight text-white mt-1">Facility Control Room</h1>
+      <p className="text-xs text-zinc-400 mt-0.5">Real-time telemetry aggregation and structural crop-steering optimization arrays.</p>
+    </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setShowManualForm(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-xs font-bold text-white shadow-lg shadow-emerald-900/30 transition-all cursor-pointer"
-          >
-            <Plus className="size-4" />
-              Log Manual Reading
-            </button>
-            <button
-              type="button"
-              onClick={() => document.getElementById("csv-upload")?.click()}
-              className="inline-flex items-center gap-2 rounded-xl border border-zinc-700 hover:border-zinc-500 px-4 py-2 text-xs font-bold text-zinc-300 transition-all cursor-pointer"
-            >
-            <Upload className="size-4" />
-              Import CSV
-            </button>
-            <input
-              id="csv-upload"
-              type="file"
-              accept=".csv"
-              className="hidden"
-              onChange={handleCsvFileSelect}
-            />
-          </div>
+    <div className="flex items-center gap-3 flex-wrap">
+      <button
+        type="button"
+        onClick={() => setShowManualForm(true)}
+        className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-2 text-xs font-bold text-white shadow-lg shadow-emerald-900/30 transition-all cursor-pointer"
+      >
+        <Plus className="size-4" />
+        Log Manual Reading
+      </button>
+      <button
+        type="button"
+        onClick={() => document.getElementById("csv-upload")?.click()}
+        className="inline-flex items-center gap-2 rounded-xl border border-zinc-700 hover:border-zinc-500 px-4 py-2 text-xs font-bold text-zinc-300 transition-all cursor-pointer"
+      >
+        <Upload className="size-4" />
+        Import CSV
+      </button>
+      <input
+        id="csv-upload"
+        type="file"
+        accept=".csv"
+        className="hidden"
+        onChange={handleCsvFileSelect}
+      />
+    </div>
+  </div>
 
-          {/* SENSOR INGESTION MASTER CONTROL */}
-          <div className="inline-flex rounded-xl bg-zinc-950 p-1 border border-zinc-800 self-start md:self-auto shadow-inner">
-            <button
-              type="button"
-              onClick={() => setIsSensorDriven(false)}
-              className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                !isSensorDriven 
-                  ? "bg-zinc-800 text-white shadow-md ring-1 ring-zinc-700/50" 
-                  : "text-zinc-500 hover:text-zinc-300"
-              }`}
-            >
-              <Keyboard className="size-3.5" /> Manual Ledger Mode
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsSensorDriven(true)}
-              className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                isSensorDriven 
-                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/20 ring-1 ring-emerald-500/30" 
-                  : "text-zinc-500 hover:text-zinc-300"
-              }`}
-            >
-              <Cpu className="size-3.5" /> Hardware Stream Active
-            </button>
-          </div>
-        </header>
+  {/* Room & Strain Selectors + Batch Input */}
+  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap border-t border-zinc-800 pt-4 mt-1">
+    <div className="flex items-center gap-2">
+      <span className="text-xs font-bold text-zinc-400">Room:</span>
+      <select
+        value={selectedRoom}
+        onChange={(e) => setSelectedRoom(e.target.value)}
+        className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-white outline-none focus:border-emerald-500 transition-all"
+      >
+        <option value="tent_1">Tent 1</option>
+        <option value="tent_2">Tent 2</option>
+        <option value="room_a">Room A</option>
+        <option value="room_b">Room B</option>
+      </select>
+    </div>
+
+    <div className="flex items-center gap-2">
+      <span className="text-xs font-bold text-zinc-400">Strain:</span>
+      <select
+        value={selectedStrain}
+        onChange={(e) => setSelectedStrain(e.target.value)}
+        className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-white outline-none focus:border-emerald-500 transition-all"
+      >
+        <option value="Blueberry Muffin">Blueberry Muffin</option>
+        <option value="Gelato">Gelato</option>
+        <option value="Pineapple Express">Pineapple Express</option>
+        <option value="OG Kush">OG Kush</option>
+      </select>
+    </div>
+
+    <div className="flex items-center gap-2">
+      <span className="text-xs font-bold text-zinc-400">Batch:</span>
+      <input
+        type="text"
+        placeholder="e.g. BM #3"
+        className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-white outline-none focus:border-emerald-500 w-32"
+        value={batchName}
+        onChange={(e) => setBatchName(e.target.value)}
+      />
+    </div>
+
+    {/* Sensor Mode Toggle - moved here for consistency */}
+    <div className="inline-flex rounded-xl bg-zinc-950 p-1 border border-zinc-800 ml-auto">
+      <button
+        type="button"
+        onClick={() => setIsSensorDriven(false)}
+        className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+          !isSensorDriven
+            ? "bg-zinc-800 text-white shadow-md ring-1 ring-zinc-700/50"
+            : "text-zinc-500 hover:text-zinc-300"
+        }`}
+      >
+        <Keyboard className="size-3.5" /> Manual
+      </button>
+      <button
+        type="button"
+        onClick={() => setIsSensorDriven(true)}
+        className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+          isSensorDriven
+            ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/20 ring-1 ring-emerald-500/30"
+            : "text-zinc-500 hover:text-zinc-300"
+        }`}
+      >
+        <Cpu className="size-3.5" /> Hardware
+      </button>
+    </div>
+  </div>
+</header>
 
         {/* INCIDENT REPORT & FAULT MONITOR LINE */}
         {dynamicGrowAlerts.length > 0 && (
@@ -482,161 +519,239 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
           </div>
         )}
 
-        {/* 📊 HIGH-DENSITY PRIMARY TELEMETRY GAUGES */}
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mb-6">
-          {profile.hasScales && (
-            <div className="bg-zinc-900/90 border border-zinc-800/80 rounded-2xl p-4 shadow-xl flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-inner">
-                <Weight className="size-6" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-[11px] uppercase tracking-wider font-bold text-zinc-500 block">Dry-Back Progress</span>
-                <span className="text-2xl font-black text-white block mt-0.5">{activeDryBack.dryBackPercent.toFixed(0)}%</span>
-                <span className="text-[11px] text-zinc-400 block truncate mt-0.5">{activeDryBack.poundsUntilIrrigation.toFixed(1)} lbs to target limit</span>
-                <span className="text-[10px] text-zinc-500 block truncate mt-0.5">
-                  Current: {effectiveWeight} {weightUnit}
-                </span>
-              </div>
-            </div>
-          )}
-          
-{/*           <div className="bg-zinc-900/90 border border-zinc-800/80 rounded-2xl p-4 shadow-xl flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 shadow-inner">
-              <Droplets className="size-6" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <span className="text-[11px] uppercase tracking-wider font-bold text-zinc-500 block">Reservoir Refill</span>
-              <span className="text-2xl font-black text-white block mt-0.5">{reservoirDelta.topOffGallons} Gal</span>
-              <span className="text-[11px] text-zinc-400 block truncate mt-0.5">{reservoirDelta.waterPercentToAdd}% of tank capacity empty</span>
-            </div>
-          </div> */}
-          
-          {profile.hasClimateHub && (
-  <div className="bg-zinc-900/90 border border-zinc-800/80 rounded-2xl p-4 shadow-xl flex items-center gap-4">
-    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 shadow-inner">
-      <ThermometerSun className="size-6" />
-    </div>
-    <div className="flex-1 min-w-0">
-      <span className="text-[11px] uppercase tracking-wider font-bold text-zinc-500 block">Room Climate</span>
-      {dbEnvironmentReadings.length > 0 ? (
-        <>
-          <span className="text-2xl font-black text-white block mt-0.5">
-            {(dbEnvironmentReadings.at(-1)?.temperatureF ?? 0).toFixed(1)}°F
+{/* 📊 PRIMARY METRICS */}
+<div className="grid gap-4 md:grid-cols-2 mb-6">
+  {/* Dry-Back Progress Card */}
+  {profile.hasScales && (
+    <div className="bg-zinc-900/90 border border-zinc-800/80 rounded-2xl p-5 shadow-xl flex items-center gap-5">
+      <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-inner shrink-0">
+        <Weight className="size-7" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <span className="text-[11px] uppercase tracking-wider font-bold text-zinc-500 block">Dry-Back Progress</span>
+        <div className="flex items-baseline gap-2">
+          <span className="text-3xl font-black text-white">{activeDryBack.dryBackPercent.toFixed(0)}%</span>
+          <span className="text-xs text-zinc-400">
+            ({activeDryBack.poundsUntilIrrigation.toFixed(1)} {weightUnit} to limit)
           </span>
-          <span className="text-[11px] text-zinc-400 block truncate mt-0.5">
-            {(dbEnvironmentReadings.at(-1)?.humidity ?? 0).toFixed(0)}% RH • {(dbEnvironmentReadings.at(-1)?.vpd ?? 0).toFixed(2)} VPD
-          </span>
-        </>
-      ) : (
-        <span className="text-sm text-zinc-500 block mt-0.5">Waiting for data...</span>
-      )}
+        </div>
+        <div className="w-full bg-zinc-800 rounded-full h-1.5 mt-2">
+          <div
+            className="bg-emerald-500 h-1.5 rounded-full transition-all duration-300"
+            style={{ width: `${Math.min(100, activeDryBack.dryBackPercent)}%` }}
+          />
+        </div>
+      </div>
     </div>
-  </div>
-)}
+  )}
+
+  {/* Environment Card */}
+  {profile.hasClimateHub && (
+    <div className="bg-zinc-900/90 border border-zinc-800/80 rounded-2xl p-5 shadow-xl flex items-center gap-5">
+      <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 shadow-inner shrink-0">
+        <ThermometerSun className="size-7" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <span className="text-[11px] uppercase tracking-wider font-bold text-zinc-500 block">Room Climate</span>
+        {dbEnvironmentReadings.length > 0 ? (
+          <>
+            <div className="flex items-baseline gap-3 flex-wrap">
+              <span className="text-3xl font-black text-white">
+                {(dbEnvironmentReadings.at(-1)?.temperatureF ?? 0).toFixed(1)}°F
+              </span>
+              <span className="text-sm text-zinc-400">
+                {(dbEnvironmentReadings.at(-1)?.humidity ?? 0).toFixed(0)}% RH
+              </span>
+              <span className={`text-sm font-bold ${
+                (dbEnvironmentReadings.at(-1)?.vpd ?? 0) > 1.2 ? 'text-amber-400' :
+                (dbEnvironmentReadings.at(-1)?.vpd ?? 0) < 0.8 ? 'text-blue-400' :
+                'text-emerald-400'
+              }`}>
+                {(dbEnvironmentReadings.at(-1)?.vpd ?? 0).toFixed(2)} VPD
+              </span>
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-[10px] text-zinc-500">
+                {selectedRoom} • {selectedStrain} • Batch: {batchName}
+              </span>
+            </div>
+          </>
+        ) : (
+          <span className="text-sm text-zinc-500">Waiting for data...</span>
+        )}
+      </div>
+    </div>
+  )}
 </div>
-{/*           {profile.hasEcmeter && (
-            <div className="bg-zinc-900/90 border border-zinc-800/80 rounded-2xl p-4 shadow-xl flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 shadow-inner">
-                <Gauge className="size-6" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-[11px] uppercase tracking-wider font-bold text-zinc-500 block">Substrate Runoff EC</span>
-                <span className="text-2xl font-black text-white block mt-0.5">{effectiveEc.toFixed(2)}</span>
-                <span className="text-[11px] text-zinc-400 block truncate mt-0.5">{isSensorDriven ? "Inline hardware streaming" : "Manual entry log"}</span>
-              </div>
-            </div>
-          )}
-        </div> */}
 
-        {/* 🎛️ TWO-COLUMN OPERATIONAL CONTROL GRID */}
-        <div className="grid gap-6 xl:grid-cols-[1fr_1.1fr] mb-6">
-          
-          {/* COLUMN 1: ANALYTICS VAULT */}
-          <div className="space-y-6">
-            {profile.hasScales && (
-              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 shadow-xl">
-                <div className="flex justify-between items-center mb-3">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="size-4 text-emerald-400" />
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">Media Dryback Cycle Log</h3>
-                  </div>
-                  <span className="text-[10px] font-mono text-zinc-500">{dbDryBackLogs.length} points</span>
-                </div>
-                <div className="h-56 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={dryBackChartData} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>
-                      <CartesianGrid stroke="#1F2937" className="opacity-40" strokeDasharray="3 3" />
-                      <XAxis dataKey="time" stroke="#4B5563" fontSize={10} tickLine={false} />
-                      <YAxis
-                        stroke="#4B5563"
-                        fontSize={10}
-                        tickLine={false}
-                        label={{
-                          value: `Weight (${weightUnit})`,
-                          angle: -90,
-                          position: 'insideLeft',
-                          fill: '#9CA3AF',
-                          fontSize: 10,
-                      }}
-                    />
-                      <Tooltip contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', color: '#fff', fontSize: '12px' }} />
-                      <Line type="monotone" dataKey="weight" name="Weight (lbs)" stroke="#10B981" strokeWidth={2.5} dot={false} />
-                      {profile.hasEcmeter && (
-                        <Line type="monotone" dataKey="runoff_ec" name="Runoff EC" stroke="#F97316" strokeWidth={1.5} dot={false} />
-                      )}
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            )}
-
-            {profile.hasClimateHub && (
-              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 shadow-xl">
-                <div className="flex justify-between items-center mb-3">
-                  <div className="flex items-center gap-2">
-                    <Layers className="size-4 text-cyan-400" />
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">Atmospheric Vapor Deficit ($VPD$)</h3>
-                  </div>
-                  <span className="text-[10px] font-mono text-zinc-500">Continuous feed</span>
-                </div>
-                <div className="h-56 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart key={dbEnvironmentReadings.length} data={dbEnvironmentReadings} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>                      
-                      <XAxis dataKey="recordedAt" stroke="#4B5563" fontSize={10} tickLine={false} />
-                      <YAxis stroke="#4B5563" fontSize={10} tickLine={false} />
-                      <Tooltip contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', color: '#fff', fontSize: '12px' }} />
-                      <ReferenceArea
-                        y1={0.8}
-                        y2={1.2}
-                        fill="#10B981"
-                        fillOpacity={0.1}
-                        stroke="#10B981"
-                        strokeOpacity={0.2}
-                        strokeDasharray="3 3"
-                        label={{
-                          value: "Target VPD (0.8–1.2)",
-                          position: "top",
-                          fill: "#10B981",
-                          fontSize: 10,
-                          fontWeight: "bold",
-                  }}
-                />
-                      <Area type="monotone" dataKey="vpd" name="VPD" stroke="#06B6D4" fill="url(#colorVpd)" strokeWidth={2} />
-                      <defs>
-                        <linearGradient id="colorVpd" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.15}/>
-                          <stop offset="95%" stopColor="#06B6D4" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            )}
+{/* 🎛️ TWO-COLUMN OPERATIONAL CONTROL GRID */}
+<div className="grid gap-6 xl:grid-cols-2 mb-6">
+  
+  {/* LEFT COLUMN: Dry-Back Analytics (Inputs + Chart) */}
+  <div className="space-y-4">
+    {/* Dry-Back Inputs */}
+    {profile.hasScales && (
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-xl">
+        <div className="flex items-center justify-between mb-4 border-b border-zinc-800 pb-3">
+          <div className="flex items-center gap-2">
+            <Sliders className="size-4 text-emerald-400" />
+            <h3 className="text-sm font-bold text-white">Dry-Back Analytics</h3>
           </div>
+          {/* Unit Toggle */}
+          <div className="flex items-center gap-1 bg-zinc-950 rounded-lg p-1 border border-zinc-800">
+            <button
+              type="button"
+              onClick={() => setWeightUnit('lbs')}
+              className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
+                weightUnit === 'lbs' ? 'bg-emerald-600 text-white' : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              lbs
+            </button>
+            <button
+              type="button"
+              onClick={() => setWeightUnit('g')}
+              className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
+                weightUnit === 'g' ? 'bg-emerald-600 text-white' : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              g
+            </button>
+          </div>
+        </div>
 
-          {/* COLUMN 2: OPERATIONS SYSTEM CONTROL CONSOLE */}
-          <div className="space-y-6">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <DarkNumberField
+            label={`Current Weight (${weightUnit})`}
+            value={currentWeight}
+            onChange={setCurrentWeight}
+          />
+          <DarkNumberField
+            label={`Target Dry (${weightUnit})`}
+            value={dryTargetWeight}
+            onChange={setDryTargetWeight}
+          />
+          <DarkNumberField
+            label={`Target Saturated (${weightUnit})`}
+            value={wetWeight}
+            onChange={setWetWeight}
+          />
+        </div>
+
+        <div className={`mt-4 rounded-xl p-3 border transition-all ${activeDryBack.isClamped ? "bg-amber-950/20 border-amber-900/50" : "bg-zinc-950/60 border-zinc-800"}`}>
+          <div className={`flex items-center gap-2 text-xs font-bold tracking-wide uppercase ${activeDryBack.isClamped ? "text-amber-400" : "text-emerald-400"}`}>
+            <Activity className="size-3.5" />
+            Watering Window
+          </div>
+          <p className="mt-1 text-xs leading-relaxed text-zinc-300">
+            {activeDryBack.isClamped ? (
+              "Calculations suspended. Re-verify inputs."
+            ) : (
+              <>Current root media is <span className="font-bold text-white">{activeDryBack.dryBackPercent.toFixed(1)}%</span> through dry-back. Irrigation trigger in <span className="font-bold text-emerald-400">{activeDryBack.estimatedHoursUntilWater} hours</span>.</>
+            )}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          disabled={isSaving || activeDryBack.isClamped}
+          onClick={handleSaveLog}
+          className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] font-bold text-white text-xs px-4 py-3 shadow-lg shadow-emerald-950/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+        >
+          {isSaving ? "Saving..." : "Log Dry-Back Reading"}
+        </button>
+      </div>
+    )}
+
+    {/* Dry-Back Chart */}
+    {profile.hasScales && (
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 shadow-xl">
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">Dry-Back Trend</h3>
+          <span className="text-[10px] font-mono text-zinc-500">{dbDryBackLogs.length} points</span>
+        </div>
+        <div className="h-48 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={dryBackChartData} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>
+              <CartesianGrid stroke="#1F2937" className="opacity-40" strokeDasharray="3 3" />
+              <XAxis dataKey="time" stroke="#4B5563" fontSize={10} tickLine={false} />
+              <YAxis
+                stroke="#4B5563"
+                fontSize={10}
+                tickLine={false}
+                label={{
+                  value: `Weight (${weightUnit})`,
+                  angle: -90,
+                  position: 'insideLeft',
+                  fill: '#9CA3AF',
+                  fontSize: 10,
+                }}
+              />
+              <Tooltip contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', color: '#fff', fontSize: '12px' }} />
+              <Line type="monotone" dataKey="weight" name="Weight" stroke="#10B981" strokeWidth={2.5} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    )}
+  </div>
+
+  {/* RIGHT COLUMN: VPD Chart */}
+  {profile.hasClimateHub && (
+    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 shadow-xl">
+      <div className="flex justify-between items-center mb-3">
+        <div className="flex items-center gap-2">
+          <Layers className="size-4 text-cyan-400" />
+          <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">Atmospheric VPD</h3>
+        </div>
+        <span className="text-[10px] font-mono text-zinc-500">Continuous feed</span>
+      </div>
+      <div className="h-64 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart key={dbEnvironmentReadings.length} data={dbEnvironmentReadings} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>
+            <XAxis dataKey="recordedAt" stroke="#4B5563" fontSize={10} tickLine={false} />
+            <YAxis
+              stroke="#4B5563"
+              fontSize={10}
+              tickLine={false}
+              label={{
+                value: 'VPD (kPa)',
+                angle: -90,
+                position: 'insideLeft',
+                fill: '#9CA3AF',
+                fontSize: 10,
+              }}
+            />
+            <Tooltip contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', color: '#fff', fontSize: '12px' }} />
+            <ReferenceArea
+              y1={0.8}
+              y2={1.2}
+              fill="#10B981"
+              fillOpacity={0.1}
+              stroke="#10B981"
+              strokeOpacity={0.2}
+              strokeDasharray="3 3"
+              label={{
+                value: "Target",
+                position: "top",
+                fill: "#10B981",
+                fontSize: 10,
+                fontWeight: "bold",
+              }}
+            />
+            <Area type="monotone" dataKey="vpd" name="VPD" stroke="#06B6D4" fill="url(#colorVpd)" strokeWidth={2} />
+            <defs>
+              <linearGradient id="colorVpd" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.15}/>
+                <stop offset="95%" stopColor="#06B6D4" stopOpacity={0}/>
+              </linearGradient>
+            </defs>
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  )}
+</div>
             
 {/* CALCULATOR LOG CONSOLE */}
 {profile.hasScales && (
@@ -715,72 +830,6 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
   </div>
 )}
   </div>
-</div>
-
-{/*                   // RESERVOIR DOSING CALCULATOR
-             <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-xl">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-zinc-800 pb-3">
-                <div className="flex items-center gap-2">
-                  <Droplets className="size-4 text-cyan-400" />
-                  <div>
-                    <h3 className="text-sm font-bold text-white">Dynamic Reservoir Dosing</h3>
-                    <p className="text-[11px] text-zinc-400">Top off system reservoirs while maintaining targeted chemical balances.</p>
-                  </div>
-                </div>
-                
-                // BRAND SCHEDULE INTERACTIVE SELECTOR 
-                <select
-                  value={activeLineId}
-                  onChange={(e) => setActiveLineId(e.target.value)}
-                  className="text-xs font-bold rounded-lg border border-zinc-800 bg-zinc-950 p-2 outline-none text-zinc-200 cursor-pointer focus:border-cyan-500 transition-all shadow-inner"
-                >
-                  {combinedSchedules.map((s) => (
-                    <option key={s.id} value={s.id} className="bg-zinc-900 text-zinc-100">
-                      {s.brand} {s.stage ? `(${s.stage})` : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-3 mb-4">
-                <DarkNumberField label="Tank Capacity (Gal)" value={reservoirGallons} onChange={setReservoirGallons} />
-                <DarkNumberField label="Current Backlog Vol (Gal)" value={leftoverGallons} onChange={setLeftoverGallons} />
-                
-                <div className="grid gap-1">
-                  <span className="text-xs font-bold text-zinc-400 tracking-wide">Current Solution EC</span>
-                  <input
-                    className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-sm font-semibold text-white outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 disabled:opacity-40 disabled:bg-zinc-900 transition-all"
-                    type="number"
-                    step="0.05"
-                    value={effectiveEc}
-                    onChange={(e) => setCurrentEc(Number(e.target.value))}
-                    disabled={isSensorDriven}
-                  />
-                  {isSensorDriven && <span className="text-[9px] text-emerald-400 font-bold tracking-wider mt-0.5">LOCKED TO SENSOR</span>}
-                </div>
-              </div>
-
-              // NUTRIENT CONCENTRATE BREAKDOWN OUTPUTS 
-              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                {activeSchedule.doses.map((dose: NutrientDose, index: number) => (
-                  <div key={`${dose.product}-${index}`} className="grid gap-3 grid-cols-[1fr_80px_90px] items-center">
-                    <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 text-zinc-300 px-3 py-2 text-xs truncate font-medium">
-                      {dose.product}
-                    </div>
-                    <div className="rounded-xl border border-zinc-800 bg-zinc-950/20 text-zinc-400 px-2 py-2 text-xs font-mono text-center">
-                      {dose.mlPerGallon} mL/g
-                    </div>
-                    <div className={`rounded-xl border px-3 py-2 text-xs font-black font-mono text-center transition-all ${
-                      reservoirDelta.isCriticalClamp 
-                        ? "bg-red-950/30 border-red-900/50 text-red-400 shadow-sm" 
-                        : "bg-zinc-950 text-orange-400 border-zinc-800"
-                    }`}>
-                      {reservoirDelta.nutrientsToAdd[index]?.totalMl ?? 0} mL
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div> */}
 
         {/* COMPREHENSIVE CONTEXT INTERACTIVE DATA DOCK PANEL */}
         <AIChatWidget
@@ -865,7 +914,6 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     </div>
   </div>
 )}
-</div>
 
 {/* CSV COLUMN MAPPING MODAL */}
  {showMappingModal && (
