@@ -15,7 +15,7 @@ import {
   Sliders,
   TrendingUp,
   Layers,
-  Upload
+  Upload,
 } from "lucide-react";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import {
@@ -27,7 +27,8 @@ import {
   ResponsiveContainer,
   Tooltip,
   XAxis,
-  YAxis
+  YAxis,
+  ReferenceArea,
 } from "recharts";
 import { AppShell } from "@/components/layout/AppShell";
 import { ChartFrame } from "@/components/layout/ChartFrame";
@@ -383,6 +384,16 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
               </span>
             </div>
             <h1 className="text-2xl font-black tracking-tight text-white mt-1">Facility Control Room</h1>
+            <div className="flex items-center gap-3 mt-1">
+  <span className="text-xs text-zinc-400">Current Batch:</span>
+  <input
+    type="text"
+    placeholder="e.g. Blueberry Muffin #3"
+    className="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1 text-sm text-white outline-none focus:border-emerald-500"
+    value="Blueberry Muffin"
+    onChange={(e) => {} /* we'll wire this later */}
+  />
+</div>
             <p className="text-xs text-zinc-400 mt-0.5">Real-time telemetry aggregation and structural crop-steering optimization arrays.</p>
           </div>
 
@@ -483,8 +494,8 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
               </div>
             </div>
           )}
-
-          <div className="bg-zinc-900/90 border border-zinc-800/80 rounded-2xl p-4 shadow-xl flex items-center gap-4">
+          
+{/*           <div className="bg-zinc-900/90 border border-zinc-800/80 rounded-2xl p-4 shadow-xl flex items-center gap-4">
             <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 shadow-inner">
               <Droplets className="size-6" />
             </div>
@@ -493,8 +504,8 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
               <span className="text-2xl font-black text-white block mt-0.5">{reservoirDelta.topOffGallons} Gal</span>
               <span className="text-[11px] text-zinc-400 block truncate mt-0.5">{reservoirDelta.waterPercentToAdd}% of tank capacity empty</span>
             </div>
-          </div>
-
+          </div> */}
+          
           {profile.hasClimateHub && (
   <div className="bg-zinc-900/90 border border-zinc-800/80 rounded-2xl p-4 shadow-xl flex items-center gap-4">
     <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 shadow-inner">
@@ -517,8 +528,8 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     </div>
   </div>
 )}
-
-          {profile.hasEcmeter && (
+</div>
+{/*           {profile.hasEcmeter && (
             <div className="bg-zinc-900/90 border border-zinc-800/80 rounded-2xl p-4 shadow-xl flex items-center gap-4">
               <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 shadow-inner">
                 <Gauge className="size-6" />
@@ -530,7 +541,7 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
               </div>
             </div>
           )}
-        </div>
+        </div> */}
 
         {/* 🎛️ TWO-COLUMN OPERATIONAL CONTROL GRID */}
         <div className="grid gap-6 xl:grid-cols-[1fr_1.1fr] mb-6">
@@ -574,9 +585,26 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
                 </div>
                 <div className="h-56 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart key={dbEnvironmentReadings.length} data={dbEnvironmentReadings} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>                      <XAxis dataKey="recordedAt" stroke="#4B5563" fontSize={10} tickLine={false} />
+                      <AreaChart key={dbEnvironmentReadings.length} data={dbEnvironmentReadings} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>                      
+                      <XAxis dataKey="recordedAt" stroke="#4B5563" fontSize={10} tickLine={false} />
                       <YAxis stroke="#4B5563" fontSize={10} tickLine={false} />
                       <Tooltip contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', color: '#fff', fontSize: '12px' }} />
+                      <ReferenceArea
+                        y1={0.8}
+                        y2={1.2}
+                        fill="#10B981"
+                        fillOpacity={0.1}
+                        stroke="#10B981"
+                        strokeOpacity={0.2}
+                        strokeDasharray="3 3"
+                        label={{
+                          value: "Target VPD (0.8–1.2)",
+                          position: "top",
+                          fill: "#10B981",
+                          fontSize: 10,
+                          fontWeight: "bold",
+                  }}
+                />
                       <Area type="monotone" dataKey="vpd" name="VPD" stroke="#06B6D4" fill="url(#colorVpd)" strokeWidth={2} />
                       <defs>
                         <linearGradient id="colorVpd" x1="0" y1="0" x2="0" y2="1">
@@ -597,60 +625,74 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
             {/* CALCULATOR LOG CONSOLE */}
             {profile.hasScales && (
               <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-xl">
-                <div className="flex items-center gap-2 mb-4 border-b border-zinc-800 pb-3">
-                  <Sliders className="size-4 text-emerald-400" />
-                  <div>
-                    <h3 className="text-sm font-bold text-white">Precision Dry-Back Analytics</h3>
-                    <p className="text-[11px] text-zinc-400">Calibrate volumetric container dry targets down to single grams.</p>
-                  </div>
-                </div>
+  <div className="flex items-center gap-2 mb-4 border-b border-zinc-800 pb-3">
+    <Sliders className="size-4 text-emerald-400" />
+    <div>
+      <h3 className="text-sm font-bold text-white">Precision Dry-Back Analytics</h3>
+      <p className="text-[11px] text-zinc-400">Calibrate volumetric container dry targets down to single grams.</p>
+    </div>
+  </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <DarkNumberField label="Container Volume (Gal)" value={containerGallons} onChange={setContainerGallons} />
-                  <DarkNumberField label="Target Saturated Weight (Lbs)" value={wetWeight} onChange={setWetWeight} />
-                  <DarkNumberField label="Target Dehydrated Weight (Lbs)" value={dryTargetWeight} onChange={setDryTargetWeight} />
-                  
-                  <div className="grid gap-1">
-                    <span className="text-xs font-bold text-zinc-400 tracking-wide">Current Target Weight</span>
-                    <input
-                      className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-sm font-semibold text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 disabled:opacity-40 disabled:bg-zinc-900 transition-all"
-                      type="number"
-                      step="0.05"
-                      value={effectiveWeight}
-                      onChange={(e) => setCurrentWeight(Number(e.target.value))}
-                      disabled={isSensorDriven}
-                    />
-                    {isSensorDriven && <span className="text-[9px] text-emerald-400 font-bold tracking-wider mt-0.5">LOCKED TO HARDWARE SENSOR TELEMETRY</span>}
-                  </div>
-                </div>
+  <div className="grid gap-4 sm:grid-cols-2">
+    <DarkNumberField
+      label="Current Container Weight (lbs)"
+      value={currentWeight}
+      onChange={setCurrentWeight}
+    />
+    <DarkNumberField
+      label="Target Dry Weight (lbs)"
+      value={dryTargetWeight}
+      onChange={setDryTargetWeight}
+    />
+    <DarkNumberField
+      label="Target Saturated Weight (lbs)"
+      value={wetWeight}
+      onChange={setWetWeight}
+    />
+  </div>
 
-                <div className={`mt-5 rounded-xl p-4 border transition-all ${activeDryBack.isClamped ? "bg-amber-950/20 border-amber-900/50" : "bg-zinc-950/60 border-zinc-800"}`}>
-                  <div className={`flex items-center gap-2 text-xs font-bold tracking-wide uppercase ${activeDryBack.isClamped ? "text-amber-400" : "text-emerald-400"}`}>
-                    <Activity className="size-3.5" />
-                    Watering Window Forecasting Matrix
-                  </div>
-                  <p className="mt-2 text-xs leading-relaxed text-zinc-300">
-                    {activeDryBack.isClamped ? (
-                      "Calculations suspended due to telemetry boundary violation error. Re-verify input configurations above."
-                    ) : (
-                      <>Current root media is <span className="font-bold text-white">{activeDryBack.dryBackPercent.toFixed(1)}%</span> through dry-back cycle target. Estimated irrigation trigger in <span className="font-bold text-emerald-400 underline decoration-emerald-500/30">{activeDryBack.estimatedHoursUntilWater} hours</span>.</>
-                    )}
-                  </p>
-                </div>
+  <div className="grid gap-1 mt-3">
+    <span className="text-xs font-bold text-zinc-400 tracking-wide">Current Target Weight</span>
+    <input
+      className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-sm font-semibold text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 disabled:opacity-40 disabled:bg-zinc-900 transition-all"
+      type="number"
+      step="0.05"
+      value={effectiveWeight}
+      onChange={(e) => setCurrentWeight(Number(e.target.value))}
+      disabled={isSensorDriven}
+    />
+    {isSensorDriven && <span className="text-[9px] text-emerald-400 font-bold tracking-wider mt-0.5">LOCKED TO HARDWARE SENSOR TELEMETRY</span>}
+  </div>
 
-                <button
-                  type="button"
-                  disabled={isSaving || activeDryBack.isClamped}
-                  onClick={handleSaveLog}
-                  className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] font-bold text-white text-xs px-4 py-3 shadow-lg shadow-emerald-950/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
-                >
-                  {isSaving ? "Syncing to Cloud Ledger..." : "Commit Diagnostics to Supabase"}
-                </button>
-              </div>
+  <div className={`mt-5 rounded-xl p-4 border transition-all ${activeDryBack.isClamped ? "bg-amber-950/20 border-amber-900/50" : "bg-zinc-950/60 border-zinc-800"}`}>
+    <div className={`flex items-center gap-2 text-xs font-bold tracking-wide uppercase ${activeDryBack.isClamped ? "text-amber-400" : "text-emerald-400"}`}>
+      <Activity className="size-3.5" />
+      Watering Window Forecasting Matrix
+    </div>
+    <p className="mt-2 text-xs leading-relaxed text-zinc-300">
+      {activeDryBack.isClamped ? (
+        "Calculations suspended due to telemetry boundary violation error. Re-verify input configurations above."
+      ) : (
+        <>Current root media is <span className="font-bold text-white">{activeDryBack.dryBackPercent.toFixed(1)}%</span> through dry-back cycle target. Estimated irrigation trigger in <span className="font-bold text-emerald-400 underline decoration-emerald-500/30">{activeDryBack.estimatedHoursUntilWater} hours</span>.</>
+      )}
+    </p>
+  </div>
+
+  <button
+    type="button"
+    disabled={isSaving || activeDryBack.isClamped}
+    onClick={handleSaveLog}
+    className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] font-bold text-white text-xs px-4 py-3 shadow-lg shadow-emerald-950/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+  >
+    {isSaving ? "Syncing to Cloud Ledger..." : "Commit Diagnostics to Supabase"}
+  </button>
+</div>
             )}
+  </div>
+</div>
 
-            {/* RESERVOIR DOSING CALCULATOR */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-xl">
+{/*                   // RESERVOIR DOSING CALCULATOR
+             <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-xl">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-zinc-800 pb-3">
                 <div className="flex items-center gap-2">
                   <Droplets className="size-4 text-cyan-400" />
@@ -660,7 +702,7 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
                   </div>
                 </div>
                 
-                {/* BRAND SCHEDULE INTERACTIVE SELECTOR */}
+                // BRAND SCHEDULE INTERACTIVE SELECTOR 
                 <select
                   value={activeLineId}
                   onChange={(e) => setActiveLineId(e.target.value)}
@@ -692,7 +734,7 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
                 </div>
               </div>
 
-              {/* NUTRIENT CONCENTRATE BREAKDOWN OUTPUTS */}
+              // NUTRIENT CONCENTRATE BREAKDOWN OUTPUTS 
               <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                 {activeSchedule.doses.map((dose: NutrientDose, index: number) => (
                   <div key={`${dose.product}-${index}`} className="grid gap-3 grid-cols-[1fr_80px_90px] items-center">
@@ -712,31 +754,7 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
                   </div>
                 ))}
               </div>
-            </div>
-
-          </div>
-        </div>
-
-        {/* BOTTOM REAL-TIME FACILITY STEERING DIAGNOSTICS MATRICES */}
-        <footer className={`rounded-2xl border p-5 shadow-xl transition-all duration-300 ${
-          reservoirDelta.isCriticalClamp ? "bg-red-950/20 border-red-900/60" : "border-zinc-800 bg-zinc-900/80"
-        }`}>
-          <div className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider ${reservoirDelta.isCriticalClamp ? "text-red-400" : "text-emerald-400"}`}>
-            <Sprout className="size-4" />
-            Dynamic Output Targets Matrix • {activeSchedule.brand} ({activeSchedule.stage})
-          </div>
-          <p className="mt-2.5 text-xs leading-relaxed text-zinc-300 font-medium">
-            {effectiveEc === 0 ? (
-              <>
-                <span className="text-white font-bold">Standard Delivery Protocol:</span> Mix base concentrate solutions straight into fresh top-off water volumes to lock down recipe values at <span className="font-extrabold text-white bg-zinc-950 px-1.5 py-0.5 rounded border border-zinc-800">{activeSchedule.targetEc} EC</span>.
-              </>
-            ) : (
-              <>
-                Your targeted system parameters dictate an ambient base blueprint target of <span className="text-white font-bold">{activeSchedule.targetEc} EC</span>. Accounting for residual solution metrics (<span className="text-white font-mono font-bold">{effectiveEc} EC</span>), input volume should be target blended directly to <span className={`font-black font-mono bg-zinc-950 px-1.5 py-0.5 rounded border ${reservoirDelta.isCriticalClamp ? 'text-red-400 border-red-900' : 'text-orange-400 border-zinc-800'}`}>{reservoirDelta.adjustedTopOffEc} EC</span>.
-              </>
-            )}
-          </p>
-        </footer>
+            </div> */}
 
         {/* COMPREHENSIVE CONTEXT INTERACTIVE DATA DOCK PANEL */}
         <AIChatWidget
@@ -747,7 +765,6 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
           activeSchedule={activeSchedule}
           leftoverGallons={leftoverGallons}
         />
-      </div>
 
       {/* MANUAL ENTRY MODAL */}
 {showManualForm && (
@@ -822,9 +839,10 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     </div>
   </div>
 )}
+</div>
 
 {/* CSV COLUMN MAPPING MODAL */}
-{showMappingModal && (
+ {showMappingModal && (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
     <div className="w-full max-w-3xl rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
       <div className="flex items-center justify-between mb-5">
@@ -998,15 +1016,15 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
         >
           {csvImporting ? "Importing..." : "Import Data"}
         </button>
+        </div>
       </div>
     </div>
-  </div>
-)}
-    </AppShell>
+  )}
+  </AppShell>
   );
 }
 
-// PREMIUM LOCALIZED NUMBER FIELD COMPONENT
+// PREMIUM LOCALIZED NUMBER FIELD COMPONENT 
 type DarkNumberFieldProps = {
   label: string;
   value: number;
@@ -1026,5 +1044,5 @@ function DarkNumberField({ label, value, onChange }: DarkNumberFieldProps) {
         onChange={(e) => onChange(Number(e.target.value))}
       />
     </label>
-  );
+    );
 }
