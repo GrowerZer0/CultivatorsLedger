@@ -6,6 +6,11 @@
   color-scheme: light;
   background: #f6f8f4;
   color: #1f2933;
+  --chart-axis-stroke: #6b7280;
+}
+
+.dark {
+  --chart-axis-stroke: #4b5563;
 }
 
 * {
@@ -25,4 +30,11 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+:root {
+  --axis-color: #6b7280;
+}
+.dark {
+  --axis-color: #4b5563;
 }

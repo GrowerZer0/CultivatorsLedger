@@ -390,7 +390,7 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
           Production Environment
         </span>
       </div>
-      <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white mt-1">Facility Control Room</h1>
+      <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white mt-1">My Grow Room</h1>
       <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">Real-time telemetry aggregation and structural crop-steering optimization arrays.</p>
     </div>
 
@@ -679,19 +679,14 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={dryBackChartData} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>
               <CartesianGrid stroke="#1F2937" className="opacity-40" strokeDasharray="3 3" />
-              <XAxis dataKey="time" stroke="#4B5563" fontSize={10} tickLine={false} />
-              <YAxis
-                stroke="#4B5563"
-                fontSize={10}
-                tickLine={false}
-                label={{
-                  value: `Weight (${weightUnit})`,
-                  angle: -90,
-                  position: 'insideLeft',
-                  fill: '#9CA3AF',
-                  fontSize: 10,
-                }}
-              />
+              <XAxis dataKey="time" stroke="var(--axis-color)" fontSize={10} tickLine={false} />
+<YAxis stroke="#4B5563" fontSize={10} tickLine={false} label={{
+  value: `Weight (${weightUnit})`,
+  angle: -90,
+  position: 'insideLeft',
+  fill: '#9CA3AF',
+  fontSize: 10,
+}} />
               <Tooltip contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', color: '#fff', fontSize: '12px' }} />
               <Line type="monotone" dataKey="weight" name="Weight" stroke="#10B981" strokeWidth={2.5} dot={false} />
             </LineChart>
@@ -714,19 +709,14 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
       <div className="h-64 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart key={dbEnvironmentReadings.length} data={dbEnvironmentReadings} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>
-            <XAxis dataKey="recordedAt" stroke="#4B5563" fontSize={10} tickLine={false} />
-            <YAxis
-              stroke="#4B5563"
-              fontSize={10}
-              tickLine={false}
-              label={{
-                value: 'VPD (kPa)',
-                angle: -90,
-                position: 'insideLeft',
-                fill: '#9CA3AF',
-                fontSize: 10,
-              }}
-            />
+<XAxis dataKey="recordedAt" stroke="var(--axis-color)" fontSize={10} tickLine={false} />
+ <YAxis stroke="#4B5563" fontSize={10} tickLine={false} label={{
+  value: 'VPD (kPa)',
+  angle: -90,
+  position: 'insideLeft',
+  fill: '#9CA3AF',
+  fontSize: 10,
+}} />
             <Tooltip contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', color: '#fff', fontSize: '12px' }} />
             <ReferenceArea
               y1={0.8}
