@@ -65,6 +65,7 @@ export default function Page() {
   const [manualTemp, setManualTemp] = useState(22);
   const [manualHumidity, setManualHumidity] = useState(60);
   const [isSubmittingManual, setIsSubmittingManual] = useState(false);
+  const [showFeeding, setShowFeeding] = useState(false);
 
   // --- 3. CORE INPUT CALCULATOR STATES ---
   const [containerGallons, setContainerGallons] = useState(5);
@@ -830,6 +831,110 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
   </div>
 )}
   </div>
+
+  {/* FEEDING CALCULATOR (Collapsible) */}
+<div className="mt-6">
+  <button
+    type="button"
+    onClick={() => setShowFeeding(!showFeeding)}
+    className="flex items-center gap-2 text-sm font-bold text-zinc-400 hover:text-white transition-colors cursor-pointer"
+  >
+    {showFeeding ? '▼' : '▶'} Feeding Calculator
+    <span className="text-[10px] text-zinc-600 font-normal">
+      {showFeeding ? 'click to close' : 'click to open'}
+    </span>
+  </button>
+
+  {showFeeding && (
+    <div className="mt-3 bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-xl">
+      {/* Header with Brand Selector */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 border-b border-zinc-800 pb-3">
+        <div className="flex items-center gap-2">
+          <Droplets className="size-4 text-cyan-400" />
+          <div>
+            <h3 className="text-sm font-bold text-white">Dynamic Reservoir Dosing</h3>
+            <p className="text-[11px] text-zinc-400">Top off system reservoirs while maintaining targeted chemical balances.</p>
+          </div>
+        </div>
+
+        {/* Brand Schedule Selector */}
+        <select
+          value={activeLineId}
+          onChange={(e) => setActiveLineId(e.target.value)}
+          className="text-xs font-bold rounded-lg border border-zinc-800 bg-zinc-950 p-2 outline-none text-zinc-200 cursor-pointer focus:border-cyan-500 transition-all shadow-inner"
+        >
+          {combinedSchedules.map((s) => (
+            <option key={s.id} value={s.id} className="bg-zinc-900 text-zinc-100">
+              {s.brand} {s.stage ? `(${s.stage})` : ""}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Inputs */}
+      <div className="grid gap-4 sm:grid-cols-3 mb-4">
+        <DarkNumberField label="Tank Capacity (Gal)" value={reservoirGallons} onChange={setReservoirGallons} />
+        <DarkNumberField label="Current Backlog Vol (Gal)" value={leftoverGallons} onChange={setLeftoverGallons} />
+        <div className="grid gap-1">
+          <span className="text-xs font-bold text-zinc-400 tracking-wide">Current Solution EC</span>
+          <input
+            className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-sm font-semibold text-white outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20 disabled:opacity-40 disabled:bg-zinc-900 transition-all"
+            type="number"
+            step="0.05"
+            value={effectiveEc}
+            onChange={(e) => setCurrentEc(Number(e.target.value))}
+            disabled={isSensorDriven}
+          />
+          {isSensorDriven && <span className="text-[9px] text-emerald-400 font-bold tracking-wider mt-0.5">LOCKED TO SENSOR</span>}
+        </div>
+      </div>
+
+      {/* Nutrient Breakdown */}
+      <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+        {activeSchedule.doses.map((dose: NutrientDose, index: number) => (
+          <div key={`${dose.product}-${index}`} className="grid gap-3 grid-cols-[1fr_80px_90px] items-center">
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950/40 text-zinc-300 px-3 py-2 text-xs truncate font-medium">
+              {dose.product}
+            </div>
+            <div className="rounded-xl border border-zinc-800 bg-zinc-950/20 text-zinc-400 px-2 py-2 text-xs font-mono text-center">
+              {dose.mlPerGallon} mL/g
+            </div>
+            <div className={`rounded-xl border px-3 py-2 text-xs font-black font-mono text-center transition-all ${
+              reservoirDelta.isCriticalClamp
+                ? "bg-red-950/30 border-red-900/50 text-red-400 shadow-sm"
+                : "bg-zinc-950 text-orange-400 border-zinc-800"
+            }`}>
+              {reservoirDelta.nutrientsToAdd[index]?.totalMl ?? 0} mL
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer: Dynamic Output Targets */}
+      <div className={`mt-4 rounded-xl border p-4 transition-all ${
+        reservoirDelta.isCriticalClamp ? "bg-red-950/20 border-red-900/60" : "border-zinc-800 bg-zinc-950/30"
+      }`}>
+        <div className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider ${reservoirDelta.isCriticalClamp ? "text-red-400" : "text-emerald-400"}`}>
+          <Sprout className="size-4" />
+          Dynamic Output Targets • {activeSchedule.brand} ({activeSchedule.stage})
+        </div>
+        <p className="mt-2 text-xs leading-relaxed text-zinc-300 font-medium">
+          {effectiveEc === 0 ? (
+            <>
+              <span className="text-white font-bold">Standard Delivery:</span> Mix base concentrates into fresh top‑off water to achieve <span className="font-extrabold text-white bg-zinc-950 px-1.5 py-0.5 rounded border border-zinc-800">{activeSchedule.targetEc} EC</span>.
+            </>
+          ) : (
+            <>
+              Target base blueprint: <span className="text-white font-bold">{activeSchedule.targetEc} EC</span>. 
+              Accounting for residual solution (<span className="text-white font-mono font-bold">{effectiveEc} EC</span>), 
+              blend top‑off to <span className={`font-black font-mono bg-zinc-950 px-1.5 py-0.5 rounded border ${reservoirDelta.isCriticalClamp ? 'text-red-400 border-red-900' : 'text-orange-400 border-zinc-800'}`}>{reservoirDelta.adjustedTopOffEc} EC</span>.
+            </>
+          )}
+        </p>
+      </div>
+    </div>
+  )}
+</div>
 
         {/* COMPREHENSIVE CONTEXT INTERACTIVE DATA DOCK PANEL */}
         <AIChatWidget
