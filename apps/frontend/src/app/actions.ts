@@ -38,22 +38,26 @@ export async function getDashboardData() {
     recordedAt: log.timestamp.toISOString(),
   }));
 
-  // Build dryBackLogs from sorted logs
-  const dryBackLogs = sortedLogs.map((log) => {
-    const dryBackPercent = Math.min(100, Math.max(0, 100 - Number(log.relativeHumidity)));
-    return {
-      id: String(log.id),
-      cultivar: log.zoneId || "Unknown",
-      stage: log.zoneId || "Main",
-      containerGallons: 5,
-      wetWeight: 18.4,
-      dryTargetWeight: 13.2,
-      weight: dryBackPercent,
-      dryBackPercent: dryBackPercent,
-      runoff_ec: 0,
-      loggedAt: log.timestamp.toISOString(),
-    };
+  // Fetch real dry‑back logs from the new table
+  const dryBackLogsFromDb = await db.dryBackLog.findMany({
+    orderBy: { timestamp: "asc" },
+    take: 30,
   });
+
+  // Map to the DryBackLog type expected by the frontend
+  const dryBackLogs = dryBackLogsFromDb.map((log) => ({
+    id: String(log.id),
+    cultivar: "Batch", // could later link to batch
+    stage: "Main",
+    containerGallons: Number(log.containerGallons),
+    wetWeight: Number(log.wetWeightLbs),
+    dryTargetWeight: Number(log.dryTargetWeightLbs),
+    weight: Number(log.currentWeightLbs),
+    dryBackPercent: Number(log.dryBackPercent),
+    runoff_ec: log.runoffEc ? Number(log.runoffEc) : 0,
+    loggedAt: log.timestamp.toISOString(),
+    unit: log.unit || "lbs",
+  }));
 
   return {
     environmentReadings,
@@ -84,10 +88,34 @@ export async function addManualClimateLog(data: {
   return { success: true, id: result.id };
 }
 
-// Stubbed functions (to satisfy imports)
-export async function addDryBackLog(data: any) {
-  console.warn("addDryBackLog stubbed");
-  return { success: false };
+export async function addDryBackLog(data: {
+  cultivar: string;
+  containerGallons: number;
+  wetWeight: number;
+  dryTargetWeight: number;
+  weight: number;
+  runoff_ec: number;
+  unit: string;
+}) {
+  const userId = await getRequiredUserId();
+  const dryBackPercent = ((data.wetWeight - data.weight) / (data.wetWeight - data.dryTargetWeight)) * 100;
+  const clampedPercent = Math.max(0, Math.min(100, dryBackPercent));
+
+  const result = await db.dryBackLog.create({
+    data: {
+      containerGallons: data.containerGallons,
+      wetWeightLbs: data.wetWeight,
+      dryTargetWeightLbs: data.dryTargetWeight,
+      currentWeightLbs: data.weight,
+      dryBackPercent: clampedPercent,
+      runoffEc: data.runoff_ec || null,
+      notes: `Cultivar: ${data.cultivar}`,
+      timestamp: new Date(),
+    },
+  });
+
+  revalidatePath("/");
+  return { success: true, id: result.id };
 }
 
 export async function getUserProfile() {

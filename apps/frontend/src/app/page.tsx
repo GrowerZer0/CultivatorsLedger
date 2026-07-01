@@ -75,6 +75,7 @@ export default function Page() {
   const [leftoverGallons, setLeftoverGallons] = useState(11.5);
   const [currentEc, setCurrentEc] = useState(1.4);
   const [isSaving, setIsSaving] = useState(false);
+  const [weightUnit, setWeightUnit] = useState<'lbs' | 'g'>('lbs');
   
   // --- CSV Import Column Mapping State ---
 const [showMappingModal, setShowMappingModal] = useState(false);
@@ -189,10 +190,11 @@ const [csvImporting, setCsvImporting] = useState(false);
         containerGallons,
         wetWeight,
         dryTargetWeight,
-        weight: effectiveWeight, 
-        runoff_ec: profile.hasEcmeter ? 2.2 : 0 
+        weight: effectiveWeight,
+        runoff_ec: profile.hasEcmeter ? 2.2 : 0,
+        unit: weightUnit,
       });
-      alert("Dry-back log successfully saved to Supabase!");
+      alert("Dry-back log successfully saved!");
       const data = await getDashboardData();
       setDbDryBackLogs(data.dryBackLogs || []);
     } catch (error) {
@@ -491,6 +493,9 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
                 <span className="text-[11px] uppercase tracking-wider font-bold text-zinc-500 block">Dry-Back Progress</span>
                 <span className="text-2xl font-black text-white block mt-0.5">{activeDryBack.dryBackPercent.toFixed(0)}%</span>
                 <span className="text-[11px] text-zinc-400 block truncate mt-0.5">{activeDryBack.poundsUntilIrrigation.toFixed(1)} lbs to target limit</span>
+                <span className="text-[10px] text-zinc-500 block truncate mt-0.5">
+                  Current: {effectiveWeight} {weightUnit}
+                </span>
               </div>
             </div>
           )}
@@ -562,7 +567,18 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
                     <LineChart data={dryBackChartData} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>
                       <CartesianGrid stroke="#1F2937" className="opacity-40" strokeDasharray="3 3" />
                       <XAxis dataKey="time" stroke="#4B5563" fontSize={10} tickLine={false} />
-                      <YAxis stroke="#4B5563" fontSize={10} tickLine={false} />
+                      <YAxis
+                        stroke="#4B5563"
+                        fontSize={10}
+                        tickLine={false}
+                        label={{
+                          value: `Weight (${weightUnit})`,
+                          angle: -90,
+                          position: 'insideLeft',
+                          fill: '#9CA3AF',
+                          fontSize: 10,
+                      }}
+                    />
                       <Tooltip contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', color: '#fff', fontSize: '12px' }} />
                       <Line type="monotone" dataKey="weight" name="Weight (lbs)" stroke="#10B981" strokeWidth={2.5} dot={false} />
                       {profile.hasEcmeter && (
@@ -622,72 +638,82 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
           {/* COLUMN 2: OPERATIONS SYSTEM CONTROL CONSOLE */}
           <div className="space-y-6">
             
-            {/* CALCULATOR LOG CONSOLE */}
-            {profile.hasScales && (
-              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-xl">
-  <div className="flex items-center gap-2 mb-4 border-b border-zinc-800 pb-3">
-    <Sliders className="size-4 text-emerald-400" />
-    <div>
-      <h3 className="text-sm font-bold text-white">Precision Dry-Back Analytics</h3>
-      <p className="text-[11px] text-zinc-400">Calibrate volumetric container dry targets down to single grams.</p>
+{/* CALCULATOR LOG CONSOLE */}
+{profile.hasScales && (
+  <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 shadow-xl">
+    <div className="flex items-center gap-2 mb-4 border-b border-zinc-800 pb-3">
+      <Sliders className="size-4 text-emerald-400" />
+      <div>
+        <h3 className="text-sm font-bold text-white">Precision Dry-Back Analytics</h3>
+        <p className="text-[11px] text-zinc-400">Calibrate volumetric container dry targets down to single grams.</p>
+      </div>
     </div>
-  </div>
 
-  <div className="grid gap-4 sm:grid-cols-2">
-    <DarkNumberField
-      label="Current Container Weight (lbs)"
-      value={currentWeight}
-      onChange={setCurrentWeight}
-    />
-    <DarkNumberField
-      label="Target Dry Weight (lbs)"
-      value={dryTargetWeight}
-      onChange={setDryTargetWeight}
-    />
-    <DarkNumberField
-      label="Target Saturated Weight (lbs)"
-      value={wetWeight}
-      onChange={setWetWeight}
-    />
-  </div>
-
-  <div className="grid gap-1 mt-3">
-    <span className="text-xs font-bold text-zinc-400 tracking-wide">Current Target Weight</span>
-    <input
-      className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-sm font-semibold text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 disabled:opacity-40 disabled:bg-zinc-900 transition-all"
-      type="number"
-      step="0.05"
-      value={effectiveWeight}
-      onChange={(e) => setCurrentWeight(Number(e.target.value))}
-      disabled={isSensorDriven}
-    />
-    {isSensorDriven && <span className="text-[9px] text-emerald-400 font-bold tracking-wider mt-0.5">LOCKED TO HARDWARE SENSOR TELEMETRY</span>}
-  </div>
-
-  <div className={`mt-5 rounded-xl p-4 border transition-all ${activeDryBack.isClamped ? "bg-amber-950/20 border-amber-900/50" : "bg-zinc-950/60 border-zinc-800"}`}>
-    <div className={`flex items-center gap-2 text-xs font-bold tracking-wide uppercase ${activeDryBack.isClamped ? "text-amber-400" : "text-emerald-400"}`}>
-      <Activity className="size-3.5" />
-      Watering Window Forecasting Matrix
+    {/* Unit Toggle */}
+    <div className="flex items-center gap-2 mb-3">
+      <span className="text-xs font-bold text-zinc-400">Unit:</span>
+      <button
+        type="button"
+        onClick={() => setWeightUnit('lbs')}
+        className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+          weightUnit === 'lbs' ? 'bg-emerald-600 text-white' : 'bg-zinc-800 text-zinc-400'
+        }`}
+      >
+        lbs
+      </button>
+      <button
+        type="button"
+        onClick={() => setWeightUnit('g')}
+        className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+          weightUnit === 'g' ? 'bg-emerald-600 text-white' : 'bg-zinc-800 text-zinc-400'
+        }`}
+      >
+        g
+      </button>
     </div>
-    <p className="mt-2 text-xs leading-relaxed text-zinc-300">
-      {activeDryBack.isClamped ? (
-        "Calculations suspended due to telemetry boundary violation error. Re-verify input configurations above."
-      ) : (
-        <>Current root media is <span className="font-bold text-white">{activeDryBack.dryBackPercent.toFixed(1)}%</span> through dry-back cycle target. Estimated irrigation trigger in <span className="font-bold text-emerald-400 underline decoration-emerald-500/30">{activeDryBack.estimatedHoursUntilWater} hours</span>.</>
-      )}
-    </p>
-  </div>
 
-  <button
-    type="button"
-    disabled={isSaving || activeDryBack.isClamped}
-    onClick={handleSaveLog}
-    className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] font-bold text-white text-xs px-4 py-3 shadow-lg shadow-emerald-950/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
-  >
-    {isSaving ? "Syncing to Cloud Ledger..." : "Commit Diagnostics to Supabase"}
-  </button>
-</div>
-            )}
+    <div className="grid gap-4 sm:grid-cols-2">
+      <DarkNumberField
+        label={`Current Container Weight (${weightUnit})`}
+        value={currentWeight}
+        onChange={setCurrentWeight}
+      />
+      <DarkNumberField
+        label={`Target Dry Weight (${weightUnit})`}
+        value={dryTargetWeight}
+        onChange={setDryTargetWeight}
+      />
+      <DarkNumberField
+        label={`Target Saturated Weight (${weightUnit})`}
+        value={wetWeight}
+        onChange={setWetWeight}
+      />
+    </div>
+
+    <div className={`mt-5 rounded-xl p-4 border transition-all ${activeDryBack.isClamped ? "bg-amber-950/20 border-amber-900/50" : "bg-zinc-950/60 border-zinc-800"}`}>
+      <div className={`flex items-center gap-2 text-xs font-bold tracking-wide uppercase ${activeDryBack.isClamped ? "text-amber-400" : "text-emerald-400"}`}>
+        <Activity className="size-3.5" />
+        Watering Window Forecasting Matrix
+      </div>
+      <p className="mt-2 text-xs leading-relaxed text-zinc-300">
+        {activeDryBack.isClamped ? (
+          "Calculations suspended due to telemetry boundary violation error. Re-verify input configurations above."
+        ) : (
+          <>Current root media is <span className="font-bold text-white">{activeDryBack.dryBackPercent.toFixed(1)}%</span> through dry-back cycle target. Estimated irrigation trigger in <span className="font-bold text-emerald-400 underline decoration-emerald-500/30">{activeDryBack.estimatedHoursUntilWater} hours</span>.</>
+        )}
+      </p>
+    </div>
+
+    <button
+      type="button"
+      disabled={isSaving || activeDryBack.isClamped}
+      onClick={handleSaveLog}
+      className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] font-bold text-white text-xs px-4 py-3 shadow-lg shadow-emerald-950/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+    >
+      {isSaving ? "Syncing to Cloud Ledger..." : "Commit Diagnostics to Supabase"}
+    </button>
+  </div>
+)}
   </div>
 </div>
 

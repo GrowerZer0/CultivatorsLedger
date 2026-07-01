@@ -70,6 +70,23 @@ model ClimateLog {
   @@map("climate_logs")
 }
 
+model DryBackLog {
+  id                 Int      @id @default(autoincrement())
+  timestamp          DateTime @default(now()) @db.Timestamptz(6)
+  batchId            Int?     @map("batch_id")
+  containerGallons   Decimal  @map("container_gallons") @db.Decimal(4, 2)
+  wetWeightLbs       Decimal  @map("wet_weight_lbs") @db.Decimal(5, 2)
+  dryTargetWeightLbs Decimal  @map("dry_target_weight_lbs") @db.Decimal(5, 2)
+  currentWeightLbs   Decimal  @map("current_weight_lbs") @db.Decimal(5, 2)
+  dryBackPercent     Decimal  @map("dry_back_percent") @db.Decimal(5, 2)
+  runoffEc           Decimal? @map("runoff_ec") @db.Decimal(3, 2)
+  notes              String?
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  unit               String   @default("lbs") // 'lbs' or 'g'
+
+  @@map("dry_back_logs")
+}
+
 model IrrigationEvent {
   id                 Int       @id @default(autoincrement())
   timestamp          DateTime  @default(now()) @db.Timestamptz(6)
