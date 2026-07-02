@@ -294,6 +294,38 @@ const [csvImporting, setCsvImporting] = useState(false);
     return alerts;
   }, [effectiveEc, activeDryBack, reservoirDelta]);
 
+// --- VPD Score & Streak (gamification) ---
+const vpdScoreData = useMemo(() => {
+  if (!dbEnvironmentReadings || dbEnvironmentReadings.length === 0) {
+    return { score: 0, streak: 0, readingsInRange: 0, totalReadings: 0 };
+  }
+
+  const targetMin = 0.8;
+  const targetMax = 1.2;
+  const readings = dbEnvironmentReadings;
+
+  // Count in-range readings
+  const inRangeCount = readings.filter(r => r.vpd >= targetMin && r.vpd <= targetMax).length;
+  const score = readings.length > 0 ? (inRangeCount / readings.length) * 100 : 0;
+
+  // Streak: count consecutive in-range readings from the most recent backwards
+  let streak = 0;
+  for (let i = readings.length - 1; i >= 0; i--) {
+    if (readings[i].vpd >= targetMin && readings[i].vpd <= targetMax) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+
+  return {
+    score,
+    streak,
+    readingsInRange: inRangeCount,
+    totalReadings: readings.length,
+  };
+}, [dbEnvironmentReadings]);
+
   const dryBackChartData = dbDryBackLogs.map((log) => ({
     time: new Date(log.loggedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
     weight: log.weight,
@@ -570,6 +602,55 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
               }`}>
                 {(dbEnvironmentReadings.at(-1)?.vpd ?? 0).toFixed(2)} VPD
               </span>
+              {/* Gamification: VPD Score & Streak */}
+<div className="flex items-center gap-4 mt-2">
+  {/* Score ring */}
+  <div className="flex items-center gap-2">
+    <div className="relative size-10">
+      <svg className="size-10 -rotate-90" viewBox="0 0 36 36">
+        <circle
+          cx="18"
+          cy="18"
+          r="16"
+          fill="none"
+          className="stroke-gray-200 dark:stroke-zinc-700"
+          strokeWidth="3"
+        />
+        <circle
+          cx="18"
+          cy="18"
+          r="16"
+          fill="none"
+          className={
+            vpdScoreData.score > 80
+              ? 'stroke-emerald-500'
+              : vpdScoreData.score > 50
+              ? 'stroke-yellow-400'
+              : 'stroke-red-500'
+          }
+          strokeWidth="3"
+          strokeDasharray="100.53"
+          strokeDashoffset={100.53 - (vpdScoreData.score / 100) * 100.53}
+          strokeLinecap="round"
+        />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-gray-700 dark:text-zinc-300">
+        {Math.round(vpdScoreData.score)}%
+      </span>
+    </div>
+    <span className="text-[10px] font-medium text-gray-500 dark:text-zinc-400">
+      VPD Score
+    </span>
+  </div>
+
+  {/* Streak */}
+  <div className="flex items-center gap-2">
+    <span className="text-lg">🔥</span>
+    <span className="text-xs font-bold text-gray-700 dark:text-zinc-300">
+      {vpdScoreData.streak} hr streak
+    </span>
+  </div>
+</div>
             </div>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-[10px] text-gray-400 dark:text-zinc-500">
