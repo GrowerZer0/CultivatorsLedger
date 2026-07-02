@@ -469,7 +469,7 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
         onClick={() => setIsSensorDriven(false)}
         className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
           !isSensorDriven
-            ? "bg-zinc-800 text-gray-900 dark:text-white shadow-md ring-1 ring-zinc-700/50"
+            ? "bg-emerald-600 text-gray-900 dark:text-white shadow-md ring-1 ring-zinc-700/50"
             : "text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:text-zinc-300"
         }`}
       >
@@ -491,34 +491,34 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
 </header>
 
         {/* INCIDENT REPORT & FAULT MONITOR LINE */}
-        {dynamicGrowAlerts.length > 0 && (
-          <div className="mb-6 grid gap-2">
-            {dynamicGrowAlerts.map((alert, idx) => (
-              <div 
-                key={idx}
-                className={`p-3.5 rounded-xl border text-xs font-semibold flex items-start gap-3 shadow-sm transition-all duration-300 ${
-                  alert.type === "critical" ? "bg-red-950/30 text-red-300 border-red-900/60 ring-1 ring-red-500/10" :
-                  alert.type === "danger" ? "bg-red-950/20 text-red-400 border-red-950/50" :
-                  alert.type === "warning" ? "bg-amber-950/30 text-amber-300 border-amber-900/40" :
-                  alert.type === "success" ? "bg-emerald-950/30 text-emerald-400 border-emerald-900/40" :
-                  "bg-white dark:bg-zinc-900/50 text-gray-700 dark:text-zinc-300 border-gray-200 dark:border-zinc-800"
-                }`}
-              >
-                {alert.type === "critical" ? (
-                  <ShieldAlert className="size-4.5 shrink-0 text-red-400 animate-pulse mt-0.5" />
-                ) : (
-                  <AlertTriangle className={`size-4.5 shrink-0 mt-0.5 ${
-                    alert.type === "danger" || alert.type === "warning" ? "text-amber-500" : "text-emerald-400"
-                  }`} />
-                )}
-                <div className="flex-1">
-                  {alert.type === "critical" && <span className="font-extrabold text-[10px] uppercase tracking-wider text-red-400 block mb-0.5">Automated Facility Intervention</span>}
-                  <span className="leading-relaxed">{alert.text}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+{dynamicGrowAlerts.map((alert, idx) => (
+  <div 
+    key={idx}
+    className={`p-3.5 rounded-xl border text-xs font-semibold flex items-start gap-3 shadow-sm transition-all duration-300 ${
+      alert.type === "critical" 
+        ? "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-900/60 ring-1 ring-red-500/10" 
+      : alert.type === "danger" 
+        ? "bg-red-50/80 dark:bg-red-950/20 text-red-600 dark:text-red-400 border-red-200 dark:border-red-950/50" 
+      : alert.type === "warning" 
+        ? "bg-amber-50/80 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900/40" 
+      : alert.type === "success" 
+        ? "bg-emerald-50/80 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/40" 
+      : "bg-gray-50 dark:bg-zinc-900/50 text-gray-700 dark:text-zinc-300 border-gray-200 dark:border-zinc-800"
+    }`}
+  >
+    {alert.type === "critical" ? (
+      <ShieldAlert className="size-4.5 shrink-0 text-red-500 dark:text-red-400 animate-pulse mt-0.5" />
+    ) : (
+      <AlertTriangle className={`size-4.5 shrink-0 mt-0.5 ${
+        alert.type === "danger" || alert.type === "warning" ? "text-amber-500 dark:text-amber-400" : "text-emerald-500 dark:text-emerald-400"
+      }`} />
+    )}
+    <div className="flex-1">
+      {alert.type === "critical" && <span className="font-extrabold text-[10px] uppercase tracking-wider text-red-600 dark:text-red-400 block mb-0.5">Automated Facility Intervention</span>}
+      <span className="leading-relaxed">{alert.text}</span>
+    </div>
+  </div>
+))}
 
 {/* 📊 PRIMARY METRICS */}
 <div className="grid gap-4 md:grid-cols-2 mb-6">
@@ -608,7 +608,7 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
         type="button"
         onClick={() => setWeightUnit('lbs')}
         className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-          weightUnit === 'lbs' ? 'bg-emerald-600 text-gray-900 dark:text-white' : 'bg-zinc-800 text-gray-500 dark:text-zinc-400'
+          weightUnit === 'lbs' ? 'bg-emerald-600 text-gray-900 dark:text-white' : 'text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:text-zinc-300'
         }`}
       >
         lbs
@@ -617,7 +617,7 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
         type="button"
         onClick={() => setWeightUnit('g')}
         className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-          weightUnit === 'g' ? 'bg-emerald-600 text-gray-900 dark:text-white' : 'bg-zinc-800 text-gray-500 dark:text-zinc-400'
+          weightUnit === 'g' ? 'bg-emerald-600 text-gray-900 dark:text-white' : 'text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:text-zinc-300'
         }`}
       >
         g
@@ -642,19 +642,31 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
       />
     </div>
 
-    <div className={`mt-5 rounded-xl p-4 border transition-all ${activeDryBack.isClamped ? "bg-amber-950/20 border-amber-900/50" : "bg-gray-50/60 dark:bg-gray-50 dark:bg-zinc-950/60 border-gray-200 dark:border-zinc-800"}`}>
-      <div className={`flex items-center gap-2 text-xs font-bold tracking-wide uppercase ${activeDryBack.isClamped ? "text-amber-400" : "text-emerald-400"}`}>
-        <Activity className="size-3.5" />
-        Watering Window Forecasting Matrix
-      </div>
-      <p className="mt-2 text-xs leading-relaxed text-gray-700 dark:text-zinc-300">
-        {activeDryBack.isClamped ? (
-          "Calculations suspended due to telemetry boundary violation error. Re-verify input configurations above."
-        ) : (
-          <>Current root media is <span className="font-bold text-gray-900 dark:text-white">{activeDryBack.dryBackPercent.toFixed(1)}%</span> through dry-back cycle target. Estimated irrigation trigger in <span className="font-bold text-emerald-400 underline decoration-emerald-500/30">{activeDryBack.estimatedHoursUntilWater} hours</span>.</>
-        )}
-      </p>
-    </div>
+<div className={`mt-5 rounded-xl p-4 border transition-all ${
+  activeDryBack.isClamped 
+    ? "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/50" 
+    : "bg-gray-50 dark:bg-zinc-950/60 border-gray-200 dark:border-zinc-800"
+}`}>
+  <div className={`flex items-center gap-2 text-xs font-bold tracking-wide uppercase ${
+    activeDryBack.isClamped 
+      ? "text-amber-700 dark:text-amber-400" 
+      : "text-emerald-700 dark:text-emerald-400"
+  }`}>
+    <Activity className="size-3.5" />
+    Watering Window Forecasting Matrix
+  </div>
+  <p className={`mt-2 text-xs leading-relaxed ${
+    activeDryBack.isClamped 
+      ? "text-amber-800 dark:text-amber-300" 
+      : "text-gray-700 dark:text-zinc-300"
+  }`}>
+    {activeDryBack.isClamped ? (
+      "Calculations suspended due to telemetry boundary violation error. Re-verify input configurations above."
+    ) : (
+      <>Current root media is <span className="font-bold text-gray-900 dark:text-white">{activeDryBack.dryBackPercent.toFixed(1)}%</span> through dry-back cycle target. Estimated irrigation trigger in <span className="font-bold text-emerald-600 dark:text-emerald-400 underline decoration-emerald-500/30">{activeDryBack.estimatedHoursUntilWater} hours</span>.</>
+    )}
+  </p>
+</div>
 
     <button
       type="button"
