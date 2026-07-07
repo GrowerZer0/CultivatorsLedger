@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import {
   Activity,
   Droplets,
@@ -107,6 +108,30 @@ const [csvImporting, setCsvImporting] = useState(false);
   // DUAL INGESTION MODE STATE
   const [isSensorDriven, setIsSensorDriven] = useState(false);
 
+  function getBatchAverage(batchId: string | null): number {
+  if (!batchId) return 0;
+  const batch = batches.find(b => b.id === batchId);
+  if (!batch || !batch.dryBackLogs || batch.dryBackLogs.length === 0) return 0;
+  const total = batch.dryBackLogs.reduce((sum: number, log: { dryBackPercent: number | string }) => {
+    return sum + Number(log.dryBackPercent);
+  }, 0);
+  return total / batch.dryBackLogs.length;
+}
+
+function getBatchLogCount(batchId: string | null): number {
+  if (!batchId) return 0;
+  const batch = batches.find(b => b.id === batchId);
+  return batch?.dryBackLogs?.length || 0;
+}
+
+function getBatchDaysSinceStart(batchId: string | null): number {
+  if (!batchId) return 0;
+  const batch = batches.find(b => b.id === batchId);
+  if (!batch?.startDate) return 0;
+  const days = Math.floor((Date.now() - new Date(batch.startDate).getTime()) / (1000 * 60 * 60 * 24));
+  return days;
+}
+
   // --- LIVE BLUEPRINT MERGE MATRIX ENGINE ---
   const combinedSchedules = useMemo<FeedSchedule[]>(() => {
     const baseMerged = commercialFeedSchedules.map(s => {
@@ -178,8 +203,8 @@ const [csvImporting, setCsvImporting] = useState(false);
   useEffect(() => {
   // Reset feeding inputs when nutrient line changes
   // (optional: we can make these defaults per schedule later)
-  setReservoirGallons(40);
-  setLeftoverGallons(11.5);
+  setReservoirGallons(1);
+  setLeftoverGallons(0);
   setCurrentEc(1.4);
 }, [activeLineId]);
 
@@ -217,7 +242,7 @@ const [csvImporting, setCsvImporting] = useState(false);
         weight: effectiveWeight,
         runoff_ec: profile.hasEcmeter ? 2.2 : 0,
         unit: weightUnit,
-        batchId: selectedBatchId || undefined,
+        batchId: selectedBatchId || undefined
       });
       alert("Dry-back log successfully saved!");
       const data = await getDashboardData();
@@ -458,7 +483,7 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
       )}
 
         {/* TOP COMMAND NAVIGATION BAR */}
-        <header className="mb-6 flex flex-col gap-4 border-b border-gray-200 dark:border-zinc-800 pb-5">
+ <header className="mb-6 flex flex-col gap-4 border-b border-gray-200 dark:border-zinc-800 pb-5">
   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div>
       <div className="flex items-center gap-2">
@@ -497,8 +522,9 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     </div>
   </div>
 
-  {/* Room & Strain Selectors + Batch Input */}
+  {/* Room & Strain Selectors */}
   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap border-t border-gray-200 dark:border-zinc-800 pt-4 mt-1">
+    {/* Room */}
     <div className="flex items-center gap-2">
       <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Room:</span>
       <select
@@ -513,6 +539,7 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
       </select>
     </div>
 
+    {/* Strain */}
     <div className="flex items-center gap-2">
       <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Strain:</span>
       <select
@@ -527,65 +554,97 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
       </select>
     </div>
 
-    <div className="flex items-center gap-2">
-  <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Batch:</span>
-  <select
-    value={selectedBatchId || ''}
-    onChange={(e) => setSelectedBatchId(e.target.value || null)}
-    className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 transition-all"
-  >
-    <option value="">-- Select --</option>
-    {batches.map((b) => (
-      <option key={b.id} value={b.id}>
-        {b.name} ({b.cultivar})
-      </option>
-    ))}
-  </select>
-  <button
-    type="button"
-    onClick={() => setShowNewBatchModal(true)}
-    className="text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
-  >
-    + New
-  </button>
-</div>
+    {/* Batch Controls (Selector + Summary + Actions) */}
+    <div className="flex items-center gap-3 flex-wrap">
+      {/* Batch Selector + New Button */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Batch:</span>
+        <select
+          value={selectedBatchId || ''}
+          onChange={(e) => setSelectedBatchId(e.target.value || null)}
+          className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 transition-all"
+        >
+          <option value="">-- Select --</option>
+          {batches.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name} ({b.cultivar})
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={() => setShowNewBatchModal(true)}
+          className="text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors whitespace-nowrap"
+        >
+          + New
+        </button>
+      </div>
 
-    <div className="flex items-center gap-2">
-      <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Batch:</span>
-      <input
-        type="text"
-        placeholder="e.g. BM #3"
-        className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 w-32"
-        value={batchName}
-        onChange={(e) => setBatchName(e.target.value)}
-      />
-    </div>
+      {/* Batch Summary (only when a batch is selected) */}
+      {selectedBatchId && (
+        <div className="flex items-center gap-3 px-3 py-1 bg-zinc-800/30 dark:bg-zinc-800/30 rounded-lg border border-zinc-700/60">
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-2 h-2 rounded-full bg-emerald-400" />
+            <span className="text-sm font-bold text-gray-900 dark:text-white">
+              {batches.find(b => b.id === selectedBatchId)?.name}
+            </span>
+          </span>
+            <span className="text-xs text-gray-500 dark:text-zinc-400">
+              Day {getBatchDaysSinceStart(selectedBatchId)}
+            </span>
+            <span className="text-xs text-gray-500 dark:text-zinc-400">
+              {getBatchLogCount(selectedBatchId)} logs
+            </span>
+            <span className="text-xs text-emerald-400 font-mono">
+              Avg: {getBatchAverage(selectedBatchId).toFixed(1)}%
+            </span>
+        </div>
+      )}
 
-    {/* Sensor Mode Toggle - moved here for consistency */}
-    <div className="inline-flex rounded-xl bg-gray-50 dark:bg-zinc-950 p-1 border border-gray-200 dark:border-zinc-800 ml-auto">
-      <button
-        type="button"
-        onClick={() => setIsSensorDriven(false)}
-        className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-          !isSensorDriven
-            ? "bg-emerald-600 text-gray-900 dark:text-white shadow-md ring-1 ring-zinc-700/50"
-            : "text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:text-zinc-300"
-        }`}
-      >
-        <Keyboard className="size-3.5" /> Manual
-      </button>
-      <button
-        type="button"
-        onClick={() => setIsSensorDriven(true)}
-        className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-          isSensorDriven
-            ? "bg-emerald-600 text-gray-900 dark:text-white shadow-md shadow-emerald-900/20 ring-1 ring-emerald-500/30"
-            : "text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:text-zinc-300"
-        }`}
-      >
-        <Cpu className="size-3.5" /> Hardware
-      </button>
+      {/* Action Buttons (only when a batch is selected) */}
+      {selectedBatchId && (
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/batches/${selectedBatchId}`}
+            className="text-xs font-bold text-emerald-400 hover:text-emerald-300 px-2 py-1 rounded border border-emerald-500/20 hover:bg-emerald-500/10 transition-colors"
+          >
+            View Batch
+          </Link>
+          <Link
+            href="/batches/compare"
+            className="text-xs font-bold text-gray-400 dark:text-zinc-400 hover:text-gray-300 dark:hover:text-zinc-300 px-2 py-1 rounded border border-gray-300 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800/50 transition-colors"
+          >
+            Compare
+          </Link>
+        </div>
+      )}
     </div>
+  </div>
+
+  {/* Sensor Mode Toggle */}
+  <div className="inline-flex rounded-xl bg-gray-50 dark:bg-zinc-950 p-1 border border-gray-200 dark:border-zinc-800 self-start">
+    <button
+      type="button"
+      onClick={() => setIsSensorDriven(false)}
+      className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+        !isSensorDriven
+          ? "bg-emerald-600 text-gray-900 dark:text-white shadow-md ring-1 ring-zinc-700/50"
+          : "text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:text-zinc-300"
+      }`}
+    >
+      <Keyboard className="size-3.5" /> Manual
+    </button>
+    <button
+      type="button"
+      onClick={() => setIsSensorDriven(true)}
+      className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+        isSensorDriven
+          ? "bg-emerald-600 text-gray-900 dark:text-white shadow-md shadow-emerald-900/20 ring-1 ring-emerald-500/30"
+          : "text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:text-zinc-300"
+      }`}
+    >
+      <Cpu className="size-3.5" /> Hardware
+    </button>
   </div>
 </header>
 
@@ -1033,7 +1092,7 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
       </div>
     </div>
   )}
-</div>
+  </div>
 
         {/* COMPREHENSIVE CONTEXT INTERACTIVE DATA DOCK PANEL */}
         <AIChatWidget
@@ -1359,7 +1418,7 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
   );
 }
 
-{/* 🧪 Demo Mode CTA */}
+{/* Demo Mode CTA */}
 {process.env.NEXT_PUBLIC_DEMO_MODE === 'true' && (
   <div className="mt-8 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6 text-center">
     <h3 className="text-lg font-bold text-white">Ready to run it on your own hardware?</h3>

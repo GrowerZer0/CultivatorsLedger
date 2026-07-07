@@ -153,6 +153,30 @@ export async function createBatch(data: { name: string; cultivar: string; roomId
   return batch;
 }
 
+export async function getBatch(batchId: string) {
+  const userId = await getRequiredUserId();
+  return await db.batch.findUnique({
+    where: { id: batchId },
+    include: {
+      dryBackLogs: {
+        orderBy: { timestamp: 'asc' },
+      },
+    },
+  });
+}
+
+export async function getBatchesForComparison(batchIds: string[]) {
+  const userId = await getRequiredUserId();
+  return await db.batch.findMany({
+    where: { id: { in: batchIds } },
+    include: {
+      dryBackLogs: {
+        orderBy: { timestamp: 'asc' },
+      },
+    },
+  });
+}
+
 export async function setActiveBatch(batchId: string) {
   // We'll store the active batch ID in a system setting later, but for now we'll just use a cookie or a global state.
   // Simpler: we'll store it in the user's profile (add a field to UserProfile later).
