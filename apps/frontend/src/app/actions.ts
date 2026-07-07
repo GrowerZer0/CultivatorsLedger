@@ -4,7 +4,7 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getRequiredUserId } from "@/lib/session";
-import { DryBackLog, EnvironmentReading } from "@/lib/cultivation";
+import type { DryBackLog as PrismaDryBackLog } from '@prisma/client';
 import { generateDemoData } from "@/lib/demoData";
 
 // Helper: compute VPD (kPa) from temp (°C) and RH (%)
@@ -84,7 +84,7 @@ export async function getDashboardData() {
   });
 
   // Map to the DryBackLog type expected by the frontend
-  const dryBackLogs = dryBackLogsFromDb.map((log) => ({
+  const dryBackLogs = dryBackLogsFromDb.map((log: PrismaDryBackLog) => ({
     id: String(log.id),
     cultivar: "Batch", // could later link to batch
     stage: "Main",
