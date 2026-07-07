@@ -21,11 +21,7 @@ export async function getDashboardData(batchId?: string) {
       const demoData = generateDemoData(24);
       const latest = demoData[demoData.length - 1];
       // Fetch real dry‑back logs from the new table, optionally filtered by batch
-      const dryBackLogsFromDb = await db.dryBackLog.findMany({
-        where: batchId ? { batchId } : {},
-        orderBy: { timestamp: "asc" },
-        take: 30,
-      });
+
     return {
       environmentReadings: demoData.map(d => ({
         id: String(Math.random()),
@@ -59,6 +55,7 @@ export async function getDashboardData(batchId?: string) {
     };
   }
   
+  // --- Live Environment (database) ---
   const userId = await getRequiredUserId();
 
   // Fetch the 30 most recent climate logs (descending)
@@ -91,7 +88,7 @@ export async function getDashboardData(batchId?: string) {
   // Map to the DryBackLog type expected by the frontend
   const dryBackLogs = dryBackLogsFromDb.map((log: PrismaDryBackLog) => ({
     id: String(log.id),
-    cultivar: "Batch", // could later link to batch
+    cultivar: "Batch", // later link to batch
     stage: "Main",
     containerGallons: Number(log.containerGallons),
     wetWeight: Number(log.wetWeightLbs),
