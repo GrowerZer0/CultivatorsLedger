@@ -46,7 +46,11 @@ import {
   type NutrientDose
 } from "@/lib/cultivation";
 import { addDryBackLog, getDashboardData, getUserProfile, getCustomBlueprints, addManualClimateLog, getBatches, createBatch } from "@/app/actions";
-import AIChatWidget from "@/components/AIChatWidget";
+import dynamic from 'next/dynamic';
+
+const AIChatWidget = dynamic(() => import('@/components/AIChatWidget'), {
+  ssr: false,
+});
 
 export default function Page() {
   // --- CONFIGURATION PROFILE STATE ---
