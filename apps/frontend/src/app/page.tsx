@@ -145,7 +145,7 @@ const [csvImporting, setCsvImporting] = useState(false);
   const loadData = useCallback(async (skipLoading = false) => {
     try {
       if (!skipLoading) setLoading(true);
-      const data = await getDashboardData();
+      const data = await getDashboardData(selectedBatchId || undefined);
       console.log("📊 data from API:", data);
       setDbDryBackLogs(data.dryBackLogs || []);
       setDbEnvironmentReadings(data.environmentReadings || []);
@@ -173,7 +173,7 @@ const [csvImporting, setCsvImporting] = useState(false);
     } finally {
       if (!skipLoading) setLoading(false);
     }
-  }, []);
+  }, [selectedBatchId]);
 
   useEffect(() => {
   // Reset feeding inputs when nutrient line changes
@@ -217,6 +217,7 @@ const [csvImporting, setCsvImporting] = useState(false);
         weight: effectiveWeight,
         runoff_ec: profile.hasEcmeter ? 2.2 : 0,
         unit: weightUnit,
+        batchId: selectedBatchId || undefined,
       });
       alert("Dry-back log successfully saved!");
       const data = await getDashboardData();

@@ -15,12 +15,17 @@ function computeVPD(tempC: number, rh: number): number {
   return Math.round(vpd * 100) / 100;
 }
 
-export async function getDashboardData() {
+export async function getDashboardData(batchId?: string) {
     // 🧪 Demo Mode – bypass database and return mock data
     if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
       const demoData = generateDemoData(24);
       const latest = demoData[demoData.length - 1];
-    
+      // Fetch real dry‑back logs from the new table, optionally filtered by batch
+      const dryBackLogsFromDb = await db.dryBackLog.findMany({
+        where: batchId ? { batchId } : {},
+        orderBy: { timestamp: "asc" },
+        take: 30,
+      });
     return {
       environmentReadings: demoData.map(d => ({
         id: String(Math.random()),
@@ -163,6 +168,7 @@ export async function addDryBackLog(data: {
   weight: number;
   runoff_ec: number;
   unit: string;
+  batchId?: string;
 }) {
   const userId = await getRequiredUserId();
   const dryBackPercent = ((data.wetWeight - data.weight) / (data.wetWeight - data.dryTargetWeight)) * 100;
@@ -178,6 +184,7 @@ export async function addDryBackLog(data: {
       runoffEc: data.runoff_ec || null,
       notes: `Cultivar: ${data.cultivar}`,
       timestamp: new Date(),
+      batchId: data.batchId || null,
     },
   });
 
