@@ -37,7 +37,7 @@ export function AppShell({ children }: AppShellProps) {
                   Single-grower command
                 </p>
                 <h1 className="text-xl font-semibold tracking-normal text-graphite dark:text-zinc-100">
-                  Grower's Ledger
+                  Cultivator's Ledger
                 </h1>
               </div>
             </Link>

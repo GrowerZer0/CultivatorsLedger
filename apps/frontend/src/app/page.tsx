@@ -431,7 +431,6 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
         {process.env.NEXT_PUBLIC_DEMO_MODE === 'true' && (
           <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-50/80 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-800 dark:text-amber-300 flex flex-wrap items-center justify-between gap-2">
             <span className="flex items-center gap-2">
-              <span className="text-lg">🧪</span>
               Demo Mode — Explore the dashboard with sample data. No installation required.
           </span>
           <a

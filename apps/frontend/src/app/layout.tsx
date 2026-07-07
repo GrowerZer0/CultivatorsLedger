@@ -3,7 +3,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
 export const metadata: Metadata = {
-  title: "Grower's Ledger",
+  title: "Cultivator's Ledger",
   description: "Cultivation telemetry dashboard",
 };
 
