@@ -30,14 +30,11 @@ import {
   getUserProfile, 
   updateUserProfile,
 } from "@/app/actions";
-import { createClient } from "@supabase/supabase-js";
+import { getRequiredUserId } from "@/lib/session";
 
 type UserProfile = any;
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+export const dynamic = 'force-dynamic';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("hardware");
@@ -104,15 +101,15 @@ export default function SettingsPage() {
   }
 
   // ✅ FIXED: Safely maps credential state directly to your verified tenant profile payload
-  async function handleSaveHardwareSettings(e: React.FormEvent) {
-    e.preventDefault();
-    setSavingHardware(true);
-    
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("No active session initialized.");
+async function handleSaveHardwareSettings(e: React.FormEvent) {
+  e.preventDefault();
+  setSavingHardware(true);
   
-      const isBrandMapped = controllerBrand.trim() !== "";
+  try {
+    const userId = await getRequiredUserId(); // returns 'local-dev-user' in dev
+    if (!userId) throw new Error("No active session initialized.");
+
+    const isBrandMapped = controllerBrand.trim() !== "";
       
       const profilePayload: any = {
         hasClimateHub: isBrandMapped,
