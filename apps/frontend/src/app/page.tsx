@@ -575,13 +575,13 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
             </option>
           ))}
         </select>
-        <button
-          type="button"
-          onClick={() => setShowNewBatchModal(true)}
-          className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-2 py-1 rounded-md transition-colors whitespace-nowrap"
-        >
-          + New
-        </button>
+          <button
+            type="button"
+            onClick={() => setShowNewBatchModal(true)}
+            className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-full transition-colors whitespace-nowrap"
+          >
+            + New
+          </button>
       </div>
 
       {/* Batch Summary (only when a batch is selected) */}
@@ -925,7 +925,7 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
 
 {/* 🎛️ TWO-COLUMN OPERATIONAL CONTROL GRID */}
 <div className="grid gap-6 lg:grid-cols-2 mb-6">
-    
+
   {/* LEFT COLUMN: Dry-Back Analytics (Inputs + Chart) */}
   <div className="space-y-4">
         {/* Precision Dry-Back Analytics */}
