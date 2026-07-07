@@ -1,45 +1,6 @@
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
-
-
-
+// src/lib/session.ts
 export async function getRequiredUserId() {
-  const cookieStore = await cookies();
-  
-  if (process.env.NODE_ENV === 'development') {
-    return 'local-dev-user';
-  }
-
-  // 🌟 Use the new, clean 2-argument signature
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: any) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch {
-            // Safe to ignore inside server components / actions
-          }
-        },
-        remove(name: string, options: any) {
-          try {
-            cookieStore.set({ name, value: "", ...options });
-          } catch {
-            // Safe to ignore inside server components / actions
-          }
-        },
-      },
-    }
-  );
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthorized: Active user session required.");
-  
-  return user.id;
-
+  // Local-first development: always return a local user ID
+  // This will be replaced with proper auth later.
+  return 'local-dev-user';
 }
