@@ -578,7 +578,7 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
         <button
           type="button"
           onClick={() => setShowNewBatchModal(true)}
-          className="text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors whitespace-nowrap"
+          className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-2 py-1 rounded-md transition-colors whitespace-nowrap"
         >
           + New
         </button>
@@ -924,8 +924,8 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
 </div>
 
 {/* 🎛️ TWO-COLUMN OPERATIONAL CONTROL GRID */}
-<div className="grid gap-6 xl:grid-cols-2 mb-6">
-  
+<div className="grid gap-6 lg:grid-cols-2 mb-6">
+    
   {/* LEFT COLUMN: Dry-Back Analytics (Inputs + Chart) */}
   <div className="space-y-4">
         {/* Precision Dry-Back Analytics */}
@@ -1030,14 +1030,21 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={dryBackChartData} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>
               <CartesianGrid stroke="#1F2937" className="opacity-40" strokeDasharray="3 3" />
-              <XAxis dataKey="time" stroke="var(--axis-color)" fontSize={10} tickLine={false} />
-<YAxis stroke="#4B5563" fontSize={10} tickLine={false} label={{
-  value: `Weight (${weightUnit})`,
-  angle: -90,
-  position: 'insideLeft',
-  fill: '#9CA3AF',
-  fontSize: 10,
-}} />
+              <XAxis
+                dataKey="time"
+                stroke="var(--axis-color)"
+                fontSize={10}
+                tickLine={false}
+                interval="preserveStartEnd"
+                tick={{ fontSize: 10 }}
+              />
+              <YAxis stroke="#4B5563" fontSize={10} tickLine={false} label={{
+                value: `Weight (${weightUnit})`,
+                angle: -90,
+                position: 'insideLeft',
+                fill: '#9CA3AF',
+                fontSize: 10,
+              }} />
               <Tooltip contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', color: '#fff', fontSize: '12px' }} />
               <Line type="monotone" dataKey="weight" name="Weight" stroke="#10B981" strokeWidth={2.5} dot={false} />
             </LineChart>
