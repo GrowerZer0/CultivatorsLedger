@@ -1,29 +1,74 @@
-import { getBatch } from "@/app/actions";
-import { notFound } from "next/navigation";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+'use client';
+
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
+import { getBatch } from "@/app/actions";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
-export default async function BatchPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const batch = await getBatch(id);
-  if (!batch) notFound();
+export default function BatchPage() {
+  const params = useParams<{ id: string }>();
+  const [batch, setBatch] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const avgDryBack = batch.dryBackLogs.length > 0
-    ? batch.dryBackLogs.reduce((acc, log) => acc + Number(log.dryBackPercent), 0) / batch.dryBackLogs.length
-    : 0;
+  useEffect(() => {
+    if (params?.id) {
+      getBatch(params.id)
+        .then((data) => setBatch(data))
+        .catch(console.error)
+        .finally(() => setLoading(false));
+    }
+  }, [params]);
 
-  const daysSinceStart = Math.floor((Date.now() - new Date(batch.startDate).getTime()) / (1000 * 60 * 60 * 24));
+  if (loading) {
+    return (
+      <AppShell>
+        <div className="flex h-[75vh] items-center justify-center text-zinc-400">
+          Loading batch...
+        </div>
+      </AppShell>
+    );
+  }
 
-  const chartData = batch.dryBackLogs.map((log) => ({
+  if (!batch) {
+    return (
+      <AppShell>
+        <div className="flex h-[75vh] items-center justify-center text-zinc-400">
+          Batch not found.
+        </div>
+      </AppShell>
+    );
+  }
+
+  const avgDryBack =
+    batch.dryBackLogs?.length > 0
+      ? batch.dryBackLogs.reduce((acc: number, log: any) => acc + Number(log.dryBackPercent), 0) /
+        batch.dryBackLogs.length
+      : 0;
+
+  const daysSinceStart = Math.floor(
+    (Date.now() - new Date(batch.startDate).getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  const chartData = batch.dryBackLogs?.map((log: any) => ({
     time: new Date(log.timestamp).toLocaleDateString(),
     dryBack: Number(log.dryBackPercent),
-  }));
+  })) || [];
 
   return (
     <AppShell>
       <div className="max-w-4xl mx-auto p-4">
         <h1 className="text-3xl font-bold text-white mb-2">{batch.name}</h1>
-        <p className="text-zinc-400 mb-6">{batch.cultivar} • Room: {batch.roomId}</p>
+        <p className="text-zinc-400 mb-6">
+          {batch.cultivar} • Room: {batch.roomId}
+        </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800">
@@ -36,7 +81,7 @@ export default async function BatchPage({ params }: { params: Promise<{ id: stri
           </div>
           <div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800">
             <p className="text-sm text-zinc-500">Logs Recorded</p>
-            <p className="text-2xl font-bold text-white">{batch.dryBackLogs.length}</p>
+            <p className="text-2xl font-bold text-white">{batch.dryBackLogs?.length || 0}</p>
           </div>
         </div>
 
