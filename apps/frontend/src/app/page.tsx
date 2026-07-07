@@ -427,6 +427,24 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     <AppShell>
       <div className="min-h-screen bg-white dark:bg-[#0B0F19] text-gray-900 dark:text-zinc-100 p-1 lg:p-4 font-sans selection:bg-emerald-500/30">
         
+        {/* Demo Mode Banner */}
+        {process.env.NEXT_PUBLIC_DEMO_MODE === 'true' && (
+          <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-50/80 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-800 dark:text-amber-300 flex flex-wrap items-center justify-between gap-2">
+            <span className="flex items-center gap-2">
+              <span className="text-lg">🧪</span>
+              Demo Mode — Explore the dashboard with sample data. No installation required.
+          </span>
+          <a
+            href="https://github.com/growerzer0/cultivatorsledger"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 rounded-lg bg-amber-500/20 px-3 py-1 text-xs font-bold text-amber-800 dark:text-amber-300 hover:bg-amber-500/30 transition-colors"
+          >
+            GitHub Repo →
+          </a>
+        </div>
+      )}
+
         {/* TOP COMMAND NAVIGATION BAR */}
         <header className="mb-6 flex flex-col gap-4 border-b border-gray-200 dark:border-zinc-800 pb-5">
   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1248,6 +1266,42 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
   </AppShell>
   );
 }
+
+{/* 🧪 Demo Mode CTA */}
+{process.env.NEXT_PUBLIC_DEMO_MODE === 'true' && (
+  <div className="mt-8 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6 text-center">
+    <h3 className="text-lg font-bold text-white">Ready to run it on your own hardware?</h3>
+    <p className="mt-1 text-sm text-zinc-400">
+      Deploy with Docker Compose in minutes.
+    </p>
+    <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
+      <code className="rounded-lg bg-zinc-950 px-4 py-2 text-sm text-emerald-400 font-mono">
+        git clone https://github.com/growerzer0/cultivatorsledger.git
+      </code>
+      <a
+        href="https://github.com/growerzer0/cultivatorsledger"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500 transition-colors"
+      >
+        View on GitHub →
+      </a>
+    </div>
+    
+    <div className="mt-4 border-t border-zinc-800 pt-4 text-xs text-zinc-500">
+      What would you change?{' '}
+      <a
+        href="https://github.com/growerzer0/cultivatorsledger/issues"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-emerald-400 hover:text-emerald-300 transition-colors"
+      >
+        Open an issue on GitHub
+      </a>
+      {' or reply in the comments.'}
+    </div>
+  </div>
+)}
 
 // PREMIUM LOCALIZED NUMBER FIELD COMPONENT 
 type DarkNumberFieldProps = {

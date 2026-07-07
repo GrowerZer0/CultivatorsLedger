@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getRequiredUserId } from "@/lib/session";
 import { DryBackLog, EnvironmentReading } from "@/lib/cultivation";
+import { generateDemoData } from "@/lib/demoData";
 
 // Helper: compute VPD (kPa) from temp (°C) and RH (%)
 function computeVPD(tempC: number, rh: number): number {
@@ -15,6 +16,44 @@ function computeVPD(tempC: number, rh: number): number {
 }
 
 export async function getDashboardData() {
+    // 🧪 Demo Mode – bypass database and return mock data
+    if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
+      const demoData = generateDemoData(24);
+      const latest = demoData[demoData.length - 1];
+    
+    return {
+      environmentReadings: demoData.map(d => ({
+        id: String(Math.random()),
+        temperatureF: d.temperature * 9/5 + 32,
+        temperature: d.temperature,
+        humidity: d.humidity,
+        vpd: d.vpd,
+        runoff_ec: 0,
+        dry_back: 0,
+        recordedAt: d.timestamp.toISOString(),
+      })),
+      dryBackLogs: demoData.map(d => ({
+        id: String(Math.random()),
+        cultivar: "Demo Grow",
+        stage: "Flower",
+        containerGallons: 5,
+        wetWeight: 18.4,
+        dryTargetWeight: 13.2,
+        weight: d.weight || 14.5,
+        dryBackPercent: ((18.4 - (d.weight || 14.5)) / (18.4 - 13.2)) * 100,
+        runoff_ec: 0,
+        loggedAt: d.timestamp.toISOString(),
+      })),
+      // For live data, we also return the latest climate reading
+      latestClimate: {
+        airTempC: latest.temperature,
+        relativeHumidity: latest.humidity,
+        calculatedVpdKpa: latest.vpd,
+        timestamp: latest.timestamp,
+      },
+    };
+  }
+  
   const userId = await getRequiredUserId();
 
   // Fetch the 30 most recent climate logs (descending)

@@ -27,3 +27,4 @@ build/
 
 .venv/
 .DS_Store
+.aider*
