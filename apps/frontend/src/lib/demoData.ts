@@ -8,6 +8,7 @@ export interface DemoReading {
 }
 
 export function generateDemoData(hours: number = 24): DemoReading[] {
+  console.log('🧪 Demo mode activated, generating mock data');
   const now = new Date();
   const data: DemoReading[] = [];
   

@@ -491,9 +491,9 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
     <div>
       <div className="flex items-center gap-2">
-        <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded">
-          Production Environment
-        </span>
+<span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded">
+  {process.env.NEXT_PUBLIC_DEMO_MODE === 'true' ? 'Demo Environment' : 'Production Environment'}
+</span>
       </div>
       <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white mt-1">My Grow Room</h1>
       <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">Real-time telemetry aggregation and structural crop-steering optimization arrays.</p>
@@ -931,36 +931,37 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
         {/* Precision Dry-Back Analytics */}
     {profile.hasScales && (
   <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xl">
-    <div className="flex items-center gap-2 mb-4 border-b border-gray-200 dark:border-zinc-800 pb-3">
-      <Sliders className="size-4 text-emerald-400" />
-      <div>
-        <h3 className="text-sm font-bold text-gray-900 dark:text-white">Precision Dry-Back Analytics</h3>
-        <p className="text-[11px] text-gray-500 dark:text-zinc-400">Calibrate volumetric container dry targets down to single grams.</p>
-      </div>
+<div className="flex items-center justify-between mb-4 border-b border-gray-200 dark:border-zinc-800 pb-3">
+  <div className="flex items-center gap-2">
+    <Sliders className="size-4 text-emerald-400" />
+    <div>
+      <h3 className="text-sm font-bold text-gray-900 dark:text-white">Precision Dry-Back Analytics</h3>
+      <p className="text-[11px] text-gray-500 dark:text-zinc-400">Calibrate volumetric container dry targets down to single grams.</p>
     </div>
-
-    {/* Unit Toggle */}
-    <div className="flex items-center gap-2 mb-3">
-      <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Unit:</span>
-      <button
-        type="button"
-        onClick={() => setWeightUnit('lbs')}
-        className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-          weightUnit === 'lbs' ? 'bg-emerald-600 text-gray-900 dark:text-white' : 'text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:text-zinc-300'
-        }`}
-      >
-        lbs
-      </button>
-      <button
-        type="button"
-        onClick={() => setWeightUnit('g')}
-        className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-          weightUnit === 'g' ? 'bg-emerald-600 text-gray-900 dark:text-white' : 'text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:text-zinc-300'
-        }`}
-      >
-        g
-      </button>
-    </div>
+  </div>
+  {/* Unit Toggle */}
+  <div className="flex items-center gap-2">
+    <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Unit:</span>
+    <button
+      type="button"
+      onClick={() => setWeightUnit('lbs')}
+      className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+        weightUnit === 'lbs' ? 'bg-emerald-600 text-gray-900 dark:text-white' : 'text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:text-zinc-300'
+      }`}
+    >
+      lbs
+    </button>
+    <button
+      type="button"
+      onClick={() => setWeightUnit('g')}
+      className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+        weightUnit === 'g' ? 'bg-emerald-600 text-gray-900 dark:text-white' : 'text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:text-zinc-300'
+      }`}
+    >
+      g
+    </button>
+  </div>
+</div>
 
     <div className="grid gap-4 sm:grid-cols-2">
       <DarkNumberField

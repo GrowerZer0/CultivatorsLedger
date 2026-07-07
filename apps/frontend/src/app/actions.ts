@@ -135,6 +135,25 @@ export async function addManualClimateLog(data: {
 // --- BATCH MANAGEMENT ---
 export async function getBatches() {
   const userId = await getRequiredUserId();
+
+  // Demo Mode – return a mock batch
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
+    return [
+      {
+        id: 'demo-batch-1',
+        name: 'Demo Grow',
+        cultivar: 'Blueberry Muffin',
+        roomId: 'tent_1',
+        startDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), // 14 days ago
+        harvestDate: null,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        dryBackLogs: [], // will be populated later if needed
+      },
+    ];
+  }
+
   return await db.batch.findMany({
     orderBy: { startDate: 'desc' },
   });
