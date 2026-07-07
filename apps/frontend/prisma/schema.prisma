@@ -73,7 +73,7 @@ model ClimateLog {
 model DryBackLog {
   id                 Int      @id @default(autoincrement())
   timestamp          DateTime @default(now()) @db.Timestamptz(6)
-  batchId            Int?     @map("batch_id")
+  batchId            String?  @map("batch_id")
   containerGallons   Decimal  @map("container_gallons") @db.Decimal(4, 2)
   wetWeightLbs       Decimal  @map("wet_weight_lbs") @db.Decimal(5, 2)
   dryTargetWeightLbs Decimal  @map("dry_target_weight_lbs") @db.Decimal(5, 2)
@@ -81,10 +81,27 @@ model DryBackLog {
   dryBackPercent     Decimal  @map("dry_back_percent") @db.Decimal(5, 2)
   runoffEc           Decimal? @map("runoff_ec") @db.Decimal(3, 2)
   notes              String?
+  unit               String   @default("lbs")
   createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  unit               String   @default("lbs") // 'lbs' or 'g'
+  
+  batch              Batch?   @relation(fields: [batchId], references: [id], onDelete: SetNull)
 
   @@map("dry_back_logs")
+}
+
+model Batch {
+  id          String   @id @default(cuid())
+  name        String   @db.VarChar(100)
+  cultivar    String   @db.VarChar(100)
+  roomId      String   @map("room_id") @db.VarChar(50)
+  startDate   DateTime @default(now()) @map("start_date")
+  harvestDate DateTime? @map("harvest_date")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  dryBackLogs DryBackLog[]
+
+  @@map("batches")
 }
 
 model IrrigationEvent {

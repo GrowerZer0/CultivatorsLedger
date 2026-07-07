@@ -127,6 +127,34 @@ export async function addManualClimateLog(data: {
   return { success: true, id: result.id };
 }
 
+// --- BATCH MANAGEMENT ---
+export async function getBatches() {
+  const userId = await getRequiredUserId();
+  return await db.batch.findMany({
+    orderBy: { startDate: 'desc' },
+  });
+}
+
+export async function createBatch(data: { name: string; cultivar: string; roomId: string }) {
+  const userId = await getRequiredUserId();
+  const batch = await db.batch.create({
+    data: {
+      name: data.name,
+      cultivar: data.cultivar,
+      roomId: data.roomId,
+    },
+  });
+  revalidatePath('/');
+  return batch;
+}
+
+export async function setActiveBatch(batchId: string) {
+  // We'll store the active batch ID in a system setting later, but for now we'll just use a cookie or a global state.
+  // Simpler: we'll store it in the user's profile (add a field to UserProfile later).
+  // We'll just return it for now and handle frontend state.
+  // We'll implement a simple store in a future story.
+}
+
 export async function addDryBackLog(data: {
   cultivar: string;
   containerGallons: number;

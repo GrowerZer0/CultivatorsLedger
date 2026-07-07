@@ -44,11 +44,11 @@ import {
   type FeedSchedule,
   type NutrientDose
 } from "@/lib/cultivation";
-import { addDryBackLog, getDashboardData, getUserProfile, getCustomBlueprints, addManualClimateLog } from "@/app/actions";
+import { addDryBackLog, getDashboardData, getUserProfile, getCustomBlueprints, addManualClimateLog, getBatches, createBatch } from "@/app/actions";
 import AIChatWidget from "@/components/AIChatWidget";
 
 export default function Page() {
-  // --- 1. CONFIGURATION PROFILE STATE ---
+  // --- CONFIGURATION PROFILE STATE ---
   const [profile, setProfile] = useState({
     experienceLevel: "Beginner",
     hasEcmeter: true,
@@ -56,7 +56,7 @@ export default function Page() {
     hasClimateHub: true
   });
 
-  // --- 2. LIVE DATABASE TELEMETRY STATES ---
+  // --- LIVE DATABASE TELEMETRY STATES ---
   const [dbDryBackLogs, setDbDryBackLogs] = useState<DryBackLog[]>([]);
   const [dbEnvironmentReadings, setDbEnvironmentReadings] = useState<EnvironmentReading[]>([]);
   const [customBlueprints, setCustomBlueprints] = useState<any[]>([]);
@@ -66,8 +66,14 @@ export default function Page() {
   const [manualHumidity, setManualHumidity] = useState(60);
   const [isSubmittingManual, setIsSubmittingManual] = useState(false);
   const [showFeeding, setShowFeeding] = useState(true);
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
+  const [batches, setBatches] = useState<any[]>([]);
+  const [showNewBatchModal, setShowNewBatchModal] = useState(false);
+  const [newBatchName, setNewBatchName] = useState('');
+  const [newBatchCultivar, setNewBatchCultivar] = useState('');
+  const [newBatchRoom, setNewBatchRoom] = useState('tent_1');
 
-  // --- 3. CORE INPUT CALCULATOR STATES ---
+  // --- CORE INPUT CALCULATOR STATES ---
   const [containerGallons, setContainerGallons] = useState(5);
   const [wetWeight, setWetWeight] = useState(18.4);
   const [dryTargetWeight, setDryTargetWeight] = useState(13.2);
@@ -146,7 +152,13 @@ const [csvImporting, setCsvImporting] = useState(false);
       console.log("🔄 setDbEnvironmentReadings called with:", data.environmentReadings.length, "items");
       const blueprints = await getCustomBlueprints();
       setCustomBlueprints(blueprints || []);
-    
+      // Fetch batches
+      const fetchedBatches = await getBatches();
+      setBatches(fetchedBatches);
+      if (fetchedBatches.length > 0 && !selectedBatchId) {
+        const active = fetchedBatches.find(b => b.isActive) || fetchedBatches[0];
+        setSelectedBatchId(active.id);
+      }
       const activeProfile = await getUserProfile() as any;
       if (activeProfile) {
         setProfile({
@@ -513,6 +525,29 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
         <option value="OG Kush">OG Kush</option>
       </select>
     </div>
+
+    <div className="flex items-center gap-2">
+  <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Batch:</span>
+  <select
+    value={selectedBatchId || ''}
+    onChange={(e) => setSelectedBatchId(e.target.value || null)}
+    className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 transition-all"
+  >
+    <option value="">-- Select --</option>
+    {batches.map((b) => (
+      <option key={b.id} value={b.id}>
+        {b.name} ({b.cultivar})
+      </option>
+    ))}
+  </select>
+  <button
+    type="button"
+    onClick={() => setShowNewBatchModal(true)}
+    className="text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors"
+  >
+    + New
+  </button>
+</div>
 
     <div className="flex items-center gap-2">
       <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Batch:</span>
@@ -1262,6 +1297,63 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
       </div>
     </div>
   )}
+  {/* NEW BATCH MODAL */}
+{showNewBatchModal && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+      <h2 className="text-lg font-bold text-white mb-4">Create New Batch</h2>
+      <div className="space-y-3">
+        <input
+          type="text"
+          placeholder="Batch Name (e.g., Blueberry Muffin #3)"
+          value={newBatchName}
+          onChange={(e) => setNewBatchName(e.target.value)}
+          className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+        />
+        <input
+          type="text"
+          placeholder="Cultivar"
+          value={newBatchCultivar}
+          onChange={(e) => setNewBatchCultivar(e.target.value)}
+          className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+        />
+        <select
+          value={newBatchRoom}
+          onChange={(e) => setNewBatchRoom(e.target.value)}
+          className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+        >
+          <option value="tent_1">Tent 1</option>
+          <option value="tent_2">Tent 2</option>
+          <option value="room_a">Room A</option>
+          <option value="room_b">Room B</option>
+        </select>
+        <div className="flex gap-3 pt-2">
+          <button
+            type="button"
+            onClick={() => setShowNewBatchModal(false)}
+            className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm font-bold text-zinc-300 hover:bg-zinc-800 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              if (!newBatchName || !newBatchCultivar) return;
+              await createBatch({ name: newBatchName, cultivar: newBatchCultivar, roomId: newBatchRoom });
+              setShowNewBatchModal(false);
+              setNewBatchName('');
+              setNewBatchCultivar('');
+              loadData(); // refresh list
+            }}
+            className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500 transition-all"
+          >
+            Create
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
   </AppShell>
   );
 }
