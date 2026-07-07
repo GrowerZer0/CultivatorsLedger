@@ -3,8 +3,9 @@ import { notFound } from "next/navigation";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { AppShell } from "@/components/layout/AppShell";
 
-export default async function BatchPage({ params }: { params: { id: string } }) {
-  const batch = await getBatch(params.id);
+export default async function BatchPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const batch = await getBatch(id);
   if (!batch) notFound();
 
   const avgDryBack = batch.dryBackLogs.length > 0
