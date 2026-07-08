@@ -62,11 +62,34 @@ export default function BatchPage() {
     dryBack: Number(log.dryBackPercent),
   })) || [];
 
+  const exportCSV = () => {
+    if (!batch?.dryBackLogs?.length) return;
+    const headers = ['Date', 'Dry-Back %'];
+    const rows = batch.dryBackLogs.map((log: any) => [
+      new Date(log.timestamp).toLocaleDateString(),
+      Number(log.dryBackPercent).toFixed(1),
+    ]);
+    const csvContent = [headers.join(','), ...rows.map((r: string[]) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${batch.name}_dryback_logs.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <AppShell>
       <div className="max-w-4xl mx-auto p-4">
         <h1 className="text-3xl font-bold text-white mb-2">{batch.name}</h1>
         <p className="text-zinc-400 mb-6">
+        <button
+          onClick={exportCSV}
+          className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-full transition-colors"
+        >
+          Export CSV
+        </button>
           {batch.cultivar} • Room: {batch.roomId}
         </p>
 
