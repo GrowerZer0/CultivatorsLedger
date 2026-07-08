@@ -43,9 +43,6 @@ const [newSensorName, setNewSensorName] = useState('');
 const [newSensorType, setNewSensorType] = useState('vivosun');
 const [loadingSensors, setLoadingSensors] = useState(false);
 
-  // --- HARDWARE TELEMETRY INTEGRATION STATE ---
-  const [hasClimateHub, setHasClimateHub] = useState(false);
-
   const loadSensors = useCallback(async () => {
   setLoadingSensors(true);
   try {
