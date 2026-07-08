@@ -44,6 +44,19 @@ export async function getSensors() {
 
 export async function createSensor(data: { name: string; type: string }) {
   const userId = await getRequiredUserId();
+  //Demo mode
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
+  const mockId = `demo-${Date.now()}`;
+  const mockApiKey = `sk-demo-${Math.random().toString(36).substring(2, 10)}`;
+  return {
+    id: mockId,
+    name: data.name,
+    type: data.type,
+    isActive: true,
+    lastPingAt: null,
+    apiKey: mockApiKey,
+  };
+}
   const apiKey = generateApiKey();
   const apiKeyHash = hashKey(apiKey);
   const sensor = await db.sensorConfig.create({

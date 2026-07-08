@@ -543,7 +543,7 @@ useEffect(() => {
               alert(`Sensor created! API Key: ${result.apiKey}`);
               setShowAddSensor(false);
               setNewSensorName('');
-              setNewSensorType('vivosun');
+              setNewSensorType('');
               loadSensors();
             }}
             className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500 transition-all"
