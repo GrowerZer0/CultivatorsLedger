@@ -171,6 +171,30 @@ export async function createBatch(data: { name: string; cultivar: string; roomId
 
 export async function getBatch(batchId: string) {
   const userId = await getRequiredUserId();
+
+  // Demo Mode – return mock batch data
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
+    // Simulate a batch with some dry‑back logs
+    const mockLogs = Array.from({ length: 14 }, (_, i) => ({
+      id: i + 1,
+      timestamp: new Date(Date.now() - (13 - i) * 24 * 60 * 60 * 1000),
+      dryBackPercent: 60 + Math.random() * 30,
+    }));
+    return {
+      id: 'demo-batch-1',
+      name: 'Demo Grow',
+      cultivar: 'Blueberry Muffin',
+      roomId: 'tent_1',
+      startDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
+      harvestDate: null,
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      dryBackLogs: mockLogs,
+    };
+  }
+
+  // Real mode – query database
   return await db.batch.findUnique({
     where: { id: batchId },
     include: {
