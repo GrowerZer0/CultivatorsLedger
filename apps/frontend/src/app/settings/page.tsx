@@ -1,6 +1,7 @@
 // src/app/settings/page.tsx
 "use client";
 
+import Link from 'next/link';
 import { useState, useEffect, useCallback } from "react";
 import {  
   FlaskConical, 
@@ -9,6 +10,12 @@ import {
   X,
   Save,
   Trash2,
+  Settings,
+  Sun,
+  Moon,
+  Keyboard,
+  Cpu,
+  ChevronRight
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { SectionPanel } from "@/components/layout/SectionPanel";
@@ -24,6 +31,8 @@ import {
   toggleSensor,
   deleteSensor,
   regenerateApiKey,
+  getBatches,
+  createBatch,
 } from "@/app/actions";
 
 type UserProfile = any;
@@ -40,24 +49,33 @@ export default function SettingsPage() {
   const [sensors, setSensors] = useState<any[]>([]);
   const [showAddSensor, setShowAddSensor] = useState(false);
   const [newSensorName, setNewSensorName] = useState('');
-  const [newSensorType, setNewSensorType] = useState('');
+  const [newSensorType, setNewSensorType] = useState('custom-http');
   const [loadingSensors, setLoadingSensors] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState('tent_1');
+  const [selectedStrain, setSelectedStrain] = useState('Blueberry Muffin');
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
+  const [isSensorDriven, setIsSensorDriven] = useState(false);
+  const [showNewBatchModal, setShowNewBatchModal] = useState(false);
+  const [newBatchName, setNewBatchName] = useState('');
+  const [newBatchCultivar, setNewBatchCultivar] = useState('');
+  const [newBatchRoom, setNewBatchRoom] = useState('tent_1');
+  const [batches, setBatches] = useState<any[]>([]);
 
   const loadSensors = useCallback(async () => {
-  setLoadingSensors(true);
-  try {
-    const data = await getSensors();
-    setSensors(data || []);
-  } catch (err) {
-    console.error(err);
-  } finally {
-    setLoadingSensors(false);
-  }
+    setLoadingSensors(true);
+    try {
+      const data = await getSensors();
+      setSensors(data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingSensors(false);
+    }
   }, []);
 
-useEffect(() => {
-  loadSensors();
-}, [loadSensors]);
+  useEffect(() => {
+    loadSensors();
+  }, [loadSensors]);
 
   const loadProfileAndBlueprints = useCallback(async () => {
     setLoading(true);
@@ -68,7 +86,7 @@ useEffect(() => {
       const profile = await getUserProfile() as UserProfile;
       if (profile) {
         if (profile.activeFeedLine) setActiveFeedLine(profile.activeFeedLine);
-        }
+      }
     } catch (err) {
       console.error("Failed to sync profile configuration maps:", err);
     } finally {
@@ -79,6 +97,22 @@ useEffect(() => {
   useEffect(() => {
     loadProfileAndBlueprints();
   }, [loadProfileAndBlueprints]);
+
+  const loadBatches = useCallback(async () => {
+    try {
+      const data = await getBatches();
+      setBatches(data || []);
+      if (data.length > 0 && !selectedBatchId) {
+        setSelectedBatchId(data[0].id);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }, [selectedBatchId]);
+
+  useEffect(() => {
+    loadBatches();
+  }, [loadBatches]);
 
   async function handleSetActiveLine(id: string, event: React.MouseEvent) {
     event.stopPropagation();
@@ -122,6 +156,30 @@ useEffect(() => {
       ],
       isCustom: true
     });
+  }
+
+  function getBatchAverage(batchId: string | null): number {
+    if (!batchId) return 0;
+    const batch = batches.find(b => b.id === batchId);
+    if (!batch || !batch.dryBackLogs || batch.dryBackLogs.length === 0) return 0;
+    const total = batch.dryBackLogs.reduce((sum: number, log: { dryBackPercent: number | string }) => {
+      return sum + Number(log.dryBackPercent);
+    }, 0);
+    return total / batch.dryBackLogs.length;
+  }
+
+  function getBatchLogCount(batchId: string | null): number {
+    if (!batchId) return 0;
+    const batch = batches.find(b => b.id === batchId);
+    return batch?.dryBackLogs?.length || 0;
+  }
+
+  function getBatchDaysSinceStart(batchId: string | null): number {
+    if (!batchId) return 0;
+    const batch = batches.find(b => b.id === batchId);
+    if (!batch?.startDate) return 0;
+    const days = Math.floor((Date.now() - new Date(batch.startDate).getTime()) / (1000 * 60 * 60 * 24));
+    return days;
   }
 
   async function handleSave() {
@@ -176,7 +234,7 @@ useEffect(() => {
         {/* TABS */}
         <div className="border-b border-slate-200 dark:border-zinc-800">
           <nav className="-mb-px flex space-x-8">
-            {["hardware", "nutrients"].map((tab) => {
+            {["hardware", "nutrients", "batches", "system"].map((tab) => {
               const isActive = activeTab === tab;
               return (
                 <button
@@ -188,7 +246,10 @@ useEffect(() => {
                       : "border-transparent text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200"
                   }`}
                 >
-                  {tab === "nutrients" ? "Nutrient Feed Library" : "Hardware Connections"}
+                  {tab === "nutrients" ? "Nutrient Feed Library" : 
+                   tab === "hardware" ? "Hardware" : 
+                   tab === "batches" ? "Batches" : 
+                   "System"}
                 </button>
               );
             })}
@@ -196,7 +257,7 @@ useEffect(() => {
         </div>
 
         {/* ======================================================= */}
-        {/* HARDWARE CONNECTIONS VIEW PANEL                         */}
+        {/* HARDWARE TAB */}
         {/* ======================================================= */}
         {activeTab === "hardware" && (
           <div className="space-y-6 animate-in fade-in duration-200">
@@ -269,12 +330,39 @@ useEffect(() => {
                   )}
                 </div>
               )}
+
+              {/* Sensor Mode Toggle */}
+              <div className="mt-6 pt-6 border-t border-slate-200 dark:border-zinc-800">
+                <h4 className="text-sm font-bold text-zinc-400 mb-2">Ingestion Mode</h4>
+                <div className="inline-flex rounded-xl bg-gray-50 dark:bg-zinc-950 p-1 border border-gray-200 dark:border-zinc-800">
+                  <button
+                    type="button"
+                    onClick={() => setIsSensorDriven(false)}
+                    className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${!isSensorDriven
+                      ? "bg-emerald-600 text-white shadow-md ring-1 ring-zinc-700/50"
+                      : "text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:text-zinc-300"
+                    }`}
+                  >
+                    <Keyboard className="size-3.5" /> Manual
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsSensorDriven(true)}
+                    className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${isSensorDriven
+                      ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/20 ring-1 ring-emerald-500/30"
+                      : "text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:text-zinc-300"
+                    }`}
+                  >
+                    <Cpu className="size-3.5" /> Hardware
+                  </button>
+                </div>
+              </div>
             </SectionPanel>
           </div>
         )}
 
         {/* ======================================================= */}
-        {/* NUTRIENT FEED LIBRARY VIEW PANEL                        */}
+        {/* NUTRIENTS TAB */}
         {/* ======================================================= */}
         {activeTab === "nutrients" && (
           <div className="space-y-6 animate-in fade-in duration-200">
@@ -386,7 +474,176 @@ useEffect(() => {
           </div>
         )}
 
-        {/* 🛠️ SLIDE-OVER RECIPE EDITOR */}
+        {/* ======================================================= */}
+        {/* BATCHES TAB */}
+        {/* ======================================================= */}
+        {activeTab === "batches" && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <SectionPanel 
+              title="Batch Management" 
+              subtitle="Create and manage grow batches."
+            >
+              <div className="space-y-4">
+                {/* Batch Selector + New Button */}
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Active Batch:</span>
+                    <select
+                      value={selectedBatchId || ''}
+                      onChange={(e) => setSelectedBatchId(e.target.value || null)}
+                      className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 transition-all"
+                    >
+                      <option value="">-- Select --</option>
+                      {batches.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name} ({b.cultivar})
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => setShowNewBatchModal(true)}
+                      className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-full transition-colors whitespace-nowrap"
+                    >
+                      + New
+                    </button>
+                  </div>
+
+                  {/* Batch Summary */}
+                  {selectedBatchId && (
+                    <div className="flex items-center gap-3 px-3 py-1 bg-zinc-800/30 dark:bg-zinc-800/30 rounded-lg border border-zinc-700/60">
+                      <span className="flex items-center gap-1.5">
+                        <span className="inline-block w-2 h-2 rounded-full bg-emerald-400" />
+                        <span className="text-sm font-bold text-gray-900 dark:text-white">
+                          {batches.find(b => b.id === selectedBatchId)?.name}
+                        </span>
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-zinc-400">
+                        Day {getBatchDaysSinceStart(selectedBatchId)}
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-zinc-400">
+                        {getBatchLogCount(selectedBatchId)} logs
+                      </span>
+                      <span className="text-xs text-emerald-400 font-mono">
+                        Avg: {getBatchAverage(selectedBatchId).toFixed(1)}%
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Action buttons */}
+                {selectedBatchId && (
+                  <div className="flex gap-3">
+                    <Link
+                      href={`/batches/${selectedBatchId}`}
+                      className="text-xs font-bold text-emerald-400 hover:text-emerald-300 px-3 py-1.5 rounded border border-emerald-500/20 hover:bg-emerald-500/10 transition-colors"
+                    >
+                      View Details
+                    </Link>
+                    <Link
+                      href="/batches/compare"
+                      className="text-xs font-bold text-zinc-400 hover:text-zinc-300 px-3 py-1.5 rounded border border-zinc-700 hover:bg-zinc-800/50 transition-colors"
+                    >
+                      Compare
+                    </Link>
+                  </div>
+                )}
+
+                {/* List of all batches */}
+                <div className="mt-6">
+                  <h4 className="text-xs font-bold uppercase text-zinc-500 mb-3">All Batches</h4>
+                  {batches.length === 0 ? (
+                    <p className="text-sm text-zinc-500">No batches created yet.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {batches.map((batch) => (
+                        <li key={batch.id} className="flex items-center justify-between p-3 bg-zinc-900 rounded-xl border border-zinc-800">
+                          <div>
+                            <p className="font-bold text-white">{batch.name}</p>
+                            <p className="text-xs text-zinc-400">{batch.cultivar} • Room: {batch.roomId}</p>
+                            <p className="text-xs text-zinc-500">Started: {new Date(batch.startDate).toLocaleDateString()}</p>
+                          </div>
+                          <div>
+                            <span className={`text-xs font-bold px-2 py-1 rounded-full ${batch.isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-zinc-500/20 text-zinc-400'}`}>
+                              {batch.isActive ? 'Active' : 'Archived'}
+                            </span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </SectionPanel>
+          </div>
+        )}
+
+        {/* ======================================================= */}
+        {/* SYSTEM TAB */}
+        {/* ======================================================= */}
+        {activeTab === "system" && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <SectionPanel 
+              title="System Settings" 
+              subtitle="Configure general application preferences."
+            >
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-zinc-800 pb-3">
+                  <div>
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-white">Default Room</h4>
+                    <p className="text-xs text-zinc-500">Select the default room for new batches.</p>
+                  </div>
+                  <select
+                    value={selectedRoom}
+                    onChange={(e) => setSelectedRoom(e.target.value)}
+                    className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 transition-all"
+                  >
+                    <option value="tent_1">Tent 1</option>
+                    <option value="tent_2">Tent 2</option>
+                    <option value="room_a">Room A</option>
+                    <option value="room_b">Room B</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-zinc-800 pb-3">
+                  <div>
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-white">Default Strain</h4>
+                    <p className="text-xs text-zinc-500">Select the default strain for new batches.</p>
+                  </div>
+                  <select
+                    value={selectedStrain}
+                    onChange={(e) => setSelectedStrain(e.target.value)}
+                    className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 transition-all"
+                  >
+                    <option value="Blueberry Muffin">Blueberry Muffin</option>
+                    <option value="Gelato">Gelato</option>
+                    <option value="Pineapple Express">Pineapple Express</option>
+                    <option value="OG Kush">OG Kush</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-white">Theme</h4>
+                    <p className="text-xs text-zinc-500">Choose light or dark mode.</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button className="p-2 rounded border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-mist dark:hover:bg-zinc-800 transition-colors">
+                      <Sun size={20} className="text-gray-700 dark:text-zinc-300" />
+                    </button>
+                    <button className="p-2 rounded border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-mist dark:hover:bg-zinc-800 transition-colors">
+                      <Moon size={20} className="text-gray-700 dark:text-zinc-300" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </SectionPanel>
+          </div>
+        )}
+
+        {/* ======================================================= */}
+        {/* SLIDE-OVER RECIPE EDITOR (shared) */}
+        {/* ======================================================= */}
         {editingSchedule && (
           <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-sm">
             <div className="w-full max-w-lg bg-white dark:bg-zinc-900 h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 border-l border-slate-200 dark:border-zinc-800">
@@ -503,58 +760,120 @@ useEffect(() => {
             </div>
           </div>
         )}
-
       </div>
+
+      {/* ======================================================= */}
+      {/* MODALS */}
+      {/* ======================================================= */}
 
       {/* Add Sensor Modal */}
-{showAddSensor && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-    <div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
-      <h2 className="text-lg font-bold text-white mb-4">Add New Sensor</h2>
-      <div className="space-y-3">
-        <input
-          type="text"
-          placeholder="Sensor Name (e.g., Tent 1 Sensor)"
-          value={newSensorName}
-          onChange={(e) => setNewSensorName(e.target.value)}
-          className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
-        />
-        <select
-          value={newSensorType}
-          onChange={(e) => setNewSensorType(e.target.value)}
-          className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
-        >
-          <option value="custom-http">Custom HTTP</option>
-          <option value="mqtt">MQTT</option>
-        </select>
-        <div className="flex gap-3 pt-2">
-          <button
-            type="button"
-            onClick={() => setShowAddSensor(false)}
-            className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm font-bold text-zinc-300 hover:bg-zinc-800 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={async () => {
-              if (!newSensorName) return;
-              const result = await createSensor({ name: newSensorName, type: newSensorType });
-              alert(`Sensor created! API Key: ${result.apiKey}`);
-              setShowAddSensor(false);
-              setNewSensorName('');
-              setNewSensorType('custom');
-              loadSensors();
-            }}
-            className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500 transition-all"
-          >
-            Create
-          </button>
+      {showAddSensor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+            <h2 className="text-lg font-bold text-white mb-4">Add New Sensor</h2>
+            <div className="space-y-3">
+              <input
+                type="text"
+                placeholder="Sensor Name (e.g., Tent 1 Sensor)"
+                value={newSensorName}
+                onChange={(e) => setNewSensorName(e.target.value)}
+                className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+              />
+              <select
+                value={newSensorType}
+                onChange={(e) => setNewSensorType(e.target.value)}
+                className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+              >
+                <option value="custom-http">Custom HTTP</option>
+                <option value="mqtt">MQTT</option>
+              </select>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddSensor(false)}
+                  className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm font-bold text-zinc-300 hover:bg-zinc-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!newSensorName) return;
+                    const result = await createSensor({ name: newSensorName, type: newSensorType });
+                    alert(`Sensor created! API Key: ${result.apiKey}`);
+                    setShowAddSensor(false);
+                    setNewSensorName('');
+                    setNewSensorType('custom-http');
+                    loadSensors();
+                  }}
+                  className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500 transition-all"
+                >
+                  Create
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  </div>
-)}
+      )}
+
+      {/* New Batch Modal */}
+      {showNewBatchModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+            <h2 className="text-lg font-bold text-white mb-4">Create New Batch</h2>
+            <div className="space-y-3">
+              <input
+                type="text"
+                placeholder="Batch Name (e.g., Blueberry Muffin #3)"
+                value={newBatchName}
+                onChange={(e) => setNewBatchName(e.target.value)}
+                className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+              />
+              <input
+                type="text"
+                placeholder="Cultivar"
+                value={newBatchCultivar}
+                onChange={(e) => setNewBatchCultivar(e.target.value)}
+                className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+              />
+              <select
+                value={newBatchRoom}
+                onChange={(e) => setNewBatchRoom(e.target.value)}
+                className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+              >
+                <option value="tent_1">Tent 1</option>
+                <option value="tent_2">Tent 2</option>
+                <option value="room_a">Room A</option>
+                <option value="room_b">Room B</option>
+              </select>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowNewBatchModal(false)}
+                  className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm font-bold text-zinc-300 hover:bg-zinc-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!newBatchName || !newBatchCultivar) return;
+                    await createBatch({ name: newBatchName, cultivar: newBatchCultivar, roomId: newBatchRoom });
+                    setShowNewBatchModal(false);
+                    setNewBatchName('');
+                    setNewBatchCultivar('');
+                    setNewBatchRoom('tent_1');
+                    loadBatches();
+                  }}
+                  className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500 transition-all"
+                >
+                  Create
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Leaf, Menu, X, LayoutDashboard, Settings, FlaskConical } from "lucide-react";
+import { Leaf, Menu, X, Gauge, Weight, Droplets, Settings } from "lucide-react";
 import type { ReactNode } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import Link from "next/link";
@@ -15,9 +15,11 @@ export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const navigation = [
-    { name: "Dashboard", href: "/", icon: LayoutDashboard, color: "text-canopy dark:text-emerald-400" },
-    { name: "Settings", href: "/settings", icon: Settings, color: "text-clay dark:text-orange-400" },
+  // Main tabs (Environment, Weights, Nutrients)
+  const tabs = [
+    { name: "Environment", href: "/", icon: Gauge, color: "text-canopy dark:text-emerald-400" },
+    { name: "Weights", href: "/weights", icon: Weight, color: "text-canopy dark:text-emerald-400" },
+    { name: "Nutrients", href: "/nutrients", icon: Droplets, color: "text-canopy dark:text-emerald-400" },
   ];
 
   return (
@@ -26,7 +28,7 @@ export function AppShell({ children }: AppShellProps) {
       <header className="border-b border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 transition-colors duration-200 sticky top-0 z-40">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           
-          {/* Left Side: Brand Identity & Desktop Nav Links */}
+          {/* Left Side: Brand Identity & Desktop Tabs */}
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-3 group">
               <div className="grid size-10 place-items-center rounded-md bg-canopy text-white">
@@ -42,30 +44,30 @@ export function AppShell({ children }: AppShellProps) {
               </div>
             </Link>
 
-            {/* Desktop Navigation Links */}
+            {/* Desktop Tabs */}
             <nav className="hidden md:flex items-center gap-1">
-              {navigation.map((item) => {
-                const Icon = item.icon;
-                const isActive = pathname === item.href;
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = pathname === tab.href;
                 return (
                   <Link
-                    key={item.name}
-                    href={item.href}
+                    key={tab.name}
+                    href={tab.href}
                     className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                       isActive
                         ? "bg-[#ebd2c1]/20 dark:bg-zinc-800 text-graphite dark:text-zinc-100"
                         : "text-zinc-500 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800/50 hover:text-graphite dark:hover:text-zinc-200"
                     }`}
                   >
-                    <Icon className={`size-4 ${item.color}`} />
-                    <span>{item.name}</span>
+                    <Icon className={`size-4 ${tab.color}`} />
+                    <span>{tab.name}</span>
                   </Link>
                 );
               })}
             </nav>
           </div>
 
-          {/* Right Side: Status Badge, Dark Mode & Hamburger Trigger */}
+          {/* Right Side: Status Badge, Theme Toggle, Settings Icon, Hamburger */}
           <div className="flex items-center gap-4">
             <div className="hidden rounded-md border border-[#d9e2dc] dark:border-zinc-800 bg-mist dark:bg-zinc-800/50 px-3 py-2 text-sm font-medium text-canopy dark:text-emerald-400 lg:block">
               Local cultivation dashboard
@@ -73,7 +75,16 @@ export function AppShell({ children }: AppShellProps) {
             
             <ThemeToggle />
 
-            {/* Hamburger Button (Visible only on mobile/tablet widths) */}
+            {/* Settings Icon (always visible) */}
+            <Link
+              href="/settings"
+              className="grid size-10 place-items-center rounded-md border border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800 transition-colors"
+              aria-label="Settings"
+            >
+              <Settings className="size-5" />
+            </Link>
+
+            {/* Hamburger Button (mobile) */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="grid size-10 place-items-center rounded-md border border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800 md:hidden"
@@ -93,13 +104,13 @@ export function AppShell({ children }: AppShellProps) {
             className="absolute top-[73px] left-0 right-0 border-b border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 flex flex-col gap-2 shadow-lg animate-in slide-in-from-top-2 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
-            {navigation.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href;
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = pathname === tab.href;
               return (
                 <Link
-                  key={item.name}
-                  href={item.href}
+                  key={tab.name}
+                  href={tab.href}
                   onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center gap-3 rounded-md px-4 py-3 text-base font-medium transition-colors ${
                     isActive
@@ -107,11 +118,20 @@ export function AppShell({ children }: AppShellProps) {
                       : "text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800/50"
                   }`}
                 >
-                  <Icon className={`size-5 ${item.color}`} />
-                  <span>{item.name}</span>
+                  <Icon className={`size-5 ${tab.color}`} />
+                  <span>{tab.name}</span>
                 </Link>
               );
             })}
+            {/* Settings link in mobile menu (optional) – you can also include it */}
+            <Link
+              href="/settings"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-3 rounded-md px-4 py-3 text-base font-medium text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800/50"
+            >
+              <Settings className="size-5 text-clay dark:text-orange-400" />
+              <span>Settings</span>
+            </Link>
           </nav>
         </div>
       )}

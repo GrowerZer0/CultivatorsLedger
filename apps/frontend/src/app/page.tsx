@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import {
   Activity,
   Droplets,
@@ -8,14 +7,15 @@ import {
   Sprout,
   ThermometerSun,
   Weight,
-  Cpu,
-  Keyboard,
   AlertTriangle,
   ShieldAlert,
   Sliders,
   Layers,
   Upload,
-  Download
+  Download,
+  Settings,
+  Sun,
+  Moon
 } from "lucide-react";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import {
@@ -43,12 +43,17 @@ import {
 import { exportAllBatches } from "@/app/actions";
 import { addDryBackLog, getDashboardData, getUserProfile, getCustomBlueprints, addManualClimateLog, getBatches, createBatch } from "@/app/actions";
 import dynamic from 'next/dynamic';
+import { useTheme } from 'next-themes';
 
 const AIChatWidget = dynamic(() => import('@/components/AIChatWidget'), {
   ssr: false,
 });
 
 export default function Page() {
+
+  const [activeTab, setActiveTab] = useState<'environment' | 'weights' | 'nutrients'>('environment');
+  const { theme, setTheme } = useTheme();
+
   // --- CONFIGURATION PROFILE STATE ---
   const [profile, setProfile] = useState({
     experienceLevel: "Beginner",
@@ -84,8 +89,7 @@ export default function Page() {
   const [currentEc, setCurrentEc] = useState(1.4);
   const [isSaving, setIsSaving] = useState(false);
   const [weightUnit, setWeightUnit] = useState<'lbs' | 'g'>('lbs');
-  const [selectedRoom, setSelectedRoom] = useState('tent_1');
-  const [selectedStrain, setSelectedStrain] = useState('Blueberry Muffin');
+  
 
   // --- CSV Import Column Mapping State ---
   const [showMappingModal, setShowMappingModal] = useState(false);
@@ -488,8 +492,9 @@ useEffect(() => {
     e.preventDefault();
     setIsSubmittingManual(true);
     try {
+      const tempC = (manualTemp - 32) * 5 / 9;   // convert °F → °C
       const result = await addManualClimateLog({
-        temperature: manualTemp,
+        temperature: tempC,
         humidity: manualHumidity,
       });
       if (result.success) {
@@ -503,7 +508,6 @@ useEffect(() => {
         setManualHumidity(60);
       }
     } catch (error) {
-      console.error("Failed to submit manual log:", error);
       alert("Failed to save manual entry. Check console for details.");
     } finally {
       setIsSubmittingManual(false);
@@ -563,35 +567,10 @@ useEffect(() => {
   return (
     <AppShell>
       <div className="min-h-screen bg-white dark:bg-[#0B0F19] text-gray-900 dark:text-zinc-100 p-1 lg:p-4 font-sans selection:bg-emerald-500/30">
-      {/* Demo Mode Banner */}
-      {process.env.NEXT_PUBLIC_DEMO_MODE === 'true' && (
-        <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-50/80 dark:bg-amber-950/30 px-4 py-3 text-sm text-amber-800 dark:text-amber-300 flex flex-wrap items-center justify-between gap-2">
-          <span className="flex items-center gap-2">
-            Demo Mode — Explore the dashboard with sample data. No installation required.
-          </span>
-          <a
-            href="https://github.com/growerzer0/cultivatorsledger"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 rounded-lg bg-amber-500/20 px-3 py-1 text-xs font-bold text-amber-800 dark:text-amber-300 hover:bg-amber-500/30 transition-colors"
-          >
-            GitHub Repo →
-          </a>
-        </div>
-      )}
 
       {/* TOP COMMAND NAVIGATION BAR */}
       <header className="mb-6 flex flex-col gap-4 border-b border-gray-200 dark:border-zinc-800 pb-5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded">
-                {process.env.NEXT_PUBLIC_DEMO_MODE === 'true' ? 'Demo Environment' : 'Production Environment'}
-              </span>
-            </div>
-            <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white mt-1">My Grow Room</h1>
-            <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">Real-time telemetry aggregation and structural crop-steering optimization arrays.</p>
-          </div>
 
           <div className="flex items-center gap-3 flex-wrap">
             <button
@@ -626,129 +605,6 @@ useEffect(() => {
               Export All
             </button>
           </div>
-        </div>
-
-        {/* Room & Strain Selectors */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap border-t border-gray-200 dark:border-zinc-800 pt-4 mt-1">
-          {/* Room */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Room:</span>
-            <select
-              value={selectedRoom}
-              onChange={(e) => setSelectedRoom(e.target.value)}
-              className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 transition-all"
-            >
-              <option value="tent_1">Tent 1</option>
-              <option value="tent_2">Tent 2</option>
-              <option value="room_a">Room A</option>
-              <option value="room_b">Room B</option>
-            </select>
-          </div>
-
-          {/* Strain */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Strain:</span>
-            <select
-              value={selectedStrain}
-              onChange={(e) => setSelectedStrain(e.target.value)}
-              className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 transition-all"
-            >
-              <option value="Blueberry Muffin">Blueberry Muffin</option>
-              <option value="Gelato">Gelato</option>
-              <option value="Pineapple Express">Pineapple Express</option>
-              <option value="OG Kush">OG Kush</option>
-            </select>
-          </div>
-
-          {/* Batch Controls (Selector + Summary + Actions) */}
-          <div className="flex items-center gap-3 flex-wrap">
-            {/* Batch Selector + New Button */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Batch:</span>
-              <select
-                value={selectedBatchId || ''}
-                onChange={(e) => setSelectedBatchId(e.target.value || null)}
-                className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 transition-all"
-              >
-                <option value="">-- Select --</option>
-                {batches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name} ({b.cultivar})
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={() => setShowNewBatchModal(true)}
-                className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-full transition-colors whitespace-nowrap"
-              >
-                + New
-              </button>
-            </div>
-
-            {/* Batch Summary (only when a batch is selected) */}
-            {selectedBatchId && (
-              <div className="flex items-center gap-3 px-3 py-1 bg-zinc-800/30 dark:bg-zinc-800/30 rounded-lg border border-zinc-700/60">
-                <span className="flex items-center gap-1.5">
-                  <span className="inline-block w-2 h-2 rounded-full bg-emerald-400" />
-                  <span className="text-sm font-bold text-gray-900 dark:text-white">
-                    {batches.find(b => b.id === selectedBatchId)?.name}
-                  </span>
-                </span>
-                <span className="text-xs text-gray-500 dark:text-zinc-400">
-                  Day {getBatchDaysSinceStart(selectedBatchId)}
-                </span>
-                <span className="text-xs text-gray-500 dark:text-zinc-400">
-                  {getBatchLogCount(selectedBatchId)} logs
-                </span>
-                <span className="text-xs text-emerald-400 font-mono">
-                  Avg: {getBatchAverage(selectedBatchId).toFixed(1)}%
-                </span>
-              </div>
-            )}
-
-            {/* Action Buttons (only when a batch is selected) */}
-            {selectedBatchId && (
-              <div className="flex items-center gap-2">
-                <Link
-                  href={`/batches/${selectedBatchId}`}
-                  className="text-xs font-bold text-emerald-400 hover:text-emerald-300 px-2 py-1 rounded border border-emerald-500/20 hover:bg-emerald-500/10 transition-colors"
-                >
-                  View Batch
-                </Link>
-                <Link
-                  href="/batches/compare"
-                  className="text-xs font-bold text-gray-400 dark:text-zinc-400 hover:text-gray-300 dark:hover:text-zinc-300 px-2 py-1 rounded border border-gray-300 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800/50 transition-colors"
-                >
-                  Compare
-                </Link>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Sensor Mode Toggle */}
-        <div className="inline-flex rounded-xl bg-gray-50 dark:bg-zinc-950 p-1 border border-gray-200 dark:border-zinc-800 self-start">
-          <button
-            type="button"
-            onClick={() => setIsSensorDriven(false)}
-            className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${!isSensorDriven
-              ? "bg-emerald-600 text-gray-900 dark:text-white shadow-md ring-1 ring-zinc-700/50"
-              : "text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:text-zinc-300"
-              }`}
-          >
-            <Keyboard className="size-3.5" /> Manual
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsSensorDriven(true)}
-            className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${isSensorDriven
-              ? "bg-emerald-600 text-gray-900 dark:text-white shadow-md shadow-emerald-900/20 ring-1 ring-emerald-500/30"
-              : "text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:text-zinc-300"
-              }`}
-          >
-            <Cpu className="size-3.5" /> Hardware
-          </button>
         </div>
       </header>
 
@@ -1215,13 +1071,11 @@ useEffect(() => {
               {/* Temperature */}
               <div>
                 <label className="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
-                  Temperature (°C)
+                  Temperature (°F)
                 </label>
                 <input
                   type="number"
                   step="0.1"
-                  min="-10"
-                  max="50"
                   value={manualTemp}
                   onChange={(e) => setManualTemp(parseFloat(e.target.value))}
                   className="w-full rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 px-4 py-3 text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all"
@@ -1245,8 +1099,6 @@ useEffect(() => {
                   required
                 />
               </div>
-
-              {/* Timestamp (optional) — hidden for simplicity, defaults to now */}
 
               {/* Actions */}
               <div className="flex gap-3 pt-2">
