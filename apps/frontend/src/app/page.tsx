@@ -199,6 +199,57 @@ export default function Page() {
     }
   }, [selectedBatchId]);
 
+useEffect(() => {
+  // Connect to WebSocket only in browser (not SSR)
+  if (typeof window === 'undefined') return;
+
+  const ws = new WebSocket('ws://localhost:8080');
+
+  ws.onopen = () => {
+    console.log('WebSocket connected');
+  };
+
+  ws.onmessage = (event) => {
+    try {
+      const newData = JSON.parse(event.data);
+      // Assume the data structure matches a climate log
+      // Update environment readings: add to the end, remove oldest if over 30
+      setDbEnvironmentReadings((prev) => {
+        const newReading = {
+          id: String(Date.now()),
+          temperatureF: newData.temperature * 9/5 + 32,
+          temperature: newData.temperature,
+          humidity: newData.humidity,
+          vpd: newData.vpd || 0,
+          runoff_ec: 0,
+          dry_back: 0,
+          recordedAt: newData.timestamp || new Date().toISOString(),
+        };
+        // Keep last 30 readings
+        const updated = [...prev, newReading];
+        if (updated.length > 30) {
+          return updated.slice(-30);
+        }
+        return updated;
+      });
+    } catch (err) {
+      console.error('WebSocket message parse error:', err);
+    }
+  };
+
+  ws.onerror = (error) => {
+    console.error('WebSocket error:', error);
+  };
+
+  ws.onclose = () => {
+    console.log('WebSocket disconnected');
+  };
+
+  return () => {
+    ws.close();
+  };
+}, []);
+
   useEffect(() => {
     // Reset feeding inputs when nutrient line changes
     // (optional: we can make these defaults per schedule later)

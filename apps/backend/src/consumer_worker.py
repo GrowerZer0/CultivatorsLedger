@@ -9,7 +9,6 @@ import argparse
 import logging
 import os
 from typing import Optional, Dict, Any, List, Tuple
-
 import psycopg2
 from psycopg2 import OperationalError, IntegrityError
 from dotenv import load_dotenv
@@ -64,7 +63,6 @@ def read_messages(conn, batch_size: int = 1) -> List[Tuple[int, Any, str]]:
                 FROM pgmq.read(%s, %s, %s);
             """, (QUEUE_NAME, VISIBILITY_TIMEOUT_SECONDS, batch_size))
             results = cur.fetchall()
-            # results rows: (msg_id, read_ct, enqueued_at, vt, message)
             return [(r[0], r[4], r[2]) for r in results] if results else []
     except Exception as e:
         logger.error(f"Failed to read messages: {e}")
@@ -119,14 +117,13 @@ def insert_climate_log(conn, payload: Dict[str, Any]) -> Tuple[bool, Optional[fl
 
 def process_message(conn, msg_id: int, msg_content) -> bool:
     try:
-        # Handle both JSON string and Python dict
         if isinstance(msg_content, dict):
             payload = msg_content
         elif isinstance(msg_content, str):
             payload = json.loads(msg_content)
         else:
             logger.error(f"Unexpected message type for {msg_id}: {type(msg_content)}")
-            return True  # Discard
+            return True
         
         required_fields = ['timestamp', 'room_id', 'sensor_mac', 'air_temp_c', 'relative_humidity']
         for field in required_fields:
@@ -159,7 +156,7 @@ def run_consumer(batch_size: int = 1, poll_interval: int = 1):
     
     try:
         while True:
-            conn.rollback()  # Clear any aborted transaction
+            conn.rollback()
             messages = read_messages(conn, batch_size)
             if not messages:
                 time.sleep(poll_interval)
