@@ -2,23 +2,13 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { 
-  Sprout, 
-  Gauge, 
-  Layers, 
+import {  
   FlaskConical, 
   Sliders,
-  FileText,
   Plus,
   X,
   Save,
   Trash2,
-  Cpu,
-  Key,
-  User,
-  Lock,
-  Radio,
-  CheckCircle2
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { SectionPanel } from "@/components/layout/SectionPanel";
@@ -35,7 +25,6 @@ import {
   deleteSensor,
   regenerateApiKey,
 } from "@/app/actions";
-import { getRequiredUserId } from "@/lib/session";
 
 type UserProfile = any;
 
@@ -56,24 +45,6 @@ const [loadingSensors, setLoadingSensors] = useState(false);
 
   // --- HARDWARE TELEMETRY INTEGRATION STATE ---
   const [hasClimateHub, setHasClimateHub] = useState(false);
-  const [controllerBrand, setControllerBrand] = useState("");
-  const [controllerToken, setControllerToken] = useState("");
-  const [controllerUsername, setControllerUsername] = useState("");
-  const [controllerPassword, setControllerPassword] = useState("");
-  const [syncErrorMessage, setSyncErrorMessage] = useState<string | null>(null);
-
-  // 🌍 COMPREHENSIVE CONSUMER & COMMERCIAL HARDWARE ECOSYSTEMS
-  const hardwareBrands = [
-    { id: "vivosun", name: "Vivosun Smart Hub", authType: "credentials", description: "Sync environment data directly from your Vivosun App cloud profile." },
-    { id: "ac-infinity", name: "AC Infinity UIS", authType: "credentials", description: "Connect Controller 69/76 parameters using your standard UIS app credentials." },
-    { id: "mars-hydro", name: "Mars Hydro iHub", authType: "credentials", description: "Stream ambient data lines from your Mars Hydro smart power strips and devices." },
-    { id: "spiderfarmer", name: "SpiderFarmer Ecosystem", authType: "token", description: "Link local open-source and enterprise agricultural hardware nodes." },
-    { id: "pulse", name: "Pulse Labs One/Pro", authType: "token", description: "Stream live ambient sensor metrics directly using continuous API developer keys." },
-    { id: "trolmaster", name: "TrolMaster Hydro-X", authType: "token", description: "Connect via direct OpenAPI application cluster registration tokens." },
-    { id: "custom-hub", name: "Custom DIY / Webhook Hub", authType: "token", description: "Inject JSON data streams directly via local network webhook triggers." }
-  ];
-
-  const selectedBrandConfig = hardwareBrands.find(b => b.id === controllerBrand);
 
   const loadSensors = useCallback(async () => {
   setLoadingSensors(true);
@@ -100,15 +71,7 @@ useEffect(() => {
       const profile = await getUserProfile() as UserProfile;
       if (profile) {
         if (profile.activeFeedLine) setActiveFeedLine(profile.activeFeedLine);
-        
-        setHasClimateHub(!!profile.hasClimateHub);
-        setControllerBrand(profile.controllerBrand || "");
-        setControllerToken(profile.controllerToken || "");
-        setControllerUsername(profile.controllerUsername || "");
-        setControllerPassword(profile.controllerPassword || "");
-
-        setSyncErrorMessage((profile as any).sync_error_message || null);
-      }
+        }
     } catch (err) {
       console.error("Failed to sync profile configuration maps:", err);
     } finally {

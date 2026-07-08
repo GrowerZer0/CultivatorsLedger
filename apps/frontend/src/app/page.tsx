@@ -4,7 +4,6 @@ import Link from 'next/link';
 import {
   Activity,
   Droplets,
-  Gauge,
   Plus,
   Sprout,
   ThermometerSun,
@@ -14,7 +13,6 @@ import {
   AlertTriangle,
   ShieldAlert,
   Sliders,
-  TrendingUp,
   Layers,
   Upload,
   Download
@@ -33,11 +31,7 @@ import {
   ReferenceArea,
 } from "recharts";
 import { AppShell } from "@/components/layout/AppShell";
-import { ChartFrame } from "@/components/layout/ChartFrame";
-import { MetricCard } from "@/components/layout/MetricCard";
-import { SectionPanel } from "@/components/layout/SectionPanel";
 import {
-  averageVpd,
   calculateDryBack,
   calculateReservoirDelta,
   commercialFeedSchedules,
