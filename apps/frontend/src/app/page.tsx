@@ -17,6 +17,7 @@ import {
   TrendingUp,
   Layers,
   Upload,
+  Download
 } from "lucide-react";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import {
@@ -45,6 +46,7 @@ import {
   type FeedSchedule,
   type NutrientDose
 } from "@/lib/cultivation";
+import { exportAllBatches } from "@/app/actions";
 import { addDryBackLog, getDashboardData, getUserProfile, getCustomBlueprints, addManualClimateLog, getBatches, createBatch } from "@/app/actions";
 import dynamic from 'next/dynamic';
 
@@ -262,6 +264,55 @@ function getBatchDaysSinceStart(batchId: string | null): number {
   setReservoirGallons(1);
   setLeftoverGallons(0);
   setCurrentEc(1.4);
+};
+
+const handleExportAll = async () => {
+  const data = await exportAllBatches();
+  if (!data || data.length === 0) {
+    alert('No batch data to export.');
+    return;
+  }
+
+  // Build CSV: one row per log, with batch info prepended
+  const headers = [
+    'Batch Name',
+    'Cultivar',
+    'Room',
+    'Start Date',
+    'Log Date',
+    'Dry-Back %',
+    'Container (Gal)',
+    'Wet Weight (lbs)',
+    'Dry Target (lbs)',
+    'Current Weight (lbs)',
+    'Runoff EC',
+    'Unit'
+  ];
+  const rows = data.flatMap(batch =>
+    batch.dryBackLogs.map((log: any) => [
+      batch.name,
+      batch.cultivar,
+      batch.roomId,
+      new Date(batch.startDate).toLocaleDateString(),
+      new Date(log.timestamp).toLocaleDateString(),
+      Number(log.dryBackPercent).toFixed(1),
+      Number(log.containerGallons).toFixed(1),
+      Number(log.wetWeightLbs).toFixed(1),
+      Number(log.dryTargetWeightLbs).toFixed(1),
+      Number(log.currentWeightLbs).toFixed(1),
+      log.runoffEc ? Number(log.runoffEc).toFixed(2) : '',
+      log.unit || 'lbs',
+    ])
+  );
+
+  const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `all_batches_export.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 };
 
   // --- TELEMETRY STREAM BINDINGS ---
@@ -523,6 +574,14 @@ async function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
         className="hidden"
         onChange={handleCsvFileSelect}
       />
+      <button
+        type="button"
+        onClick={handleExportAll}
+        className="inline-flex items-center gap-2 rounded-xl border border-gray-300 dark:border-zinc-700 hover:border-zinc-500 px-4 py-2 text-xs font-bold text-gray-700 dark:text-zinc-300 transition-all cursor-pointer"
+      >
+        <Download className="size-4" />
+        Export All
+      </button>
     </div>
   </div>
 
