@@ -134,3 +134,16 @@ model BatchHarvest {
 
   @@map("batch_harvests")
 }
+
+model SensorConfig {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // e.g., 'vivosun', 'custom-http', 'mqtt'
+  apiKeyHash  String   @unique // hashed version of the key
+  isActive    Boolean  @default(true)
+  lastPingAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("sensor_configs")
+}

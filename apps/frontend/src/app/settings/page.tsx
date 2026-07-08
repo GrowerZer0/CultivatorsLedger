@@ -29,6 +29,11 @@ import {
   deleteCustomBlueprint, 
   getUserProfile, 
   updateUserProfile,
+  getSensors,
+  createSensor,
+  toggleSensor,
+  deleteSensor,
+  regenerateApiKey,
 } from "@/app/actions";
 import { getRequiredUserId } from "@/lib/session";
 
@@ -43,6 +48,11 @@ export default function SettingsPage() {
   const [customSchedules, setCustomSchedules] = useState<any[]>([]);
   const [editingSchedule, setEditingSchedule] = useState<any | null>(null);
   const [activeFeedLine, setActiveFeedLine] = useState("fox-farm-soil-veg");
+  const [sensors, setSensors] = useState<any[]>([]);
+const [showAddSensor, setShowAddSensor] = useState(false);
+const [newSensorName, setNewSensorName] = useState('');
+const [newSensorType, setNewSensorType] = useState('vivosun');
+const [loadingSensors, setLoadingSensors] = useState(false);
 
   // --- HARDWARE TELEMETRY INTEGRATION STATE ---
   const [hasClimateHub, setHasClimateHub] = useState(false);
@@ -64,6 +74,22 @@ export default function SettingsPage() {
   ];
 
   const selectedBrandConfig = hardwareBrands.find(b => b.id === controllerBrand);
+
+  const loadSensors = useCallback(async () => {
+  setLoadingSensors(true);
+  try {
+    const data = await getSensors();
+    setSensors(data || []);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoadingSensors(false);
+  }
+}, []);
+
+useEffect(() => {
+  loadSensors();
+}, [loadSensors]);
 
   const loadProfileAndBlueprints = useCallback(async () => {
     setLoading(true);
@@ -98,38 +124,6 @@ export default function SettingsPage() {
     event.stopPropagation();
     setActiveFeedLine(id);
     await updateUserProfile({ activeFeedLine: id });
-  }
-
-  // ✅ FIXED: Safely maps credential state directly to your verified tenant profile payload
-async function handleSaveHardwareSettings(e: React.FormEvent) {
-  e.preventDefault();
-  setSavingHardware(true);
-  
-  try {
-    const userId = await getRequiredUserId(); // returns 'local-dev-user' in dev
-    if (!userId) throw new Error("No active session initialized.");
-
-    const isBrandMapped = controllerBrand.trim() !== "";
-      
-      const profilePayload: any = {
-        hasClimateHub: isBrandMapped,
-        controllerBrand: isBrandMapped ? controllerBrand : "",
-        controllerToken: isBrandMapped ? controllerToken.trim() : "",
-        controllerUsername: isBrandMapped ? controllerUsername.trim() : "",
-        controllerPassword: isBrandMapped ? controllerPassword.trim() : ""
-      };
-
-      await updateUserProfile(profilePayload);
-
-      setHasClimateHub(isBrandMapped);
-      alert(`⚡ Connection configuration saved successfully! Tenant telemetry sync parameters updated.`);
-      await loadProfileAndBlueprints();
-    } catch (err: any) {
-      console.error(err);
-      alert(`System error saving connection: ${err.message}`);
-    } finally {
-      setSavingHardware(false);
-    }
   }
 
   const allSchedules = [
@@ -247,170 +241,73 @@ async function handleSaveHardwareSettings(e: React.FormEvent) {
         {activeTab === "hardware" && (
           <div className="space-y-6 animate-in fade-in duration-200">
             <SectionPanel 
-              title="Environmental & Sensor Telemetry Hub" 
-              subtitle="Link automated climate hardware ecosystems to parse live ambient metrics directly into analytics tracking arrays."
+              title="Sensor Management" 
+              subtitle="Register and manage devices that send telemetry data to your ingest endpoint."
             >
-              {loading ? (
-                <div className="text-sm font-medium text-slate-400 py-12 text-center animate-pulse">
-                  Querying facility hardware mapping profiles...
-                </div>
+              {loadingSensors ? (
+                <p className="text-sm text-zinc-500">Loading sensors...</p>
               ) : (
-                <form onSubmit={handleSaveHardwareSettings} className="space-y-8">
-                  
-                  {/* LIVE HARDWARE INTEGRATION STATUS COMPONENT */}
-                  <div className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all ${
-                    controllerBrand 
-                      ? "bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-200 dark:border-emerald-900/40" 
-                      : "bg-slate-50 dark:bg-zinc-900/40 border-slate-200 dark:border-zinc-800"
-                  }`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2.5 rounded-lg border shrink-0 ${
-                        controllerBrand 
-                          ? "bg-emerald-500 text-white border-emerald-400" 
-                          : "bg-slate-200 dark:bg-zinc-800 text-slate-400 dark:text-zinc-500 border-transparent"
-                      }`}>
-                        <Radio className={`size-5 ${controllerBrand ? "animate-pulse" : ""}`} />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-900 dark:text-zinc-100">
-                          {controllerBrand ? `${hardwareBrands.find(b => b.id === controllerBrand)?.name} Mapped` : "No Hardware Channels Mapped"}
-                        </h4>
-                        <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
-                          {controllerBrand 
-                            ? `Local profile set for ${hardwareBrands.find(b => b.id === controllerBrand)?.name}. Submit authentication data below to sync.` 
-                            : "System execution currently running using standard manual ambient condition charting."
-                          }
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 self-end sm:self-auto">
-                      {controllerBrand && (
-                        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100/60 dark:bg-emerald-950/40 px-2.5 py-1.5 rounded-full border border-emerald-200/40 shrink-0">
-                          <span className="size-2 rounded-full bg-emerald-500" />
-                          Ready
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* STEP 1: SELECT HARDWARE SMART PLATFORM */}
-                  <div className="space-y-3">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500 flex items-center gap-1.5">
-                      <Cpu className="size-3.5 text-canopy dark:text-emerald-400" /> Step 1: Select Your Smart Controller Ecosystem
-                    </label>
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                      {hardwareBrands.map((brand) => {
-                        const isSelected = controllerBrand === brand.id;
-                        return (
-                          <div
-                            key={brand.id}
-                            onClick={() => {
-                              setControllerBrand(controllerBrand === brand.id ? "" : brand.id);
-                              setControllerToken("");
-                              setControllerUsername("");
-                              setControllerPassword("");
-                            }}
-                            className={`p-4 rounded-xl border bg-white dark:bg-zinc-900 shadow-sm flex flex-col justify-between space-y-3 cursor-pointer select-none transition-all hover:border-canopy dark:hover:border-emerald-500 ${
-                              isSelected 
-                                ? "border-emerald-500 dark:border-emerald-500 ring-2 ring-emerald-500/10" 
-                                : "border-slate-200 dark:border-zinc-800"
-                            }`}
-                          >
-                            <div className="flex items-start justify-between">
-                              <h3 className="font-bold text-sm text-slate-900 dark:text-zinc-100">{brand.name}</h3>
-                              <div className={`size-4 rounded-full border flex items-center justify-center text-white shrink-0 ${
-                                isSelected ? "bg-emerald-500 border-emerald-500" : "border-slate-300 dark:border-zinc-700"
-                              }`}>
-                                {isSelected && <span className="text-[10px]">✓</span>}
-                              </div>
-                            </div>
-                            <p className="text-xs text-slate-400 dark:text-zinc-500 leading-normal">{brand.description}</p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* STEP 2: RENDER REQUIRED HANDSHAKE INPUT FIELDS DYNAMICALLY */}
-                  {controllerBrand && selectedBrandConfig && (
-                    <div className="space-y-4 p-5 bg-slate-50 dark:bg-zinc-950/40 rounded-xl border border-slate-200 dark:border-zinc-800 animate-in slide-in-from-top-2 duration-200">
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-950 dark:text-zinc-200 flex items-center gap-1.5">
-                          <Key className="size-4 text-canopy dark:text-emerald-400" /> Step 2: Authenticate Live Stream Integration
-                        </h4>
-                        <p className="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">
-                          {selectedBrandConfig.authType === "token" 
-                            ? "Input your direct API access key or developer webhook string below." 
-                            : `Enter the account details associated with your mobile ${selectedBrandConfig.name} application.`
-                          }
-                        </p>
-                      </div>
-
-                      <div className="grid gap-4 md:grid-cols-2 max-w-xl pt-2">
-                        {selectedBrandConfig.authType === "token" ? (
-                          <div className="space-y-1.5 col-span-2">
-                            <label className="text-xs font-bold uppercase text-slate-400 dark:text-zinc-500">Secure Access Key / Token String</label>
-                            <div className="relative">
-                              <Key className="absolute left-3 top-2.5 size-4 text-slate-400" />
-                              <input 
-                                type="password"
-                                placeholder="sk_live_app_token..."
-                                value={controllerToken}
-                                onChange={(e) => setControllerToken(e.target.value)}
-                                className="w-full rounded-md border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 py-2 pl-9 pr-3 text-sm outline-none focus:border-canopy text-slate-900 dark:text-zinc-100"
-                                required
-                              />
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                              <label className="text-xs font-bold uppercase text-slate-400 dark:text-zinc-500">App Login Email / Username</label>
-                              <div className="relative">
-                                <User className="absolute left-3 top-2.5 size-4 text-slate-400" />
-                                <input 
-                                  type="text"
-                                  placeholder="grower@room1.com"
-                                  value={controllerUsername}
-                                  onChange={(e) => setControllerUsername(e.target.value)}
-                                  className="w-full rounded-md border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 py-2 pl-9 pr-3 text-sm outline-none focus:border-canopy text-slate-900 dark:text-zinc-100"
-                                  required
-                                />
-                              </div>
-                            </div>
-                            <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                              <label className="text-xs font-bold uppercase text-slate-400 dark:text-zinc-500">App Connection Password</label>
-                              <div className="relative">
-                                <Lock className="absolute left-3 top-2.5 size-4 text-slate-400" />
-                                <input 
-                                  type="password"
-                                  placeholder="••••••••"
-                                  value={controllerPassword}
-                                  onChange={(e) => setControllerPassword(e.target.value)}
-                                  className="w-full rounded-md border border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 py-2 pl-9 pr-3 text-sm outline-none focus:border-canopy text-slate-900 dark:text-zinc-100"
-                                  required
-                                />
-                              </div>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* FORM TRIGGER ROW SUBMIT */}
-                  <div className="pt-4 border-t border-slate-200 dark:border-zinc-800 flex justify-end">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-sm font-bold text-zinc-400">Registered Sensors</h3>
                     <button
-                      type="submit"
-                      disabled={savingHardware}
-                      className="bg-canopy dark:bg-emerald-600 text-white px-5 py-2.5 rounded-md font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 shadow-md transition-all cursor-pointer disabled:opacity-50"
+                      onClick={() => setShowAddSensor(true)}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-bold"
                     >
-                      <Save className="size-4" /> 
-                      {savingHardware ? "Configuring Stream channels..." : "Save Hardware Configuration"}
+                      + Add Sensor
                     </button>
                   </div>
-                </form>
+
+                  {sensors.length === 0 ? (
+                    <p className="text-sm text-zinc-500">No sensors registered.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {sensors.map((sensor) => (
+                        <li key={sensor.id} className="flex items-center justify-between p-3 bg-zinc-900 rounded-xl border border-zinc-800">
+                          <div>
+                            <p className="font-bold text-white">{sensor.name}</p>
+                            <p className="text-xs text-zinc-400">{sensor.type} • {sensor.isActive ? '🟢 Active' : '🔴 Inactive'}</p>
+                            {sensor.lastPingAt && (
+                              <p className="text-xs text-zinc-500">Last ping: {new Date(sensor.lastPingAt).toLocaleString()}</p>
+                            )}
+                          </div>
+                          <div className="flex gap-2 flex-wrap">
+                            <button
+                              onClick={async () => {
+                                await toggleSensor(sensor.id, !sensor.isActive);
+                                loadSensors();
+                              }}
+                              className="text-xs font-bold text-zinc-400 hover:text-white transition-colors"
+                            >
+                              {sensor.isActive ? 'Disable' : 'Enable'}
+                            </button>
+                            <button
+                              onClick={async () => {
+                                const result = await regenerateApiKey(sensor.id);
+                                alert(`New API Key: ${result.apiKey}`);
+                                loadSensors();
+                              }}
+                              className="text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors"
+                            >
+                              Regenerate Key
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (confirm(`Delete sensor "${sensor.name}"?`)) {
+                                  await deleteSensor(sensor.id);
+                                  loadSensors();
+                                }
+                              }}
+                              className="text-xs font-bold text-red-500 hover:text-red-400 transition-colors"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               )}
             </SectionPanel>
           </div>
@@ -648,6 +545,56 @@ async function handleSaveHardwareSettings(e: React.FormEvent) {
         )}
 
       </div>
+
+      {/* Add Sensor Modal */}
+{showAddSensor && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+      <h2 className="text-lg font-bold text-white mb-4">Add New Sensor</h2>
+      <div className="space-y-3">
+        <input
+          type="text"
+          placeholder="Sensor Name (e.g., Tent 1 Sensor)"
+          value={newSensorName}
+          onChange={(e) => setNewSensorName(e.target.value)}
+          className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+        />
+        <select
+          value={newSensorType}
+          onChange={(e) => setNewSensorType(e.target.value)}
+          className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+        >
+          <option value="custom-http">Custom HTTP</option>
+          <option value="mqtt">MQTT</option>
+        </select>
+        <div className="flex gap-3 pt-2">
+          <button
+            type="button"
+            onClick={() => setShowAddSensor(false)}
+            className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm font-bold text-zinc-300 hover:bg-zinc-800 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              if (!newSensorName) return;
+              const result = await createSensor({ name: newSensorName, type: newSensorType });
+              alert(`Sensor created! API Key: ${result.apiKey}`);
+              setShowAddSensor(false);
+              setNewSensorName('');
+              setNewSensorType('vivosun');
+              loadSensors();
+            }}
+            className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500 transition-all"
+          >
+            Create
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
     </AppShell>
   );
 }

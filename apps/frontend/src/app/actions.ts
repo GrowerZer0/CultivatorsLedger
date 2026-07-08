@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache";
 import { getRequiredUserId } from "@/lib/session";
 import type { DryBackLog as PrismaDryBackLog } from '@prisma/client';
 import { generateDemoData } from "@/lib/demoData";
+import { randomBytes } from 'crypto';
+import { createHash } from 'crypto';
 
 // Helper: compute VPD (kPa) from temp (°C) and RH (%)
 function computeVPD(tempC: number, rh: number): number {
@@ -13,6 +15,71 @@ function computeVPD(tempC: number, rh: number): number {
   const ea = (rh / 100) * es;
   const vpd = es - ea;
   return Math.round(vpd * 100) / 100;
+}
+
+// Helper to hash API keys
+function hashKey(key: string): string {
+  return createHash('sha256').update(key).digest('hex');
+}
+
+// Generate a new API key (32 hex chars)
+function generateApiKey(): string {
+  return randomBytes(16).toString('hex');
+}
+
+// --- SENSOR CONFIG CRUD ---
+
+export async function getSensors() {
+  const userId = await getRequiredUserId();
+  // For demo mode, return mock sensors
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
+    return [
+      { id: 'demo-1', name: 'Demo Sensor', type: 'vivosun', isActive: true, lastPingAt: new Date() },
+    ];
+  }
+  return await db.sensorConfig.findMany({
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+export async function createSensor(data: { name: string; type: string }) {
+  const userId = await getRequiredUserId();
+  const apiKey = generateApiKey();
+  const apiKeyHash = hashKey(apiKey);
+  const sensor = await db.sensorConfig.create({
+    data: {
+      name: data.name,
+      type: data.type,
+      apiKeyHash,
+      isActive: true,
+    },
+  });
+  // Return the plain API key (only once) to show to the user
+  return { ...sensor, apiKey };
+}
+
+export async function toggleSensor(sensorId: string, isActive: boolean) {
+  const userId = await getRequiredUserId();
+  return await db.sensorConfig.update({
+    where: { id: sensorId },
+    data: { isActive },
+  });
+}
+
+export async function deleteSensor(sensorId: string) {
+  const userId = await getRequiredUserId();
+  return await db.sensorConfig.delete({ where: { id: sensorId } });
+}
+
+export async function regenerateApiKey(sensorId: string) {
+  const userId = await getRequiredUserId();
+  const newKey = generateApiKey();
+  const newHash = hashKey(newKey);
+  const updated = await db.sensorConfig.update({
+    where: { id: sensorId },
+    data: { apiKeyHash: newHash },
+  });
+  return { ...updated, apiKey: newKey };
 }
 
 export async function getDashboardData(batchId?: string) {
