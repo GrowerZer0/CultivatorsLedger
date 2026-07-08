@@ -38,10 +38,10 @@ export default function SettingsPage() {
   const [editingSchedule, setEditingSchedule] = useState<any | null>(null);
   const [activeFeedLine, setActiveFeedLine] = useState("fox-farm-soil-veg");
   const [sensors, setSensors] = useState<any[]>([]);
-const [showAddSensor, setShowAddSensor] = useState(false);
-const [newSensorName, setNewSensorName] = useState('');
-const [newSensorType, setNewSensorType] = useState('vivosun');
-const [loadingSensors, setLoadingSensors] = useState(false);
+  const [showAddSensor, setShowAddSensor] = useState(false);
+  const [newSensorName, setNewSensorName] = useState('');
+  const [newSensorType, setNewSensorType] = useState('');
+  const [loadingSensors, setLoadingSensors] = useState(false);
 
   const loadSensors = useCallback(async () => {
   setLoadingSensors(true);
@@ -53,7 +53,7 @@ const [loadingSensors, setLoadingSensors] = useState(false);
   } finally {
     setLoadingSensors(false);
   }
-}, []);
+  }, []);
 
 useEffect(() => {
   loadSensors();
