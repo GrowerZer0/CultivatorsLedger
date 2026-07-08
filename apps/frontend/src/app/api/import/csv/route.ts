@@ -1,23 +1,19 @@
-// src/app/api/import/csv/route.ts
+// apps/frontend/src/app/api/import/csv/route.ts
 import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
 import { getRequiredUserId } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 
-// Helper: parse timestamp from various formats
+// Helper to parse timestamps from various formats
 function parseTimestamp(value: string): Date | null {
-  if (!value || value === "-" || value.trim() === "") return null;
-  
+  if (!value || value.trim() === "") return null;
   const cleaned = value.trim();
-  // Try ISO format
   let d = new Date(cleaned);
   if (!isNaN(d.getTime())) return d;
-  
-  // Try Vivosun format: YYYY/MM/DD HH:MM:SS
+  // Try YYYY/MM/DD HH:MM:SS (Vivosun format)
   const normalized = cleaned.replace(/\//g, "-");
   d = new Date(normalized);
   if (!isNaN(d.getTime())) return d;
-  
   // Try MM/DD/YYYY HH:MM:SS
   const parts = cleaned.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})/);
   if (parts) {
@@ -25,22 +21,22 @@ function parseTimestamp(value: string): Date | null {
     d = new Date(parseInt(yyyy), parseInt(m)-1, parseInt(dd), parseInt(hh), parseInt(mm), parseInt(ss));
     if (!isNaN(d.getTime())) return d;
   }
-  
   return null;
 }
 
 export async function POST(request: NextRequest) {
   try {
     const userId = await getRequiredUserId();
+
+    // 1. Parse the multipart form data
     const formData = await request.formData();
-    const file = formData.get("file") as File;
-    const mappingRaw = formData.get("mapping") as string;
+    const file = formData.get("file") as File | null;
+    const mappingRaw = formData.get("mapping") as string | null;
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // Parse the mapping JSON
     let mapping: {
       timestampCol: string;
       temperatureCol: string;
@@ -50,14 +46,13 @@ export async function POST(request: NextRequest) {
     };
 
     try {
-      mapping = JSON.parse(mappingRaw);
+      mapping = JSON.parse(mappingRaw || "{}");
     } catch {
       return NextResponse.json({ error: "Invalid mapping configuration" }, { status: 400 });
     }
 
     const { timestampCol, temperatureCol, humidityCol, roomIdCol, zoneIdCol } = mapping;
 
-    // Validate required columns are present in the mapping
     if (!timestampCol || !temperatureCol || !humidityCol) {
       return NextResponse.json(
         { error: "Mapping must include timestampCol, temperatureCol, and humidityCol" },
@@ -65,6 +60,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 2. Read the CSV text
     const text = await file.text();
     const lines = text.split("\n").filter((line) => line.trim() !== "");
     if (lines.length < 2) {
@@ -73,7 +69,6 @@ export async function POST(request: NextRequest) {
 
     const headers = lines[0].split(",").map((h) => h.trim());
 
-    // Find indices from mapping
     const timestampIdx = headers.indexOf(timestampCol);
     const tempIdx = headers.indexOf(temperatureCol);
     const humidityIdx = headers.indexOf(humidityCol);
@@ -103,7 +98,6 @@ export async function POST(request: NextRequest) {
       const rawRoom = roomIdx !== -1 ? values[roomIdx] : null;
       const rawZone = zoneIdx !== -1 ? values[zoneIdx] : null;
 
-      // Skip rows with missing required data
       if (rawTimestamp === "" || rawTemp === "" || rawHumidity === "") {
         errors.push(`Row ${i}: Skipped due to missing required data`);
         continue;
@@ -117,12 +111,9 @@ export async function POST(request: NextRequest) {
 
       let temp = parseFloat(rawTemp);
       let humidity = parseFloat(rawHumidity);
-      
-      // Auto-detect if temp is in Fahrenheit (if value > 50, assume °F and convert)
       if (temp > 50) {
-        temp = (temp - 32) * 5 / 9;
+        temp = (temp - 32) * 5 / 9; // Convert °F to °C
       }
-      
       if (isNaN(temp) || isNaN(humidity)) {
         errors.push(`Row ${i}: Invalid temperature or humidity values`);
         continue;
@@ -141,18 +132,17 @@ export async function POST(request: NextRequest) {
 
     if (records.length === 0) {
       return NextResponse.json(
-        { error: `No valid records found. ${errors.length > 0 ? errors.slice(0,3).join("; ") : ""}` },
+        { error: `No valid records found. ${errors.length > 0 ? errors.slice(0, 3).join("; ") : ""}` },
         { status: 400 }
       );
     }
 
-    // Insert in bulk
     const result = await db.climateLog.createMany({
       data: records,
       skipDuplicates: true,
     });
 
-    // Create import history record
+    // Log import history
     await db.importHistory.create({
       data: {
         filename: file.name,
@@ -161,12 +151,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Revalidate the dashboard page (wrap in try-catch to avoid breaking the import)
-    try {
-      revalidatePath("/");
-    } catch (revalidateError) {
-      console.warn("Revalidate warning:", revalidateError);
-    }
+    revalidatePath("/");
 
     return NextResponse.json({
       success: true,
