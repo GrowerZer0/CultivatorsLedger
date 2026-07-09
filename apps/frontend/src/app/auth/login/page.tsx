@@ -19,7 +19,7 @@ export default function LoginPage() {
     if (msg) setMessage(msg);
   }, []);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError('');
