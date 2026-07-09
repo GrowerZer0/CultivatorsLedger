@@ -12,22 +12,25 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSignUp = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    const redirectTo = process.env.NODE_ENV === 'production'
+    ? 'https://cultivators-ledger-omega.vercel.app/auth/login'
+    : 'http://localhost:3000/auth/login';
 
   const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: process.env.NODE_ENV === 'production'
-        ? 'https://cultivators-ledger-omega.vercel.app/auth/login'
-        : 'http://localhost:3000/auth/login',
+      emailRedirectTo: redirectTo,
     },
   });
 
     if (error) {
+      console.error('Signup error details:', error);
       setError(error.message);
     } else {
       router.push('/auth/login?message=Check your email to confirm your account');

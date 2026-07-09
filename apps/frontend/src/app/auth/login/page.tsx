@@ -19,20 +19,21 @@ export default function LoginPage() {
     if (msg) setMessage(msg);
   }, []);
 
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (error) {
       setError(error.message);
+      console.error('Login error:', error);
     } else {
-      router.push('/');
+      window.location.href = '/';    
     }
     setLoading(false);
   };
