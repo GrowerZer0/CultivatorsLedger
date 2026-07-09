@@ -1,7 +1,7 @@
 // apps/frontend/src/app/api/import/csv/route.ts
 import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from "next/server";
-import { getRequiredUserId } from "@/lib/session";
+import { getUserId } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 
 // Helper to parse timestamps from various formats
@@ -26,7 +26,7 @@ function parseTimestamp(value: string): Date | null {
 
 export async function POST(request: NextRequest) {
   try {
-    const userId = await getRequiredUserId();
+    const userId = await getUserId();
 
     // 1. Parse the multipart form data
     const formData = await request.formData();
@@ -127,6 +127,7 @@ export async function POST(request: NextRequest) {
         zoneId: rawZone && rawZone !== "-" ? rawZone : "Main",
         isManualEntry: true,
         leafOffsetC: 2.0,
+        userId: userId, // ✅ added
       });
     }
 
@@ -148,6 +149,7 @@ export async function POST(request: NextRequest) {
         filename: file.name,
         rowsImported: result.count,
         importStatus: "completed",
+        userId: userId, // ✅ added
       },
     });
 
