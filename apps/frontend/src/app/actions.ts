@@ -186,6 +186,59 @@ export async function getDashboardData(batchId?: string) {
   };
 }
 
+export async function addManualClimateAndWeight(data: {
+  temperature: number; // in °C
+  humidity: number;
+  weight?: number; // optional, in lbs
+  wetWeight?: number; // default 18.4
+  dryTargetWeight?: number; // default 13.2
+  batchId?: string;
+}) {
+  const userId = await getRequiredUserId();
+
+  // Insert climate log
+  const climateResult = await db.climateLog.create({
+    data: {
+      airTempC: data.temperature,
+      relativeHumidity: data.humidity,
+      timestamp: new Date(),
+      isManualEntry: true,
+      roomId: 'Manual Entry',
+      zoneId: 'Manual',
+      leafOffsetC: 2.0,
+    },
+  });
+
+  // If weight provided, insert dry‑back log
+  let dryBackResult = null;
+  if (data.weight !== undefined && data.weight !== null) {
+    const wet = data.wetWeight ?? 18.4;
+    const dryTarget = data.dryTargetWeight ?? 13.2;
+    const dryBackPercent = Math.max(0, Math.min(100, ((wet - data.weight) / (wet - dryTarget)) * 100));
+    dryBackResult = await db.dryBackLog.create({
+      data: {
+        timestamp: new Date(),
+        batchId: data.batchId || null,
+        containerGallons: 5, // default
+        wetWeightLbs: wet,
+        dryTargetWeightLbs: dryTarget,
+        currentWeightLbs: data.weight,
+        dryBackPercent: dryBackPercent,
+        runoffEc: null,
+        notes: 'Manual entry from environment page',
+        unit: 'lbs',
+      },
+    });
+  }
+
+  revalidatePath('/');
+  return {
+    success: true,
+    climateId: climateResult.id,
+    dryBackId: dryBackResult?.id,
+  };
+}
+
 export async function addManualClimateLog(data: {
   temperature: number;
   humidity: number;
