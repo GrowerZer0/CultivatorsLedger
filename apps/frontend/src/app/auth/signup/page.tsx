@@ -17,17 +17,15 @@ export default function SignUpPage() {
     setLoading(true);
     setError('');
 
-      const redirectTo = process.env.NODE_ENV === 'production'
-    ? 'https://cultivators-ledger-omega.vercel.app/auth/login'
-    : 'http://localhost:3000/auth/login';
-
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-      emailRedirectTo: redirectTo,
-      },
-    });
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: process.env.NODE_ENV === 'production'
+        ? 'https://cultivators-ledger-omega.vercel.app/auth/login'
+        : 'http://localhost:3000/auth/login',
+    },
+  });
 
     if (error) {
       setError(error.message);
