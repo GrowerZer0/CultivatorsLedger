@@ -247,20 +247,6 @@ export default function WeightsPage() {
               </>
             )}
           </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800"
-            >
-              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
-            <Link href="/settings">
-              <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800">
-                <Settings size={20} />
-              </button>
-            </Link>
-          </div>
         </header>
 
         {/* Dry‑Back Analytics */}

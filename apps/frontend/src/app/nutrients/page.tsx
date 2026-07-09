@@ -146,20 +146,6 @@ export default function NutrientsPage() {
   return (
     <AppShell>
       <div className="min-h-screen bg-white dark:bg-[#0B0F19] text-gray-900 dark:text-zinc-100 p-4">
-        {/* Header with theme toggle and settings */}
-        <header className="flex items-center justify-end gap-2 border-b border-gray-200 dark:border-zinc-800 pb-4 mb-6">
-          <button
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800"
-          >
-            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
-          <Link href="/settings">
-            <button className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800">
-              <Settings size={20} />
-            </button>
-          </Link>
-        </header>
 
         {/* Feeding Calculator */}
         <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xl">

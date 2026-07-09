@@ -17,9 +17,9 @@ export function AppShell({ children }: AppShellProps) {
 
   // Main tabs (Environment, Weights, Nutrients)
   const tabs = [
-    { name: "Environment", href: "/", icon: Gauge, color: "text-canopy dark:text-emerald-400" },
-    { name: "Weights", href: "/weights", icon: Weight, color: "text-canopy dark:text-emerald-400" },
-    { name: "Nutrients", href: "/nutrients", icon: Droplets, color: "text-canopy dark:text-emerald-400" },
+    { name: "Dashboard", href: "/", icon: Gauge, color: "text-canopy dark:text-emerald-400" },
+    { name: "Dry-Back", href: "/weights", icon: Weight, color: "text-canopy dark:text-emerald-400" },
+    { name: "Feed Calc", href: "/nutrients", icon: Droplets, color: "text-canopy dark:text-emerald-400" },
   ];
 
   return (
@@ -73,8 +73,6 @@ export function AppShell({ children }: AppShellProps) {
               Local cultivation dashboard
             </div>
             
-            <ThemeToggle />
-
             {/* Settings Icon (always visible) */}
             <Link
               href="/settings"
@@ -92,8 +90,8 @@ export function AppShell({ children }: AppShellProps) {
             >
               {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
             </button>
+          <ThemeToggle />
           </div>
-
         </div>
       </header>
 

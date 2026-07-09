@@ -15,7 +15,8 @@ import {
   Moon,
   Keyboard,
   Cpu,
-  ChevronRight
+  ChevronRight,
+  Bell
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { SectionPanel } from "@/components/layout/SectionPanel";
@@ -261,6 +262,32 @@ export default function SettingsPage() {
         {/* ======================================================= */}
         {activeTab === "hardware" && (
           <div className="space-y-6 animate-in fade-in duration-200">
+              {/* Sensor Mode Toggle */}
+              <div className="mt-6 pt-6 border-t border-slate-200 dark:border-zinc-800">
+                <h4 className="text-sm font-bold text-zinc-400 mb-2">Ingestion Mode</h4>
+                <div className="inline-flex rounded-xl bg-gray-50 dark:bg-zinc-950 p-1 border border-gray-200 dark:border-zinc-800">
+                  <button
+                    type="button"
+                    onClick={() => setIsSensorDriven(false)}
+                    className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${!isSensorDriven
+                      ? "bg-emerald-600 text-white shadow-md ring-1 ring-zinc-700/50"
+                      : "text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:text-zinc-300"
+                    }`}
+                  >
+                    <Keyboard className="size-3.5" /> Manual
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsSensorDriven(true)}
+                    className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${isSensorDriven
+                      ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/20 ring-1 ring-emerald-500/30"
+                      : "text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:text-zinc-300"
+                    }`}
+                  >
+                    <Cpu className="size-3.5" /> Hardware
+                  </button>
+                </div>
+              </div>
             <SectionPanel 
               title="Sensor Management" 
               subtitle="Register and manage devices that send telemetry data to your ingest endpoint."
@@ -278,10 +305,9 @@ export default function SettingsPage() {
                       + Add Sensor
                     </button>
                   </div>
-
-                  {sensors.length === 0 ? (
+                    {sensors.length === 0 ? (
                     <p className="text-sm text-zinc-500">No sensors registered.</p>
-                  ) : (
+                    ) : (
                     <ul className="space-y-2">
                       {sensors.map((sensor) => (
                         <li key={sensor.id} className="flex items-center justify-between p-3 bg-zinc-900 rounded-xl border border-zinc-800">
@@ -328,35 +354,34 @@ export default function SettingsPage() {
                       ))}
                     </ul>
                   )}
+                    {/* SENSOR TIER VISUAL ANCHOR */}
+                    <div className="mt-8 pt-6 border-t border-gray-200 dark:border-zinc-800">
+                      <h4 className="text-sm font-bold text-zinc-400 mb-3">Upcoming Features</h4>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="p-4 rounded-xl border border-gray-300 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-800/30 opacity-60 cursor-not-allowed">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Cpu className="size-4 text-gray-400" />
+                            <span className="text-sm font-bold text-gray-500 dark:text-zinc-400">Home Assistant Local Integration</span>
+                          </div>
+                          <p className="text-xs text-gray-400 dark:text-zinc-500">
+                            Connect your Home Assistant instance for real-time sensor data.
+                            <span className="block text-[10px] font-bold text-emerald-400 mt-1">Coming soon</span>
+                          </p>
+                        </div>
+                        <div className="p-4 rounded-xl border border-gray-300 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-800/30 opacity-60 cursor-not-allowed">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Bell className="size-4 text-gray-400" />
+                            <span className="text-sm font-bold text-gray-500 dark:text-zinc-400">Automated SMS/VPD Alerts</span>
+                          </div>
+                          <p className="text-xs text-gray-400 dark:text-zinc-500">
+                            Get notified when VPD goes out of range.
+                            <span className="block text-[10px] font-bold text-emerald-400 mt-1">Coming soon</span>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                 </div>
               )}
-
-              {/* Sensor Mode Toggle */}
-              <div className="mt-6 pt-6 border-t border-slate-200 dark:border-zinc-800">
-                <h4 className="text-sm font-bold text-zinc-400 mb-2">Ingestion Mode</h4>
-                <div className="inline-flex rounded-xl bg-gray-50 dark:bg-zinc-950 p-1 border border-gray-200 dark:border-zinc-800">
-                  <button
-                    type="button"
-                    onClick={() => setIsSensorDriven(false)}
-                    className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${!isSensorDriven
-                      ? "bg-emerald-600 text-white shadow-md ring-1 ring-zinc-700/50"
-                      : "text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:text-zinc-300"
-                    }`}
-                  >
-                    <Keyboard className="size-3.5" /> Manual
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsSensorDriven(true)}
-                    className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${isSensorDriven
-                      ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/20 ring-1 ring-emerald-500/30"
-                      : "text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:text-zinc-300"
-                    }`}
-                  >
-                    <Cpu className="size-3.5" /> Hardware
-                  </button>
-                </div>
-              </div>
             </SectionPanel>
           </div>
         )}
@@ -620,21 +645,6 @@ export default function SettingsPage() {
                     <option value="Pineapple Express">Pineapple Express</option>
                     <option value="OG Kush">OG Kush</option>
                   </select>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-bold text-gray-900 dark:text-white">Theme</h4>
-                    <p className="text-xs text-zinc-500">Choose light or dark mode.</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button className="p-2 rounded border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-mist dark:hover:bg-zinc-800 transition-colors">
-                      <Sun size={20} className="text-gray-700 dark:text-zinc-300" />
-                    </button>
-                    <button className="p-2 rounded border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:bg-mist dark:hover:bg-zinc-800 transition-colors">
-                      <Moon size={20} className="text-gray-700 dark:text-zinc-300" />
-                    </button>
-                  </div>
                 </div>
               </div>
             </SectionPanel>

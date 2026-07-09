@@ -187,11 +187,12 @@ export async function getDashboardData(batchId?: string) {
 }
 
 export async function addManualClimateAndWeight(data: {
-  temperature: number; // in °C
+  temperature: number; 
   humidity: number;
-  weight?: number; // optional, in lbs
-  wetWeight?: number; // default 18.4
-  dryTargetWeight?: number; // default 13.2
+  weight?: number; 
+  notes?: string;
+  wetWeight?: number; 
+  dryTargetWeight?: number; 
   batchId?: string;
 }) {
   const userId = await getRequiredUserId();
@@ -225,7 +226,7 @@ export async function addManualClimateAndWeight(data: {
         currentWeightLbs: data.weight,
         dryBackPercent: dryBackPercent,
         runoffEc: null,
-        notes: 'Manual entry from environment page',
+        notes: data.notes || null,
         unit: 'lbs',
       },
     });
