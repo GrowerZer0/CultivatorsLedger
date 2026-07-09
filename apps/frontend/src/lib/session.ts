@@ -1,6 +1,8 @@
 // src/lib/session.ts
-export async function getRequiredUserId() {
-  // Local-first development: always return a local user ID
-  // This will be replaced with proper auth later.
-  return 'local-dev-user';
+import { supabase } from '@/lib/supabase';
+
+export async function getUserId() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+  return user.id;
 }

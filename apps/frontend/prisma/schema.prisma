@@ -3,8 +3,8 @@
 // Aligned with local PostgreSQL + PGMQ architecture
 
 generator client {
-  provider        = "prisma-client-js"
-  binaryTargets   = ["native", "darwin-arm64"]
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "darwin-arm64"]
 }
 
 datasource db {
@@ -15,54 +15,76 @@ datasource db {
 // CORE MODELS
 // ============================================================
 
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  climateLogs      ClimateLog[]
+  dryBackLogs      DryBackLog[]
+  batches          Batch[]
+  sensorConfigs    SensorConfig[]
+  systemSettings   SystemSetting[]
+  importHistories  ImportHistory[]
+  irrigationEvents IrrigationEvent[]
+  batchHarvests    BatchHarvest[]
+}
+
 model SystemSetting {
-  id                    Int      @id @default(autoincrement())
-  updatedAt             DateTime @default(now()) @map("updated_at")
-  defaultLeafOffsetC    Decimal  @default(2.00) @map("default_leaf_offset_c") @db.Decimal(3, 2)
-  currentGrowthStage    String   @default("vegetative") @map("current_growth_stage")
-  preferredTempUnit     String   @default("C") @map("preferred_temp_unit")
-  
+  id                 Int      @id @default(autoincrement())
+  updatedAt          DateTime @default(now()) @map("updated_at")
+  defaultLeafOffsetC Decimal  @default(2.00) @map("default_leaf_offset_c") @db.Decimal(3, 2)
+  currentGrowthStage String   @default("vegetative") @map("current_growth_stage")
+  preferredTempUnit  String   @default("C") @map("preferred_temp_unit")
+  userId             String   @map("user_id")
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // UI Visibility Flags
-  showEcColumn          Boolean  @default(true) @map("show_ec_column")
-  showYieldColumn       Boolean  @default(true) @map("show_yield_column")
-  showNotesColumn       Boolean  @default(true) @map("show_notes_column")
-  showZoneAnalytics     Boolean  @default(true) @map("show_zone_analytics")
-  showVpdWarnings       Boolean  @default(true) @map("show_vpd_warnings")
-  
+  showEcColumn      Boolean @default(true) @map("show_ec_column")
+  showYieldColumn   Boolean @default(true) @map("show_yield_column")
+  showNotesColumn   Boolean @default(true) @map("show_notes_column")
+  showZoneAnalytics Boolean @default(true) @map("show_zone_analytics")
+  showVpdWarnings   Boolean @default(true) @map("show_vpd_warnings")
+
   // Infrastructure Flags
-  enableCloudBackup     Boolean  @default(false) @map("enable_cloud_backup")
-  isManualOnlyMode      Boolean  @default(false) @map("is_manual_only_mode")
+  enableCloudBackup Boolean @default(false) @map("enable_cloud_backup")
+  isManualOnlyMode  Boolean @default(false) @map("is_manual_only_mode")
 
   @@map("system_settings")
 }
 
 model ImportHistory {
-  id            Int       @id @default(autoincrement())
-  importedAt    DateTime  @default(now()) @map("imported_at")
-  filename      String    @db.VarChar(255)
-  rowsImported  Int       @map("rows_imported")
-  importStatus  String    @default("completed") @map("import_status")
-  rollbackAt    DateTime? @map("rollback_at")
-  
-  climateLogs   ClimateLog[]
+  id           Int       @id @default(autoincrement())
+  importedAt   DateTime  @default(now()) @map("imported_at")
+  filename     String    @db.VarChar(255)
+  rowsImported Int       @map("rows_imported")
+  importStatus String    @default("completed") @map("import_status")
+  rollbackAt   DateTime? @map("rollback_at")
+  userId       String    @map("user_id")
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  climateLogs      ClimateLog[]
   irrigationEvents IrrigationEvent[]
 
   @@map("import_history")
 }
 
 model ClimateLog {
-  id               Int       @id @default(autoincrement())
-  timestamp        DateTime  @default(now()) @db.Timestamptz(6)
-  roomId           String    @map("room_id") @db.VarChar(50)
-  zoneId           String    @default("Main") @map("zone_id") @db.VarChar(50)
-  sensorMac        String?   @map("sensor_mac") @db.VarChar(17)
-  airTempC         Decimal   @map("air_temp_c") @db.Decimal(4, 2)
-  relativeHumidity Decimal   @map("relative_humidity") @db.Decimal(5, 2)
-  leafOffsetC      Decimal   @default(2.00) @map("leaf_offset_c") @db.Decimal(3, 2)
-  calculatedVpdKpa Decimal?  @map("calculated_vpd_kpa") @db.Decimal(4, 2)
-  isManualEntry    Boolean   @default(false) @map("is_manual_entry")
-  
-  importId         Int?      @map("import_id")
+  id               Int            @id @default(autoincrement())
+  timestamp        DateTime       @default(now()) @db.Timestamptz(6)
+  roomId           String         @map("room_id") @db.VarChar(50)
+  zoneId           String         @default("Main") @map("zone_id") @db.VarChar(50)
+  sensorMac        String?        @map("sensor_mac") @db.VarChar(17)
+  airTempC         Decimal        @map("air_temp_c") @db.Decimal(4, 2)
+  relativeHumidity Decimal        @map("relative_humidity") @db.Decimal(5, 2)
+  leafOffsetC      Decimal        @default(2.00) @map("leaf_offset_c") @db.Decimal(3, 2)
+  calculatedVpdKpa Decimal?       @map("calculated_vpd_kpa") @db.Decimal(4, 2)
+  isManualEntry    Boolean        @default(false) @map("is_manual_entry")
+  userId           String         @map("user_id")
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  importId         Int?           @map("import_id")
   import           ImportHistory? @relation(fields: [importId], references: [id], onDelete: Cascade)
 
   @@index([roomId, timestamp])
@@ -83,38 +105,42 @@ model DryBackLog {
   notes              String?
   unit               String   @default("lbs")
   createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  
+  userId             String   @map("user_id")
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   batch              Batch?   @relation(fields: [batchId], references: [id], onDelete: SetNull)
 
   @@map("dry_back_logs")
 }
 
 model Batch {
-  id          String   @id @default(cuid())
-  name        String   @db.VarChar(100)
-  cultivar    String   @db.VarChar(100)
-  roomId      String   @map("room_id") @db.VarChar(50)
-  startDate   DateTime @default(now()) @map("start_date")
-  harvestDate DateTime? @map("harvest_date")
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id          String       @id @default(cuid())
+  name        String       @db.VarChar(100)
+  cultivar    String       @db.VarChar(100)
+  roomId      String       @map("room_id") @db.VarChar(50)
+  startDate   DateTime     @default(now()) @map("start_date")
+  harvestDate DateTime?    @map("harvest_date")
+  isActive    Boolean      @default(true) @map("is_active")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
   dryBackLogs DryBackLog[]
+  userId      String       @map("user_id")
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("batches")
 }
 
 model IrrigationEvent {
-  id                 Int       @id @default(autoincrement())
-  timestamp          DateTime  @default(now()) @db.Timestamptz(6)
-  roomId             String    @map("room_id") @db.VarChar(50)
-  zoneId             String    @map("zone_id") @db.VarChar(50)
-  sensorMac          String?   @map("sensor_mac") @db.VarChar(17)
-  moisturePercentage Decimal   @map("moisture_percentage") @db.Decimal(5, 2)
-  ecLevel            Decimal?  @map("ec_level") @db.Decimal(3, 1)
-  isManualEntry      Boolean   @default(false) @map("is_manual_entry")
-  
-  importId           Int?      @map("import_id")
+  id                 Int            @id @default(autoincrement())
+  timestamp          DateTime       @default(now()) @db.Timestamptz(6)
+  roomId             String         @map("room_id") @db.VarChar(50)
+  zoneId             String         @map("zone_id") @db.VarChar(50)
+  sensorMac          String?        @map("sensor_mac") @db.VarChar(17)
+  moisturePercentage Decimal        @map("moisture_percentage") @db.Decimal(5, 2)
+  ecLevel            Decimal?       @map("ec_level") @db.Decimal(3, 1)
+  isManualEntry      Boolean        @default(false) @map("is_manual_entry")
+  userId             String         @map("user_id")
+  user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  importId           Int?           @map("import_id")
   import             ImportHistory? @relation(fields: [importId], references: [id], onDelete: Cascade)
 
   @@index([roomId, timestamp])
@@ -122,28 +148,32 @@ model IrrigationEvent {
 }
 
 model BatchHarvest {
-  id               Int       @id @default(autoincrement())
-  strainName       String    @map("strain_name") @db.VarChar(100)
-  roomId           String?   @map("room_id") @db.VarChar(50)
-  startDate        DateTime  @default(now()) @map("start_date") @db.Date
-  flowerFlipDate   DateTime? @map("flower_flip_date") @db.Date
-  harvestDate      DateTime? @map("harvest_date") @db.Date
-  totalDryYieldG   Decimal?  @map("total_dry_yield_g") @db.Decimal(8, 2)
-  notes            String?
-  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  id             Int       @id @default(autoincrement())
+  strainName     String    @map("strain_name") @db.VarChar(100)
+  roomId         String?   @map("room_id") @db.VarChar(50)
+  startDate      DateTime  @default(now()) @map("start_date") @db.Date
+  flowerFlipDate DateTime? @map("flower_flip_date") @db.Date
+  harvestDate    DateTime? @map("harvest_date") @db.Date
+  totalDryYieldG Decimal?  @map("total_dry_yield_g") @db.Decimal(8, 2)
+  notes          String?
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  userId         String    @map("user_id")
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("batch_harvests")
 }
 
 model SensorConfig {
-  id          String   @id @default(cuid())
-  name        String
-  type        String   // e.g., 'vivosun', 'custom-http', 'mqtt'
-  apiKeyHash  String   @unique // hashed version of the key
-  isActive    Boolean  @default(true)
-  lastPingAt  DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String    @id @default(cuid())
+  name       String
+  type       String // e.g., 'vivosun', 'custom-http', 'mqtt'
+  apiKeyHash String    @unique // hashed version of the key
+  isActive   Boolean   @default(true)
+  lastPingAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  userId     String    @map("user_id")
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sensor_configs")
 }

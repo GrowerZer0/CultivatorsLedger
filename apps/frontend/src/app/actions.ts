@@ -3,11 +3,11 @@
 
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { getRequiredUserId } from "@/lib/session";
+import { getUserId } from "@/lib/session";
 import type { DryBackLog as PrismaDryBackLog } from '@prisma/client';
-import { generateDemoData } from "@/lib/demoData";
 import { randomBytes } from 'crypto';
 import { createHash } from 'crypto';
+import { supabase } from '@/lib/supabase';
 
 // Helper: compute VPD (kPa) from temp (°C) and RH (%)
 function computeVPD(tempC: number, rh: number): number {
@@ -30,33 +30,14 @@ function generateApiKey(): string {
 // --- SENSOR CONFIG CRUD ---
 
 export async function getSensors() {
-  const userId = await getRequiredUserId();
-  // For demo mode, return mock sensors
-  if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
-    return [
-      { id: 'demo-1', name: 'Demo Sensor', type: 'vivosun', isActive: true, lastPingAt: new Date() },
-    ];
-  }
+  const userId = await getUserId();
   return await db.sensorConfig.findMany({
     orderBy: { createdAt: 'desc' },
   });
 }
 
 export async function createSensor(data: { name: string; type: string }) {
-  const userId = await getRequiredUserId();
-  //Demo mode
-  if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
-  const mockId = `demo-${Date.now()}`;
-  const mockApiKey = `sk-demo-${Math.random().toString(36).substring(2, 10)}`;
-  return {
-    id: mockId,
-    name: data.name,
-    type: data.type,
-    isActive: true,
-    lastPingAt: null,
-    apiKey: mockApiKey,
-  };
-}
+  const userId = await getUserId();
   const apiKey = generateApiKey();
   const apiKeyHash = hashKey(apiKey);
   const sensor = await db.sensorConfig.create({
@@ -65,6 +46,7 @@ export async function createSensor(data: { name: string; type: string }) {
       type: data.type,
       apiKeyHash,
       isActive: true,
+      userId,
     },
   });
   // Return the plain API key (only once) to show to the user
@@ -72,7 +54,12 @@ export async function createSensor(data: { name: string; type: string }) {
 }
 
 export async function toggleSensor(sensorId: string, isActive: boolean) {
-  const userId = await getRequiredUserId();
+  const userId = await getUserId();
+  // Ensure the sensor belongs to the user
+  const existing = await db.sensorConfig.findFirst({
+    where: { id: sensorId, userId },
+  });
+  if (!existing) throw new Error('Sensor not found or unauthorized');
   return await db.sensorConfig.update({
     where: { id: sensorId },
     data: { isActive },
@@ -80,12 +67,22 @@ export async function toggleSensor(sensorId: string, isActive: boolean) {
 }
 
 export async function deleteSensor(sensorId: string) {
-  const userId = await getRequiredUserId();
+  const userId = await getUserId();
+  // Ensure the sensor belongs to the user
+  const existing = await db.sensorConfig.findFirst({
+    where: { id: sensorId, userId },
+  });
+  if (!existing) throw new Error('Sensor not found or unauthorized');
   return await db.sensorConfig.delete({ where: { id: sensorId } });
 }
 
 export async function regenerateApiKey(sensorId: string) {
-  const userId = await getRequiredUserId();
+  const userId = await getUserId();
+  // Ensure the sensor belongs to the user
+  const existing = await db.sensorConfig.findFirst({
+    where: { id: sensorId, userId },
+  });
+  if (!existing) throw new Error('Sensor not found or unauthorized');
   const newKey = generateApiKey();
   const newHash = hashKey(newKey);
   const updated = await db.sensorConfig.update({
@@ -96,50 +93,11 @@ export async function regenerateApiKey(sensorId: string) {
 }
 
 export async function getDashboardData(batchId?: string) {
-    // 🧪 Demo Mode – bypass database and return mock data
-    if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
-      const demoData = generateDemoData(24);
-      const latest = demoData[demoData.length - 1];
-      // Fetch real dry‑back logs from the new table, optionally filtered by batch
-
-    return {
-      environmentReadings: demoData.map(d => ({
-        id: String(Math.random()),
-        temperatureF: d.temperature * 9/5 + 32,
-        temperature: d.temperature,
-        humidity: d.humidity,
-        vpd: d.vpd,
-        runoff_ec: 0,
-        dry_back: 0,
-        recordedAt: d.timestamp.toISOString(),
-      })),
-      dryBackLogs: demoData.map(d => ({
-        id: String(Math.random()),
-        cultivar: "Demo Grow",
-        stage: "Flower",
-        containerGallons: 5,
-        wetWeight: 18.4,
-        dryTargetWeight: 13.2,
-        weight: d.weight || 14.5,
-        dryBackPercent: ((18.4 - (d.weight || 14.5)) / (18.4 - 13.2)) * 100,
-        runoff_ec: 0,
-        loggedAt: d.timestamp.toISOString(),
-      })),
-      // For live data, we also return the latest climate reading
-      latestClimate: {
-        airTempC: latest.temperature,
-        relativeHumidity: latest.humidity,
-        calculatedVpdKpa: latest.vpd,
-        timestamp: latest.timestamp,
-      },
-    };
-  }
-  
-  // --- Live Environment (database) ---
-  const userId = await getRequiredUserId();
+  const userId = await getUserId();
 
   // Fetch the 30 most recent climate logs (descending)
   const climateLogs = await db.climateLog.findMany({
+    where: { userId },
     orderBy: { timestamp: "desc" },
     take: 30,
   });
@@ -159,8 +117,12 @@ export async function getDashboardData(batchId?: string) {
     recordedAt: log.timestamp.toISOString(),
   }));
 
-  // Fetch real dry‑back logs from the new table
+  // Fetch real dry‑back logs from the new table (optionally filtered by batch)
   const dryBackLogsFromDb = await db.dryBackLog.findMany({
+    where: {
+      userId,
+      ...(batchId ? { batchId } : {}),
+    },
     orderBy: { timestamp: "asc" },
     take: 30,
   });
@@ -195,7 +157,7 @@ export async function addManualClimateAndWeight(data: {
   dryTargetWeight?: number; 
   batchId?: string;
 }) {
-  const userId = await getRequiredUserId();
+  const userId = await getUserId();
 
   // Insert climate log
   const climateResult = await db.climateLog.create({
@@ -207,6 +169,7 @@ export async function addManualClimateAndWeight(data: {
       roomId: 'Manual Entry',
       zoneId: 'Manual',
       leafOffsetC: 2.0,
+      userId: userId,
     },
   });
 
@@ -228,6 +191,7 @@ export async function addManualClimateAndWeight(data: {
         runoffEc: null,
         notes: data.notes || null,
         unit: 'lbs',
+        userId: userId,
       },
     });
   }
@@ -245,7 +209,7 @@ export async function addManualClimateLog(data: {
   humidity: number;
   timestamp?: Date;
 }) {
-  const userId = await getRequiredUserId(); // local bypass in dev
+  const userId = await getUserId();
 
   const result = await db.climateLog.create({
     data: {
@@ -256,6 +220,8 @@ export async function addManualClimateLog(data: {
       roomId: "Manual Entry",
       zoneId: "Manual",
       leafOffsetC: 2.0,
+      userId: userId,
+
     },
   });
 
@@ -265,38 +231,22 @@ export async function addManualClimateLog(data: {
 
 // --- BATCH MANAGEMENT ---
 export async function getBatches() {
-  const userId = await getRequiredUserId();
-
-  // Demo Mode – return a mock batch
-  if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
-    return [
-      {
-        id: 'demo-batch-1',
-        name: 'Demo Grow',
-        cultivar: 'Blueberry Muffin',
-        roomId: 'tent_1',
-        startDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), // 14 days ago
-        harvestDate: null,
-        isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        dryBackLogs: [], // will be populated later if needed
-      },
-    ];
-  }
+  const userId = await getUserId();
 
   return await db.batch.findMany({
+    where: { userId },
     orderBy: { startDate: 'desc' },
   });
 }
 
 export async function createBatch(data: { name: string; cultivar: string; roomId: string }) {
-  const userId = await getRequiredUserId();
+  const userId = await getUserId();
   const batch = await db.batch.create({
     data: {
       name: data.name,
       cultivar: data.cultivar,
       roomId: data.roomId,
+      userId: userId,
     },
   });
   revalidatePath('/');
@@ -304,35 +254,13 @@ export async function createBatch(data: { name: string; cultivar: string; roomId
 }
 
 export async function getBatch(batchId: string) {
-  const userId = await getRequiredUserId();
+  const userId = await getUserId();
 
-  // Demo Mode – return mock batch data
-  if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
-    // Simulate a batch with some dry‑back logs
-    const mockLogs = Array.from({ length: 14 }, (_, i) => ({
-      id: i + 1,
-      timestamp: new Date(Date.now() - (13 - i) * 24 * 60 * 60 * 1000),
-      dryBackPercent: 60 + Math.random() * 30,
-    }));
-    return {
-      id: 'demo-batch-1',
-      name: 'Demo Grow',
-      cultivar: 'Blueberry Muffin',
-      roomId: 'tent_1',
-      startDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
-      harvestDate: null,
-      isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      dryBackLogs: mockLogs,
-    };
-  }
-
-  // Real mode – query database
   return await db.batch.findUnique({
-    where: { id: batchId },
+    where: { id: batchId, userId },
     include: {
       dryBackLogs: {
+        where: { userId },
         orderBy: { timestamp: 'asc' },
       },
     },
@@ -340,52 +268,28 @@ export async function getBatch(batchId: string) {
 }
 
 export async function exportAllBatches() {
-  const userId = await getRequiredUserId();
-
-  // Demo mode – return mock data
-  if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
-    const mockBatch = {
-      id: 'demo-batch-1',
-      name: 'Demo Grow',
-      cultivar: 'Blueberry Muffin',
-      roomId: 'tent_1',
-      startDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
-      harvestDate: null,
-      isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      dryBackLogs: Array.from({ length: 14 }, (_, i) => ({
-        id: i + 1,
-        timestamp: new Date(Date.now() - (13 - i) * 24 * 60 * 60 * 1000),
-        dryBackPercent: 60 + Math.random() * 30,
-        containerGallons: 5,
-        wetWeightLbs: 18.4,
-        dryTargetWeightLbs: 13.2,
-        currentWeightLbs: 14.5,
-        runoffEc: 0,
-        notes: '',
-        unit: 'lbs',
-        createdAt: new Date(),
-      })),
-    };
-    return [mockBatch];
-  }
-
-  // Real mode – query database
+  const userId = await getUserId();
   return await db.batch.findMany({
+    where: { userId },
     include: {
-      dryBackLogs: true,
+      dryBackLogs: {
+      where: { userId },
     },
+  },
     orderBy: { startDate: 'desc' },
   });
 }
 
 export async function getBatchesForComparison(batchIds: string[]) {
-  const userId = await getRequiredUserId();
+  const userId = await getUserId();
   return await db.batch.findMany({
-    where: { id: { in: batchIds } },
+    where: {
+      userId,
+      id: { in: batchIds },
+    },
     include: {
       dryBackLogs: {
+        where: { userId },
         orderBy: { timestamp: 'asc' },
       },
     },
@@ -409,7 +313,7 @@ export async function addDryBackLog(data: {
   unit: string;
   batchId?: string;
 }) {
-  const userId = await getRequiredUserId();
+  const userId = await getUserId();
   const dryBackPercent = ((data.wetWeight - data.weight) / (data.wetWeight - data.dryTargetWeight)) * 100;
   const clampedPercent = Math.max(0, Math.min(100, dryBackPercent));
 
@@ -424,6 +328,7 @@ export async function addDryBackLog(data: {
       notes: `Cultivar: ${data.cultivar}`,
       timestamp: new Date(),
       batchId: data.batchId || null,
+      userId: userId,
     },
   });
 

@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { supabase } from '@/lib/supabase';
 
 type AppShellProps = {
   children: ReactNode;
@@ -22,6 +23,12 @@ export function AppShell({ children }: AppShellProps) {
     { name: "Feed Calc", href: "/nutrients", icon: Droplets, color: "text-canopy dark:text-emerald-400" },
   ];
 
+  // Logout function
+  const handleLogout = async () => {
+  await supabase.auth.signOut();
+  window.location.href = '/auth/login';
+};
+
   return (
     <main className="min-h-screen bg-[#f6f8f4] dark:bg-zinc-950 text-graphite dark:text-zinc-100 transition-colors duration-200">
       {/* Primary Header Area */}
@@ -35,9 +42,7 @@ export function AppShell({ children }: AppShellProps) {
                 <Leaf aria-hidden="true" className="size-5" />
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-clay dark:text-orange-400">
-                  Single-grower command
-                </p>
+                          <ThemeToggle />
                 <h1 className="text-xl font-semibold tracking-normal text-graphite dark:text-zinc-100">
                   Cultivator's Ledger
                 </h1>
@@ -90,8 +95,13 @@ export function AppShell({ children }: AppShellProps) {
             >
               {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
             </button>
-          <ThemeToggle />
           </div>
+          <button
+            onClick={handleLogout}
+            className="text-xs font-bold text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200 transition-colors"
+          >
+            Logout
+          </button>
         </div>
       </header>
 
