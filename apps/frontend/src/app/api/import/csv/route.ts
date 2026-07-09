@@ -4,17 +4,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getUserId } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 
-// Helper to parse timestamps from various formats
+// Helper to parse timestamps
 function parseTimestamp(value: string): Date | null {
   if (!value || value.trim() === "") return null;
   const cleaned = value.trim();
   let d = new Date(cleaned);
   if (!isNaN(d.getTime())) return d;
-  // Try YYYY/MM/DD HH:MM:SS (Vivosun format)
   const normalized = cleaned.replace(/\//g, "-");
   d = new Date(normalized);
   if (!isNaN(d.getTime())) return d;
-  // Try MM/DD/YYYY HH:MM:SS
   const parts = cleaned.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})/);
   if (parts) {
     const [, m, dd, yyyy, hh, mm, ss] = parts;
@@ -28,7 +26,6 @@ export async function POST(request: NextRequest) {
   try {
     const userId = await getUserId();
 
-    // 1. Parse the multipart form data
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const mappingRaw = formData.get("mapping") as string | null;
@@ -60,7 +57,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Read the CSV text
     const text = await file.text();
     const lines = text.split("\n").filter((line) => line.trim() !== "");
     if (lines.length < 2) {
@@ -112,7 +108,7 @@ export async function POST(request: NextRequest) {
       let temp = parseFloat(rawTemp);
       let humidity = parseFloat(rawHumidity);
       if (temp > 50) {
-        temp = (temp - 32) * 5 / 9; // Convert °F to °C
+        temp = (temp - 32) * 5 / 9;
       }
       if (isNaN(temp) || isNaN(humidity)) {
         errors.push(`Row ${i}: Invalid temperature or humidity values`);
@@ -127,7 +123,7 @@ export async function POST(request: NextRequest) {
         zoneId: rawZone && rawZone !== "-" ? rawZone : "Main",
         isManualEntry: true,
         leafOffsetC: 2.0,
-        userId: userId, // ✅ added
+        userId: userId,
       });
     }
 
@@ -143,13 +139,12 @@ export async function POST(request: NextRequest) {
       skipDuplicates: true,
     });
 
-    // Log import history
     await db.importHistory.create({
       data: {
         filename: file.name,
         rowsImported: result.count,
         importStatus: "completed",
-        userId: userId, // ✅ added
+        userId: userId,
       },
     });
 
