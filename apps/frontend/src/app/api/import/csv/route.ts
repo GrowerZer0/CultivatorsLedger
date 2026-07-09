@@ -4,7 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getUserId } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 
-// Helper to parse timestamps
+console.log('🔑 Supabase URL (client):', process.env.NEXT_PUBLIC_SUPABASE_URL);
+
 function parseTimestamp(value: string): Date | null {
   if (!value || value.trim() === "") return null;
   const cleaned = value.trim();
@@ -25,6 +26,12 @@ function parseTimestamp(value: string): Date | null {
 export async function POST(request: NextRequest) {
   try {
     const userId = await getUserId();
+
+    // 🛑 SAFEGUARD: Stop immediately if the user is unauthenticated or missing a database record
+    if (!userId) {
+      console.error("CSV Import Denied: No active userId found in session.");
+      return NextResponse.json({ error: "Unauthorized. Please log in again." }, { status: 401 });
+    }
 
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
@@ -123,7 +130,7 @@ export async function POST(request: NextRequest) {
         zoneId: rawZone && rawZone !== "-" ? rawZone : "Main",
         isManualEntry: true,
         leafOffsetC: 2.0,
-        userId: userId,
+        userId: userId, // Tied safely to your authenticated ID
       });
     }
 
