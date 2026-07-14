@@ -73,17 +73,6 @@ export function AppShell({ children }: AppShellProps) {
 
           {/* Right: Status badge, ThemeToggle, Settings, Hamburger */}
           <div className="flex items-center gap-4">
-            <div className="hidden rounded-md border border-[#d9e2dc] dark:border-zinc-800 bg-mist dark:bg-zinc-800/50 px-3 py-2 text-sm font-medium text-canopy dark:text-emerald-400 lg:block">
-              Local cultivation dashboard
-            </div>
-            
-            <ThemeToggle />
-
-            <Link href="/settings">
-              <button className="grid size-10 place-items-center rounded-md border border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800 transition-colors">
-                <Settings className="size-5" />
-              </button>
-            </Link>
 
             {/* Hamburger – visible on all screen sizes */}
             <button
