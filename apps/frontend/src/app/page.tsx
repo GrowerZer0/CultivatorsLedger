@@ -179,6 +179,23 @@ export default function EnvironmentPage() {
     const pct = Number((latest as any).dryBackPercent);
     return { percent: pct, isClamped: pct >= 100 || pct < 0 };
   }, [dbDryBackLogs]);
+{/* Recommendation */}
+<div className="mt-3">
+  <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Recommendation:</span>
+  {dryBackData.percent > 80 ? (
+    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 ml-2">
+      🌱 Irrigate now
+    </span>
+  ) : dryBackData.percent > 60 ? (
+    <span className="text-xs font-bold text-yellow-600 dark:text-yellow-400 ml-2">
+      ⏳ Wait (check again soon)
+    </span>
+  ) : (
+    <span className="text-xs font-bold text-blue-600 dark:text-blue-400 ml-2">
+      👀 Monitor only
+    </span>
+  )}
+</div>
 
   // --- MANUAL ENTRY HANDLER ---
   const handleManualSubmit = async (e: React.FormEvent) => {
@@ -381,6 +398,33 @@ export default function EnvironmentPage() {
             ))}
           </div>
         )}
+
+{/* Today’s Summary */}
+<div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl mb-6">
+  <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-300 mb-3">📋 Today’s Summary</h3>
+  {dbEnvironmentReadings.length > 0 && dbDryBackLogs.length > 0 ? (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <p className="text-xs text-gray-500 dark:text-zinc-400">VPD</p>
+        <p className="text-lg font-bold text-gray-900 dark:text-white">
+          {vpdScoreData.score > 80 ? '✅' : vpdScoreData.score > 50 ? '⚠️' : '🔴'} {vpdScoreData.score.toFixed(0)}% in range
+        </p>
+        <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">Streak: {vpdScoreData.streak} hrs</p>
+      </div>
+      <div>
+        <p className="text-xs text-gray-500 dark:text-zinc-400">Dry‑Back</p>
+        <p className="text-lg font-bold text-gray-900 dark:text-white">
+          {dryBackData.percent > 80 ? '✅' : dryBackData.percent > 50 ? '⚠️' : '🔴'} {dryBackData.percent.toFixed(0)}%
+        </p>
+        <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">
+          {dryBackData.percent > 80 ? '⏰ Irrigate soon' : '⏳ Wait'}
+        </p>
+      </div>
+    </div>
+  ) : (
+    <p className="text-sm text-gray-400 dark:text-zinc-500">Log more data to see summary.</p>
+  )}
+</div>
 
         {/* Two‑column cards: Room Climate + Dry‑Back */}
         <div className="grid gap-4 md:grid-cols-2 mb-6">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Leaf, Menu, X, Gauge, Weight, Droplets, Settings } from "lucide-react";
+import { Leaf, Menu, X, Gauge, Weight, Droplets, Settings, LogOut } from "lucide-react";
 import type { ReactNode } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import Link from "next/link";
@@ -34,7 +34,7 @@ export function AppShell({ children }: AppShellProps) {
       {/* Primary Header Area */}
       <header className="border-b border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 transition-colors duration-200 sticky top-0 z-40">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          
+
           {/* Left Side: Brand Identity & Desktop Tabs */}
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-3 group">
@@ -42,7 +42,6 @@ export function AppShell({ children }: AppShellProps) {
                 <Leaf aria-hidden="true" className="size-5" />
               </div>
               <div>
-                          <ThemeToggle />
                 <h1 className="text-xl font-semibold tracking-normal text-graphite dark:text-zinc-100">
                   Cultivator's Ledger
                 </h1>
@@ -140,6 +139,19 @@ export function AppShell({ children }: AppShellProps) {
               <Settings className="size-5 text-clay dark:text-orange-400" />
               <span>Settings</span>
             </Link>
+            <div className="border-t border-[#d9e2dc] dark:border-zinc-800 pt-4 mt-2">
+  <button
+    onClick={handleLogout}
+    className="flex items-center gap-3 rounded-md px-4 py-3 text-base font-medium text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800/50 w-full transition-colors"
+  >
+    <LogOut className="size-5 text-red-400" />
+    <span>Logout</span>
+  </button>
+  <div className="flex items-center justify-between px-4 py-3">
+    <span className="text-base font-medium text-zinc-600 dark:text-zinc-400">Theme</span>
+    <ThemeToggle />
+  </div>
+</div>
           </nav>
         </div>
       )}

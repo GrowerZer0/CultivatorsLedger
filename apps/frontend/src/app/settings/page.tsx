@@ -35,6 +35,8 @@ import {
   getBatches,
   createBatch,
 } from "@/app/actions";
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { supabase } from '@/lib/supabase';
 
 type UserProfile = any;
 
@@ -73,6 +75,11 @@ export default function SettingsPage() {
       setLoadingSensors(false);
     }
   }, []);
+
+  const handleLogout = async () => {
+  await supabase.auth.signOut();
+  window.location.href = '/auth/login';
+};
 
   useEffect(() => {
     loadSensors();
@@ -647,6 +654,26 @@ export default function SettingsPage() {
                   </select>
                 </div>
               </div>
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-zinc-800 pb-3">
+  <div>
+    <h4 className="text-sm font-bold text-gray-900 dark:text-white">Theme</h4>
+    <p className="text-xs text-zinc-500">Switch between light and dark mode.</p>
+  </div>
+  <ThemeToggle />
+</div>
+
+<div className="flex items-center justify-between pt-3">
+  <div>
+    <h4 className="text-sm font-bold text-gray-900 dark:text-white">Account</h4>
+    <p className="text-xs text-zinc-500">Log out of your account.</p>
+  </div>
+  <button
+    onClick={handleLogout}
+    className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold text-sm transition-colors"
+  >
+    Logout
+  </button>
+</div>
             </SectionPanel>
           </div>
         )}
