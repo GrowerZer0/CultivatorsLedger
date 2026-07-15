@@ -16,6 +16,8 @@ import {
   Send,
   Sprout,
   FlaskConical,
+  AlertCircle,
+  CheckCircle,
 } from 'lucide-react';
 import {
   Area,
@@ -183,6 +185,79 @@ export default function EnvironmentPage() {
     const pct = Number((latest as any).dryBackPercent);
     return { percent: pct, isClamped: pct >= 100 || pct < 0 };
   }, [dbDryBackLogs]);
+
+const recoveryStatus = useMemo(() => {
+  const vpd = dbEnvironmentReadings.at(-1)?.vpd;
+  const moisture = latestIrrigation?.moisturePercent;
+  const ec = latestIrrigation?.ec;
+  const dryBack = dryBackData.percent;
+
+  // If we don't have enough data, return a neutral state
+  if (vpd === undefined || moisture === undefined || ec === undefined || dryBack === 0) {
+    return {
+      icon: <AlertCircle className="size-6" />,
+      color: 'gray',
+      recommendation: 'Log more data',
+      details: 'Need VPD, moisture, EC, and dry‑back to provide a recommendation.'
+    };
+  }
+
+  // Determine statuses
+  const vpdHigh = vpd > 1.2;
+  const vpdLow = vpd < 0.8;
+  const moistureHigh = moisture > 80;
+  const moistureLow = moisture < 40;
+  const ecHigh = ec > 2.0;
+  const ecLow = ec < 0.8;
+  const dryBackHigh = dryBack > 80;
+  const dryBackLow = dryBack < 30;
+
+  // Build recommendation logic
+  let recommendation = '';
+  let details = '';
+  let color = 'green';
+  let icon = <CheckCircle className="size-6" />;
+
+  if (dryBackHigh && moistureLow) {
+    recommendation = 'Irrigate now – dry‑back high and moisture low';
+    details = 'Water thoroughly and monitor runoff EC.';
+    color = 'red';
+    icon = <AlertTriangle className="size-6" />;
+  } else if (dryBackHigh && moistureHigh) {
+    recommendation = 'Check sensor – conflicting dry‑back and moisture';
+    details = 'Verify weight and moisture readings.';
+    color = 'yellow';
+    icon = <AlertCircle className="size-6" />;
+  } else if (vpdHigh && moistureLow) {
+    recommendation = 'Increase humidity and water';
+    details = 'VPD is high and moisture is low – increase RH and irrigate.';
+    color = 'red';
+    icon = <AlertTriangle className="size-6" />;
+  } else if (vpdLow && moistureHigh) {
+    recommendation = 'Decrease humidity and reduce watering';
+    details = 'VPD is low and moisture is high – improve airflow and reduce irrigation.';
+    color = 'yellow';
+    icon = <AlertCircle className="size-6" />;
+  } else if (ecHigh) {
+    recommendation = 'Flush or dilute feed';
+    details = `EC is high (${ec.toFixed(2)}) – flush with pH‑balanced water.`;
+    color = 'red';
+    icon = <AlertTriangle className="size-6" />;
+  } else if (ecLow) {
+    recommendation = 'Increase feed concentration';
+    details = `EC is low (${ec.toFixed(2)}) – increase nutrient strength.`;
+    color = 'yellow';
+    icon = <AlertCircle className="size-6" />;
+  } else {
+    recommendation = 'All systems optimal';
+    details = 'VPD, moisture, EC, and dry‑back are all in target ranges. Keep it up!';
+    color = 'green';
+    icon = <CheckCircle className="size-6" />;
+  }
+
+  return { icon, color, recommendation, details };
+}, [dbEnvironmentReadings, latestIrrigation, dryBackData]);
+
 {/* Recommendation */}
 <div className="mt-3">
   <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Recommendation:</span>
@@ -555,6 +630,24 @@ export default function EnvironmentPage() {
             </div>
           </div>
         </div>
+
+        {/* Recovery Recommendation Card */}
+<div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl mb-6">
+  <div className="flex items-center gap-3">
+    <div className={`p-3 rounded-xl border ${
+      recoveryStatus.color === 'red' ? 'bg-red-500/10 border-red-500/20 text-red-500' :
+      recoveryStatus.color === 'yellow' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500' :
+      'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'
+    }`}>
+      {recoveryStatus.icon}
+    </div>
+    <div className="flex-1">
+      <span className="text-[11px] uppercase tracking-wider font-bold text-gray-400 dark:text-zinc-500 block">Recovery Recommendation</span>
+      <p className="text-sm font-bold text-gray-900 dark:text-white">{recoveryStatus.recommendation}</p>
+      <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">{recoveryStatus.details}</p>
+    </div>
+  </div>
+</div>
 
         {/* Root Health & Nutrient Health Cards */}
 <div className="grid gap-4 md:grid-cols-2 mb-6">
