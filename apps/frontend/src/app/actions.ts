@@ -172,36 +172,33 @@ export async function addManualClimateAndWeight(data: {
   const userId = await getUserId();
 
     // If batchId is provided, get the batch targets
-  let wet = data.wetWeight;
-  let dryTarget = data.dryTargetWeight;
+let wet: number | undefined = data.wetWeight;
+let dryTarget: number | undefined = data.dryTargetWeight;
 
-  // Try to get targets from plant first, then batch, then defaults
-  if (data.plantId) {
-    const plant = await db.plant.findUnique({
-      where: { id: data.plantId },
-      select: { wetWeight: true, dryTarget: true },
-    });
-    if (plant) {
-      wet = data.wetWeight ?? (plant.wetWeight !== null ? Number(plant.wetWeight) : null);
-      dryTarget = data.dryTargetWeight ?? (plant.dryTarget !== null ? Number(plant.dryTarget) : null);
-    }
+if (data.plantId) {
+  const plant = await db.plant.findUnique({
+    where: { id: data.plantId },
+    select: { wetWeight: true, dryTarget: true },
+  });
+  if (plant) {
+    wet = data.wetWeight ?? (plant.wetWeight !== null ? Number(plant.wetWeight) : undefined);
+    dryTarget = data.dryTargetWeight ?? (plant.dryTarget !== null ? Number(plant.dryTarget) : undefined);
   }
+}
 
-  // If no plant targets, use batch or defaults
-  if (data.batchId && (wet === undefined || wet === null || dryTarget === undefined || dryTarget === null)) {
-    const batch = await db.batch.findUnique({
-      where: { id: data.batchId },
-      select: { wetWeight: true, dryTarget: true },
-    });
-    if (batch) {
-      wet = wet ?? (batch.wetWeight !== null ? Number(batch.wetWeight) : null);
-      dryTarget = dryTarget ?? (batch.dryTarget !== null ? Number(batch.dryTarget) : null);
-    }
+if (data.batchId && (wet === undefined || dryTarget === undefined)) {
+  const batch = await db.batch.findUnique({
+    where: { id: data.batchId },
+    select: { wetWeight: true, dryTarget: true },
+  });
+  if (batch) {
+    wet = wet ?? (batch.wetWeight !== null ? Number(batch.wetWeight) : undefined);
+    dryTarget = dryTarget ?? (batch.dryTarget !== null ? Number(batch.dryTarget) : undefined);
   }
+}
 
-  // Final fallback
-  wet = wet ?? 18.4;
-  dryTarget = dryTarget ?? 13.2;
+wet = wet ?? 18.4;
+dryTarget = dryTarget ?? 13.2;
 
   // Insert climate log
   const climateResult = await db.climateLog.create({
