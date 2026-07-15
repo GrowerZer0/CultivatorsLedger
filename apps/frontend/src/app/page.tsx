@@ -40,6 +40,7 @@ import {
   getDashboardData,
   addManualClimateAndWeight,
   exportAllBatches,
+  generateDailyBriefing,
 } from '@/app/actions';
 
 export default function EnvironmentPage() {
@@ -50,6 +51,11 @@ export default function EnvironmentPage() {
   const [dbDryBackLogs, setDbDryBackLogs] = useState<DryBackLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [latestIrrigation, setLatestIrrigation] = useState<any>(null);
+
+  // AI Briefing state
+  const [briefing, setBriefing] = useState<string | null>(null);
+  const [briefingLoading, setBriefingLoading] = useState(false);
+  const [briefingError, setBriefingError] = useState<string | null>(null);
 
   // Manual entry fields (always visible)
   const [manualTemp, setManualTemp] = useState(72); // °F
@@ -73,7 +79,7 @@ export default function EnvironmentPage() {
     zoneIdCol: "",
   });
 
-    // --- VOICE TO TEXT ---
+  // --- VOICE TO TEXT ---
   const startListening = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -127,7 +133,7 @@ export default function EnvironmentPage() {
     return () => clearInterval(interval);
   }, [loadData]);
 
-    // --- SMART DEFAULTS: load last logged values ---
+  // --- SMART DEFAULTS: load last logged values ---
   useEffect(() => {
     if (dbEnvironmentReadings.length > 0) {
       const last = dbEnvironmentReadings[dbEnvironmentReadings.length - 1];
@@ -139,6 +145,28 @@ export default function EnvironmentPage() {
       setManualWeight(Number(lastDry.weight));
     }
   }, [dbEnvironmentReadings, dbDryBackLogs]);
+
+  // --- AI BRIEFING ---
+  const loadBriefing = useCallback(async () => {
+    setBriefingLoading(true);
+    setBriefingError(null);
+    try {
+      const result = await generateDailyBriefing();
+      if (result.success) {
+        setBriefing(result.summary || null);
+      } else {
+        setBriefingError(result.error || 'Failed to load briefing');
+      }
+    } catch (err) {
+      setBriefingError('Failed to load briefing');
+    } finally {
+      setBriefingLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadBriefing();
+  }, [loadBriefing]);
 
   // --- ALERTS (based on VPD) ---
   const alerts = useMemo(() => {
@@ -181,100 +209,80 @@ export default function EnvironmentPage() {
   const dryBackData = useMemo(() => {
     const latest = dbDryBackLogs.at(-1);
     if (!latest) return { percent: 0, isClamped: false };
-    // Cast to any because the type may not have dryBackPercent
     const pct = Number((latest as any).dryBackPercent);
     return { percent: pct, isClamped: pct >= 100 || pct < 0 };
   }, [dbDryBackLogs]);
 
-const recoveryStatus = useMemo(() => {
-  const vpd = dbEnvironmentReadings.at(-1)?.vpd;
-  const moisture = latestIrrigation?.moisturePercent;
-  const ec = latestIrrigation?.ec;
-  const dryBack = dryBackData.percent;
+  // --- RECOVERY STATUS ---
+  const recoveryStatus = useMemo(() => {
+    const vpd = dbEnvironmentReadings.at(-1)?.vpd;
+    const moisture = latestIrrigation?.moisturePercent;
+    const ec = latestIrrigation?.ec;
+    const dryBack = dryBackData.percent;
 
-  // If we don't have enough data, return a neutral state
-  if (vpd === undefined || moisture === undefined || ec === undefined || dryBack === 0) {
-    return {
-      icon: <AlertCircle className="size-6" />,
-      color: 'gray',
-      recommendation: 'Log more data',
-      details: 'Need VPD, moisture, EC, and dry‑back to provide a recommendation.'
-    };
-  }
+    // If we don't have enough data, return a neutral state
+    if (vpd === undefined || moisture === undefined || ec === undefined || dryBack === 0) {
+      return {
+        icon: <AlertCircle className="size-6" />,
+        color: 'gray',
+        recommendation: 'Log more data',
+        details: 'Need VPD, moisture, EC, and dry‑back to provide a recommendation.'
+      };
+    }
 
-  // Determine statuses
-  const vpdHigh = vpd > 1.2;
-  const vpdLow = vpd < 0.8;
-  const moistureHigh = moisture > 80;
-  const moistureLow = moisture < 40;
-  const ecHigh = ec > 2.0;
-  const ecLow = ec < 0.8;
-  const dryBackHigh = dryBack > 80;
-  const dryBackLow = dryBack < 30;
+    // Determine statuses
+    const vpdHigh = vpd > 1.2;
+    const vpdLow = vpd < 0.8;
+    const moistureHigh = moisture > 80;
+    const moistureLow = moisture < 40;
+    const ecHigh = ec > 2.0;
+    const ecLow = ec < 0.8;
+    const dryBackHigh = dryBack > 80;
 
-  // Build recommendation logic
-  let recommendation = '';
-  let details = '';
-  let color = 'green';
-  let icon = <CheckCircle className="size-6" />;
+    let recommendation = '';
+    let details = '';
+    let color = 'green';
+    let icon = <CheckCircle className="size-6" />;
 
-  if (dryBackHigh && moistureLow) {
-    recommendation = 'Irrigate now – dry‑back high and moisture low';
-    details = 'Water thoroughly and monitor runoff EC.';
-    color = 'red';
-    icon = <AlertTriangle className="size-6" />;
-  } else if (dryBackHigh && moistureHigh) {
-    recommendation = 'Check sensor – conflicting dry‑back and moisture';
-    details = 'Verify weight and moisture readings.';
-    color = 'yellow';
-    icon = <AlertCircle className="size-6" />;
-  } else if (vpdHigh && moistureLow) {
-    recommendation = 'Increase humidity and water';
-    details = 'VPD is high and moisture is low – increase RH and irrigate.';
-    color = 'red';
-    icon = <AlertTriangle className="size-6" />;
-  } else if (vpdLow && moistureHigh) {
-    recommendation = 'Decrease humidity and reduce watering';
-    details = 'VPD is low and moisture is high – improve airflow and reduce irrigation.';
-    color = 'yellow';
-    icon = <AlertCircle className="size-6" />;
-  } else if (ecHigh) {
-    recommendation = 'Flush or dilute feed';
-    details = `EC is high (${ec.toFixed(2)}) – flush with pH‑balanced water.`;
-    color = 'red';
-    icon = <AlertTriangle className="size-6" />;
-  } else if (ecLow) {
-    recommendation = 'Increase feed concentration';
-    details = `EC is low (${ec.toFixed(2)}) – increase nutrient strength.`;
-    color = 'yellow';
-    icon = <AlertCircle className="size-6" />;
-  } else {
-    recommendation = 'All systems optimal';
-    details = 'VPD, moisture, EC, and dry‑back are all in target ranges. Keep it up!';
-    color = 'green';
-    icon = <CheckCircle className="size-6" />;
-  }
+    if (dryBackHigh && moistureLow) {
+      recommendation = 'Irrigate now – dry‑back high and moisture low';
+      details = 'Water thoroughly and monitor runoff EC.';
+      color = 'red';
+      icon = <AlertTriangle className="size-6" />;
+    } else if (dryBackHigh && moistureHigh) {
+      recommendation = 'Check sensor – conflicting dry‑back and moisture';
+      details = 'Verify weight and moisture readings.';
+      color = 'yellow';
+      icon = <AlertCircle className="size-6" />;
+    } else if (vpdHigh && moistureLow) {
+      recommendation = 'Increase humidity and water';
+      details = 'VPD is high and moisture is low – increase RH and irrigate.';
+      color = 'red';
+      icon = <AlertTriangle className="size-6" />;
+    } else if (vpdLow && moistureHigh) {
+      recommendation = 'Decrease humidity and reduce watering';
+      details = 'VPD is low and moisture is high – improve airflow and reduce irrigation.';
+      color = 'yellow';
+      icon = <AlertCircle className="size-6" />;
+    } else if (ecHigh) {
+      recommendation = 'Flush or dilute feed';
+      details = `EC is high (${ec.toFixed(2)}) – flush with pH‑balanced water.`;
+      color = 'red';
+      icon = <AlertTriangle className="size-6" />;
+    } else if (ecLow) {
+      recommendation = 'Increase feed concentration';
+      details = `EC is low (${ec.toFixed(2)}) – increase nutrient strength.`;
+      color = 'yellow';
+      icon = <AlertCircle className="size-6" />;
+    } else {
+      recommendation = 'All systems optimal';
+      details = 'VPD, moisture, EC, and dry‑back are all in target ranges. Keep it up!';
+      color = 'green';
+      icon = <CheckCircle className="size-6" />;
+    }
 
-  return { icon, color, recommendation, details };
-}, [dbEnvironmentReadings, latestIrrigation, dryBackData]);
-
-{/* Recommendation */}
-<div className="mt-3">
-  <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Recommendation:</span>
-  {dryBackData.percent > 80 ? (
-    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 ml-2">
-      🌱 Irrigate now
-    </span>
-  ) : dryBackData.percent > 60 ? (
-    <span className="text-xs font-bold text-yellow-600 dark:text-yellow-400 ml-2">
-      ⏳ Wait (check again soon)
-    </span>
-  ) : (
-    <span className="text-xs font-bold text-blue-600 dark:text-blue-400 ml-2">
-      👀 Monitor only
-    </span>
-  )}
-</div>
+    return { icon, color, recommendation, details };
+  }, [dbEnvironmentReadings, latestIrrigation, dryBackData]);
 
   // --- MANUAL ENTRY HANDLER ---
   const handleManualSubmit = async (e: React.FormEvent) => {
@@ -288,11 +296,9 @@ const recoveryStatus = useMemo(() => {
         humidity: Number(manualHumidity),
         weight: weightValue,
         notes: notes || undefined,
-        // default targets – can be made configurable later
         wetWeight: 18.4,
         dryTargetWeight: 13.2,
       });
-      // Reset form
       setNotes('');
       await loadData();
       alert('Manual reading saved!');
@@ -321,7 +327,6 @@ const recoveryStatus = useMemo(() => {
       line.split(',').map(v => v.trim())
     );
     setCsvPreview(previewRows);
-    // Auto-detect mapping
     const findCol = (patterns: string[]) => {
       return headers.find(h => patterns.some(p => h.toLowerCase().includes(p))) || '';
     };
@@ -343,7 +348,7 @@ const recoveryStatus = useMemo(() => {
       alert('No batch data to export.');
       return;
     }
-    // ... existing export logic (copy from previous) ...
+    // Placeholder – you can keep your original export logic here
     alert('Export functionality preserved.');
   };
 
@@ -363,6 +368,28 @@ const recoveryStatus = useMemo(() => {
   return (
     <AppShell>
       <div className="min-h-screen bg-white dark:bg-[#0B0F19] text-gray-900 dark:text-zinc-100 p-4">
+        {/* Daily AI Briefing */}
+        <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl mb-6">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-300">🤖 Daily AI Briefing</h3>
+            <button
+              onClick={loadBriefing}
+              disabled={briefingLoading}
+              className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 transition-colors disabled:opacity-50"
+            >
+              {briefingLoading ? 'Refreshing...' : '↻ Refresh'}
+            </button>
+          </div>
+          {briefingLoading ? (
+            <p className="text-sm text-gray-500 dark:text-zinc-400 animate-pulse">Generating briefing...</p>
+          ) : briefingError ? (
+            <p className="text-sm text-red-500 dark:text-red-400">{briefingError}</p>
+          ) : briefing ? (
+            <p className="text-sm text-gray-800 dark:text-zinc-200 leading-relaxed">{briefing}</p>
+          ) : (
+            <p className="text-sm text-gray-400 dark:text-zinc-500">No briefing available. Click refresh to generate.</p>
+          )}
+        </div>
 
         {/* Manual Entry Form */}
         <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl mb-6">
@@ -412,7 +439,6 @@ const recoveryStatus = useMemo(() => {
               </button>
             </div>
           </form>
-          {/* Notes Field with Voice Button */}
           <div className="mt-4 flex items-center gap-2">
             <input
               type="text"
@@ -478,32 +504,32 @@ const recoveryStatus = useMemo(() => {
           </div>
         )}
 
-{/* Today’s Summary */}
-<div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl mb-6">
-  <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-300 mb-3">📋 Today’s Summary</h3>
-  {dbEnvironmentReadings.length > 0 && dbDryBackLogs.length > 0 ? (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <div>
-        <p className="text-xs text-gray-500 dark:text-zinc-400">VPD</p>
-        <p className="text-lg font-bold text-gray-900 dark:text-white">
-          {vpdScoreData.score > 80 ? '✅' : vpdScoreData.score > 50 ? '⚠️' : '🔴'} {vpdScoreData.score.toFixed(0)}% in range
-        </p>
-        <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">Streak: {vpdScoreData.streak} hrs</p>
-      </div>
-      <div>
-        <p className="text-xs text-gray-500 dark:text-zinc-400">Dry‑Back</p>
-        <p className="text-lg font-bold text-gray-900 dark:text-white">
-          {dryBackData.percent > 80 ? '✅' : dryBackData.percent > 50 ? '⚠️' : '🔴'} {dryBackData.percent.toFixed(0)}%
-        </p>
-        <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">
-          {dryBackData.percent > 80 ? '⏰ Irrigate soon' : '⏳ Wait'}
-        </p>
-      </div>
-    </div>
-  ) : (
-    <p className="text-sm text-gray-400 dark:text-zinc-500">Log more data to see summary.</p>
-  )}
-</div>
+        {/* Today’s Summary */}
+        <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl mb-6">
+          <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-300 mb-3">📋 Today’s Summary</h3>
+          {dbEnvironmentReadings.length > 0 && dbDryBackLogs.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-gray-500 dark:text-zinc-400">VPD</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">
+                  {vpdScoreData.score > 80 ? '✅' : vpdScoreData.score > 50 ? '⚠️' : '🔴'} {vpdScoreData.score.toFixed(0)}% in range
+                </p>
+                <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">Streak: {vpdScoreData.streak} hrs</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 dark:text-zinc-400">Dry‑Back</p>
+                <p className="text-lg font-bold text-gray-900 dark:text-white">
+                  {dryBackData.percent > 80 ? '✅' : dryBackData.percent > 50 ? '⚠️' : '🔴'} {dryBackData.percent.toFixed(0)}%
+                </p>
+                <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">
+                  {dryBackData.percent > 80 ? '⏰ Irrigate soon' : '⏳ Wait'}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 dark:text-zinc-500">Log more data to see summary.</p>
+          )}
+        </div>
 
         {/* Two‑column cards: Room Climate + Dry‑Back */}
         <div className="grid gap-4 md:grid-cols-2 mb-6">
@@ -531,7 +557,6 @@ const recoveryStatus = useMemo(() => {
                       {latestEnv.vpd.toFixed(2)} VPD
                     </span>
                   </div>
-                  {/* VPD Score & Streak */}
                   <div className="flex items-center gap-4 mt-2">
                     <div className="flex items-center gap-2">
                       <div className="relative size-10">
@@ -594,7 +619,6 @@ const recoveryStatus = useMemo(() => {
                       {dryBackData.percent > 80 ? '✅ Good' : dryBackData.percent > 50 ? '⚠️ Moderate' : '🔴 Critical'}
                     </span>
                   </div>
-                  {/* Dry‑Back Score Ring */}
                   <div className="flex items-center gap-4 mt-2">
                     <div className="flex items-center gap-2">
                       <div className="relative size-10">
@@ -623,6 +647,17 @@ const recoveryStatus = useMemo(() => {
                       <span className="text-[10px] font-medium text-gray-500 dark:text-zinc-400">Dry‑Back</span>
                     </div>
                   </div>
+                  {/* Recommendation (inline) */}
+                  <div className="mt-3">
+                    <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Recommendation:</span>
+                    {dryBackData.percent > 80 ? (
+                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 ml-2">🌱 Irrigate now</span>
+                    ) : dryBackData.percent > 60 ? (
+                      <span className="text-xs font-bold text-yellow-600 dark:text-yellow-400 ml-2">⏳ Wait (check again soon)</span>
+                    ) : (
+                      <span className="text-xs font-bold text-blue-600 dark:text-blue-400 ml-2">👀 Monitor only</span>
+                    )}
+                  </div>
                 </>
               ) : (
                 <span className="text-sm text-gray-400 dark:text-zinc-500">No dry‑back logs yet</span>
@@ -632,98 +667,98 @@ const recoveryStatus = useMemo(() => {
         </div>
 
         {/* Recovery Recommendation Card */}
-<div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl mb-6">
-  <div className="flex items-center gap-3">
-    <div className={`p-3 rounded-xl border ${
-      recoveryStatus.color === 'red' ? 'bg-red-500/10 border-red-500/20 text-red-500' :
-      recoveryStatus.color === 'yellow' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500' :
-      'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'
-    }`}>
-      {recoveryStatus.icon}
-    </div>
-    <div className="flex-1">
-      <span className="text-[11px] uppercase tracking-wider font-bold text-gray-400 dark:text-zinc-500 block">Recovery Recommendation</span>
-      <p className="text-sm font-bold text-gray-900 dark:text-white">{recoveryStatus.recommendation}</p>
-      <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">{recoveryStatus.details}</p>
-    </div>
-  </div>
-</div>
+        <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl mb-6">
+          <div className="flex items-center gap-3">
+            <div className={`p-3 rounded-xl border ${
+              recoveryStatus.color === 'red' ? 'bg-red-500/10 border-red-500/20 text-red-500' :
+              recoveryStatus.color === 'yellow' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500' :
+              'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'
+            }`}>
+              {recoveryStatus.icon}
+            </div>
+            <div className="flex-1">
+              <span className="text-[11px] uppercase tracking-wider font-bold text-gray-400 dark:text-zinc-500 block">Recovery Recommendation</span>
+              <p className="text-sm font-bold text-gray-900 dark:text-white">{recoveryStatus.recommendation}</p>
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">{recoveryStatus.details}</p>
+            </div>
+          </div>
+        </div>
 
         {/* Root Health & Nutrient Health Cards */}
-<div className="grid gap-4 md:grid-cols-2 mb-6">
-  {/* Root Health Card */}
-  <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl flex items-center gap-5">
-    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-inner shrink-0">
-      <Sprout className="size-7" />
-    </div>
-    <div className="flex-1 min-w-0">
-      <span className="text-[11px] uppercase tracking-wider font-bold text-gray-400 dark:text-zinc-500 block">Root Health</span>
-      {latestIrrigation ? (
-        <>
-          <div className="flex items-baseline gap-3 flex-wrap">
-            <span className="text-2xl font-black text-gray-900 dark:text-white">
-              {latestIrrigation.moisturePercent.toFixed(1)}%
-            </span>
-            <span className="text-sm text-gray-500 dark:text-zinc-400">
-              EC: {latestIrrigation.ec ? latestIrrigation.ec.toFixed(2) : 'N/A'}
-            </span>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-              latestIrrigation.moisturePercent > 80 ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400' :
-              latestIrrigation.moisturePercent < 40 ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' :
-              'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-            }`}>
-              {latestIrrigation.moisturePercent > 80 ? '🌊 Wet' :
-               latestIrrigation.moisturePercent < 40 ? '🌵 Dry' :
-               '✅ Good'}
-            </span>
+        <div className="grid gap-4 md:grid-cols-2 mb-6">
+          {/* Root Health Card */}
+          <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl flex items-center gap-5">
+            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-inner shrink-0">
+              <Sprout className="size-7" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-[11px] uppercase tracking-wider font-bold text-gray-400 dark:text-zinc-500 block">Root Health</span>
+              {latestIrrigation ? (
+                <>
+                  <div className="flex items-baseline gap-3 flex-wrap">
+                    <span className="text-2xl font-black text-gray-900 dark:text-white">
+                      {latestIrrigation.moisturePercent.toFixed(1)}%
+                    </span>
+                    <span className="text-sm text-gray-500 dark:text-zinc-400">
+                      EC: {latestIrrigation.ec ? latestIrrigation.ec.toFixed(2) : 'N/A'}
+                    </span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                      latestIrrigation.moisturePercent > 80 ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400' :
+                      latestIrrigation.moisturePercent < 40 ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' :
+                      'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                    }`}>
+                      {latestIrrigation.moisturePercent > 80 ? '🌊 Wet' :
+                       latestIrrigation.moisturePercent < 40 ? '🌵 Dry' :
+                       '✅ Good'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">
+                    {latestIrrigation.moisturePercent > 80 ? 'Reduce irrigation frequency' :
+                     latestIrrigation.moisturePercent < 40 ? 'Increase irrigation' :
+                     'Optimal moisture'}
+                  </p>
+                </>
+              ) : (
+                <span className="text-sm text-gray-400 dark:text-zinc-500">No irrigation data yet</span>
+              )}
+            </div>
           </div>
-          <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">
-            {latestIrrigation.moisturePercent > 80 ? 'Reduce irrigation frequency' :
-             latestIrrigation.moisturePercent < 40 ? 'Increase irrigation' :
-             'Optimal moisture'}
-          </p>
-        </>
-      ) : (
-        <span className="text-sm text-gray-400 dark:text-zinc-500">No irrigation data yet</span>
-      )}
-    </div>
-  </div>
 
-  {/* Nutrient Health Card */}
-  <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl flex items-center gap-5">
-    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-inner shrink-0">
-      <FlaskConical className="size-7" />
-    </div>
-    <div className="flex-1 min-w-0">
-      <span className="text-[11px] uppercase tracking-wider font-bold text-gray-400 dark:text-zinc-500 block">Nutrient Health</span>
-      {latestIrrigation && latestIrrigation.ec ? (
-        <>
-          <div className="flex items-baseline gap-3 flex-wrap">
-            <span className="text-2xl font-black text-gray-900 dark:text-white">
-              {latestIrrigation.ec.toFixed(2)} EC
-            </span>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-              latestIrrigation.ec > 2.0 ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' :
-              latestIrrigation.ec < 0.8 ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400' :
-              'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-            }`}>
-              {latestIrrigation.ec > 2.0 ? '⬆️ High' :
-               latestIrrigation.ec < 0.8 ? '⬇️ Low' :
-               '✅ Good'}
-            </span>
+          {/* Nutrient Health Card */}
+          <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl flex items-center gap-5">
+            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-inner shrink-0">
+              <FlaskConical className="size-7" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-[11px] uppercase tracking-wider font-bold text-gray-400 dark:text-zinc-500 block">Nutrient Health</span>
+              {latestIrrigation && latestIrrigation.ec ? (
+                <>
+                  <div className="flex items-baseline gap-3 flex-wrap">
+                    <span className="text-2xl font-black text-gray-900 dark:text-white">
+                      {latestIrrigation.ec.toFixed(2)} EC
+                    </span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                      latestIrrigation.ec > 2.0 ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' :
+                      latestIrrigation.ec < 0.8 ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400' :
+                      'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                    }`}>
+                      {latestIrrigation.ec > 2.0 ? '⬆️ High' :
+                       latestIrrigation.ec < 0.8 ? '⬇️ Low' :
+                       '✅ Good'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">
+                    {latestIrrigation.ec > 2.0 ? 'Dilute feed or flush' :
+                     latestIrrigation.ec < 0.8 ? 'Increase feed concentration' :
+                     'Optimal EC'}
+                  </p>
+                </>
+              ) : (
+                <span className="text-sm text-gray-400 dark:text-zinc-500">No EC data yet</span>
+              )}
+            </div>
           </div>
-          <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">
-            {latestIrrigation.ec > 2.0 ? 'Dilute feed or flush' :
-             latestIrrigation.ec < 0.8 ? 'Increase feed concentration' :
-             'Optimal EC'}
-          </p>
-        </>
-      ) : (
-        <span className="text-sm text-gray-400 dark:text-zinc-500">No EC data yet</span>
-      )}
-    </div>
-  </div>
-</div>
+        </div>
 
         {/* VPD Chart */}
         <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl">
@@ -754,7 +789,7 @@ const recoveryStatus = useMemo(() => {
           </div>
         </div>
 
-        {/* CSV COLUMN MAPPING MODAL */}
+        {/* CSV Modal */}
         {showMappingModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
             <div className="w-full max-w-3xl rounded-2xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -769,69 +804,56 @@ const recoveryStatus = useMemo(() => {
                 </button>
               </div>
 
-              {/* File info */}
               <p className="text-xs text-gray-500 dark:text-zinc-400 mb-4">
                 File: <span className="text-gray-800 dark:text-zinc-200 font-medium">{csvFile?.name}</span>
               </p>
 
-              {/* Column mapping grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
-                    Timestamp *
-                  </label>
+                  <label className="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">Timestamp *</label>
                   <select
                     value={csvMapping.timestampCol}
                     onChange={(e) => setCsvMapping({ ...csvMapping, timestampCol: e.target.value })}
-                    className="w-full rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                    className="w-full rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500"
                   >
-                    <option value="">-- Select column --</option>
+                    <option value="">-- Select --</option>
                     {csvHeaders.map((h: string) => (
                       <option key={h} value={h}>{h}</option>
                     ))}
                   </select>
                 </div>
-
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
-                    Temperature *
-                  </label>
+                  <label className="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">Temperature *</label>
                   <select
                     value={csvMapping.temperatureCol}
                     onChange={(e) => setCsvMapping({ ...csvMapping, temperatureCol: e.target.value })}
-                    className="w-full rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                    className="w-full rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500"
                   >
-                    <option value="">-- Select column --</option>
+                    <option value="">-- Select --</option>
                     {csvHeaders.map((h: string) => (
                       <option key={h} value={h}>{h}</option>
                     ))}
                   </select>
                 </div>
-
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
-                    Humidity *
-                  </label>
+                  <label className="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">Humidity *</label>
                   <select
                     value={csvMapping.humidityCol}
                     onChange={(e) => setCsvMapping({ ...csvMapping, humidityCol: e.target.value })}
-                    className="w-full rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                    className="w-full rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500"
                   >
-                    <option value="">-- Select column --</option>
+                    <option value="">-- Select --</option>
                     {csvHeaders.map((h: string) => (
                       <option key={h} value={h}>{h}</option>
                     ))}
                   </select>
                 </div>
-
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
-                    Room ID (optional)
-                  </label>
+                  <label className="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">Room ID (optional)</label>
                   <select
                     value={csvMapping.roomIdCol}
                     onChange={(e) => setCsvMapping({ ...csvMapping, roomIdCol: e.target.value })}
-                    className="w-full rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                    className="w-full rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500"
                   >
                     <option value="">-- None --</option>
                     {csvHeaders.map((h: string) => (
@@ -839,15 +861,12 @@ const recoveryStatus = useMemo(() => {
                     ))}
                   </select>
                 </div>
-
                 <div className="md:col-span-2">
-                  <label className="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
-                    Zone ID (optional)
-                  </label>
+                  <label className="block text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-1">Zone ID (optional)</label>
                   <select
                     value={csvMapping.zoneIdCol}
                     onChange={(e) => setCsvMapping({ ...csvMapping, zoneIdCol: e.target.value })}
-                    className="w-full rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+                    className="w-full rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500"
                   >
                     <option value="">-- None --</option>
                     {csvHeaders.map((h: string) => (
@@ -857,10 +876,9 @@ const recoveryStatus = useMemo(() => {
                 </div>
               </div>
 
-              {/* Preview table */}
               {csvPreview.length > 0 && (
                 <div className="mb-4">
-                  <p className="text-xs text-gray-500 dark:text-zinc-400 mb-2">Preview (first {csvPreview.length} rows)</p>
+                  <p className="text-xs text-gray-500 dark:text-zinc-400 mb-2">Preview</p>
                   <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-zinc-800">
                     <table className="w-full text-xs">
                       <thead className="bg-gray-50 dark:bg-zinc-950">
@@ -886,7 +904,6 @@ const recoveryStatus = useMemo(() => {
                 </div>
               )}
 
-              {/* Actions */}
               <div className="flex gap-3 pt-2 border-t border-gray-200 dark:border-zinc-800 mt-2">
                 <button
                   type="button"
@@ -905,13 +922,10 @@ const recoveryStatus = useMemo(() => {
                       const formData = new FormData();
                       formData.append("file", csvFile);
                       formData.append("mapping", JSON.stringify(csvMapping));
-
                       const res = await fetch("/api/import/csv", { method: "POST", body: formData });
                       const data = await res.json();
-
                       if (data.success) {
-                        alert(`✅ Imported ${data.imported} records${data.skipped > 0 ? `, ${data.skipped} skipped` : ""}`);
-                        // Refetch dashboard data
+                        alert(`✅ Imported ${data.imported} records`);
                         const fresh = await getDashboardData();
                         setDbDryBackLogs(fresh.dryBackLogs || []);
                         setDbEnvironmentReadings(fresh.environmentReadings || []);

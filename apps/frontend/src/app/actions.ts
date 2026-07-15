@@ -8,6 +8,7 @@ import type { DryBackLog as PrismaDryBackLog } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { createHash } from 'crypto';
 import { supabase } from '@/lib/supabase';
+import { GoogleGenAI } from "@google/genai";
 
 // Helper: compute VPD (kPa) from temp (°C) and RH (%)
 function computeVPD(tempC: number, rh: number): number {
@@ -364,4 +365,72 @@ export async function saveOrUpdateBlueprint(blueprint: any) {
 
 export async function deleteCustomBlueprint(id: string) {
   return { success: false };
+}
+
+// --- DAILY AI BRIEFING ---
+
+export async function generateDailyBriefing() {
+  try {
+    const userId = await getUserId();
+
+    // Fetch latest data
+    const [climateLogs, dryBackLogs, irrigationEvent] = await Promise.all([
+      db.climateLog.findMany({
+        where: { userId },
+        orderBy: { timestamp: "desc" },
+        take: 24, // last 24 hours
+      }),
+      db.dryBackLog.findMany({
+        where: { userId },
+        orderBy: { timestamp: "desc" },
+        take: 5, // last 5 logs for trend
+      }),
+      db.irrigationEvent.findFirst({
+        where: { userId },
+        orderBy: { timestamp: "desc" },
+      }),
+    ]);
+
+    // Prepare data for AI
+    const latestEnv = climateLogs[0];
+    const avgVpd = climateLogs.length > 0
+      ? climateLogs.reduce((sum, l) => sum + Number(l.calculatedVpdKpa || computeVPD(Number(l.airTempC), Number(l.relativeHumidity))), 0) / climateLogs.length
+      : 0;
+
+    const dryBackTrend = dryBackLogs.length > 1
+      ? (Number(dryBackLogs[0].dryBackPercent) - Number(dryBackLogs[1].dryBackPercent)) > 5 ? "increasing" : "stable"
+      : "stable";
+
+    const moisture = irrigationEvent ? Number(irrigationEvent.moisturePercentage) : null;
+    const ec = irrigationEvent?.ecLevel ? Number(irrigationEvent.ecLevel) : null;
+
+    // Build prompt
+    const prompt = `
+You are a cultivation assistant. Provide a brief, actionable summary (2-3 sentences) based on the following data:
+
+- Latest VPD: ${latestEnv ? Number(latestEnv.calculatedVpdKpa || computeVPD(Number(latestEnv.airTempC), Number(latestEnv.relativeHumidity))).toFixed(2) : 'N/A'}
+- Average VPD over last 24h: ${avgVpd.toFixed(2)}
+- Latest Temperature: ${latestEnv ? Number(latestEnv.airTempC).toFixed(1) : 'N/A'}°C (${latestEnv ? (Number(latestEnv.airTempC)*9/5+32).toFixed(1) : 'N/A'}°F)
+- Latest Humidity: ${latestEnv ? Number(latestEnv.relativeHumidity).toFixed(0) : 'N/A'}%
+- Dry-back trend: ${dryBackTrend} (latest: ${dryBackLogs.length > 0 ? Number(dryBackLogs[0].dryBackPercent).toFixed(0) : 'N/A'}%)
+- Root moisture: ${moisture !== null ? moisture.toFixed(0) : 'N/A'}%
+- EC: ${ec !== null ? ec.toFixed(2) : 'N/A'}
+
+Based on this, give ONE clear recommendation (e.g., "Increase humidity", "Irrigate today", "Check EC", "Monitor closely") and a brief explanation. Keep it concise and actionable.
+`;
+
+    // Call AI
+    const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_GEMINI_API_KEY });
+    const response = await ai.models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+    });
+
+    const text = response.text || "No response generated.";
+
+    return { success: true, summary: text };
+  } catch (error) {
+    console.error("AI briefing error:", error);
+    return { success: false, error: "Failed to generate briefing" };
+  }
 }
