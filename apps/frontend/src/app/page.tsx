@@ -147,22 +147,30 @@ export default function EnvironmentPage() {
   }, [dbEnvironmentReadings, dbDryBackLogs]);
 
   // --- AI BRIEFING ---
-  const loadBriefing = useCallback(async () => {
-    setBriefingLoading(true);
+const loadBriefing = useCallback(async () => {
+  // If there's no data, show a friendly message instead of calling the API
+  if (dbEnvironmentReadings.length === 0 && dbDryBackLogs.length === 0) {
+    setBriefing('📊 Log some data first, then AI will provide a daily summary.');
+    setBriefingLoading(false);
     setBriefingError(null);
-    try {
-      const result = await generateDailyBriefing();
-      if (result.success) {
-        setBriefing(result.summary || null);
-      } else {
-        setBriefingError(result.error || 'Failed to load briefing');
-      }
-    } catch (err) {
-      setBriefingError('Failed to load briefing');
-    } finally {
-      setBriefingLoading(false);
+    return;
+  }
+
+  setBriefingLoading(true);
+  setBriefingError(null);
+  try {
+    const result = await generateDailyBriefing();
+    if (result.success) {
+      setBriefing(result.summary || null);
+    } else {
+      setBriefingError(result.error || 'Failed to load briefing');
     }
-  }, []);
+  } catch (err) {
+    setBriefingError('Failed to load briefing');
+  } finally {
+    setBriefingLoading(false);
+  }
+}, [dbEnvironmentReadings, dbDryBackLogs]); 
 
   useEffect(() => {
     loadBriefing();
@@ -380,15 +388,15 @@ export default function EnvironmentPage() {
               {briefingLoading ? 'Refreshing...' : '↻ Refresh'}
             </button>
           </div>
-          {briefingLoading ? (
-            <p className="text-sm text-gray-500 dark:text-zinc-400 animate-pulse">Generating briefing...</p>
-          ) : briefingError ? (
-            <p className="text-sm text-red-500 dark:text-red-400">{briefingError}</p>
-          ) : briefing ? (
-            <p className="text-sm text-gray-800 dark:text-zinc-200 leading-relaxed">{briefing}</p>
-          ) : (
-            <p className="text-sm text-gray-400 dark:text-zinc-500">No briefing available. Click refresh to generate.</p>
-          )}
+{briefingLoading ? (
+  <p className="text-sm text-gray-500 dark:text-zinc-400 animate-pulse">Generating briefing...</p>
+) : briefingError ? (
+  <p className="text-sm text-red-500 dark:text-red-400">{briefingError}</p>
+) : briefing ? (
+  <p className="text-sm text-gray-800 dark:text-zinc-200 leading-relaxed">{briefing}</p>
+) : (
+  <p className="text-sm text-gray-400 dark:text-zinc-500">No briefing available. Click refresh to generate.</p>
+)}
         </div>
 
         {/* Manual Entry Form */}
