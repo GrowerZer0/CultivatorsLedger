@@ -103,10 +103,13 @@ export function AppShell({ children }: AppShellProps) {
               <Settings className="size-5 text-clay dark:text-orange-400" />
               <span>Settings</span>
             </Link>
-                <ThemeToggle />
 
             {/* Logout and ThemeToggle in the menu */}
             <div className="border-t border-[#d9e2dc] dark:border-zinc-800 pt-4 mt-2">
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-base font-medium text-zinc-600 dark:text-zinc-400">Theme</span>
+              </div>
+                <ThemeToggle />
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-3 rounded-md px-4 py-3 text-base font-medium text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800/50 w-full transition-colors"
@@ -114,9 +117,6 @@ export function AppShell({ children }: AppShellProps) {
                 <LogOut className="size-5 text-red-400" />
                 <span>Logout</span>
               </button>
-              <div className="flex items-center justify-between px-4 py-3">
-                <span className="text-base font-medium text-zinc-600 dark:text-zinc-400">Theme</span>
-              </div>
             </div>
           </nav>
         </div>
