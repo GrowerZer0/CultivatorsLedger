@@ -164,6 +164,7 @@ export async function addManualClimateAndWeight(data: {
   humidity: number;
   weight?: number; 
   notes?: string;
+  plantId?: string;
   wetWeight?: number; 
   dryTargetWeight?: number; 
   batchId?: string;
@@ -173,16 +174,34 @@ export async function addManualClimateAndWeight(data: {
     // If batchId is provided, get the batch targets
   let wet = data.wetWeight;
   let dryTarget = data.dryTargetWeight;
-if (data.batchId) {
-  const batch = await db.batch.findUnique({
-    where: { id: data.batchId },
-    select: { wetWeight: true, dryTarget: true },
-  });
-  if (batch) {
-    wet = data.wetWeight ?? (batch.wetWeight !== null ? Number(batch.wetWeight) : 18.4);
-    dryTarget = data.dryTargetWeight ?? (batch.dryTarget !== null ? Number(batch.dryTarget) : 13.2);
+
+  // Try to get targets from plant first, then batch, then defaults
+  if (data.plantId) {
+    const plant = await db.plant.findUnique({
+      where: { id: data.plantId },
+      select: { wetWeight: true, dryTarget: true },
+    });
+    if (plant) {
+      wet = data.wetWeight ?? (plant.wetWeight !== null ? Number(plant.wetWeight) : null);
+      dryTarget = data.dryTargetWeight ?? (plant.dryTarget !== null ? Number(plant.dryTarget) : null);
+    }
   }
-}
+
+  // If no plant targets, use batch or defaults
+  if (data.batchId && (wet === undefined || wet === null || dryTarget === undefined || dryTarget === null)) {
+    const batch = await db.batch.findUnique({
+      where: { id: data.batchId },
+      select: { wetWeight: true, dryTarget: true },
+    });
+    if (batch) {
+      wet = wet ?? (batch.wetWeight !== null ? Number(batch.wetWeight) : null);
+      dryTarget = dryTarget ?? (batch.dryTarget !== null ? Number(batch.dryTarget) : null);
+    }
+  }
+
+  // Final fallback
+  wet = wet ?? 18.4;
+  dryTarget = dryTarget ?? 13.2;
 
   // Insert climate log
   const climateResult = await db.climateLog.create({
@@ -467,4 +486,54 @@ export async function updateBatchTargets(data: {
   });
   revalidatePath('/');
   return { success: true, batch };
+}
+
+// --- PLANT MANAGEMENT ---
+export async function getPlantsForBatch(batchId: string) {
+  const userId = await getUserId();
+  return await db.plant.findMany({
+    where: { batchId, userId },
+    orderBy: { createdAt: 'asc' },
+  });
+}
+
+export async function createPlant(data: {
+  batchId: string;
+  name: string;
+  wetWeight?: number;
+  dryTarget?: number;
+}) {
+  const userId = await getUserId();
+  const plant = await db.plant.create({
+    data: {
+      name: data.name,
+      batchId: data.batchId,
+      userId,
+      wetWeight: data.wetWeight || null,
+      dryTarget: data.dryTarget || null,
+    },
+  });
+  revalidatePath('/');
+  return plant;
+}
+
+export async function updatePlant(data: {
+  id: string;
+  name?: string;
+  wetWeight?: number | null;
+  dryTarget?: number | null;
+  currentWeight?: number | null;
+}) {
+  const userId = await getUserId();
+  const plant = await db.plant.update({
+    where: { id: data.id, userId },
+    data: {
+      name: data.name,
+      wetWeight: data.wetWeight !== undefined ? data.wetWeight : undefined,
+      dryTarget: data.dryTarget !== undefined ? data.dryTarget : undefined,
+      currentWeight: data.currentWeight !== undefined ? data.currentWeight : undefined,
+    },
+  });
+  revalidatePath('/');
+  return plant;
 }
