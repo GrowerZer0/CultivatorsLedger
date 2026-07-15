@@ -48,11 +48,7 @@ export function AppShell({ children }: AppShellProps) {
           </Link>
 
           {/* Right: Status badge, ThemeToggle, Settings, Hamburger */}
-          <div className="flex items-center gap-4">
-            <div className="hidden rounded-md border border-[#d9e2dc] dark:border-zinc-800 bg-mist dark:bg-zinc-800/50 px-3 py-2 text-sm font-medium text-canopy dark:text-emerald-400 lg:block">
-              Local cultivation dashboard
-            </div>
-            
+          <div className="flex items-center gap-4">            
             <ThemeToggle />
 
             <Link href="/settings">
@@ -107,6 +103,7 @@ export function AppShell({ children }: AppShellProps) {
               <Settings className="size-5 text-clay dark:text-orange-400" />
               <span>Settings</span>
             </Link>
+                <ThemeToggle />
 
             {/* Logout and ThemeToggle in the menu */}
             <div className="border-t border-[#d9e2dc] dark:border-zinc-800 pt-4 mt-2">
@@ -119,7 +116,6 @@ export function AppShell({ children }: AppShellProps) {
               </button>
               <div className="flex items-center justify-between px-4 py-3">
                 <span className="text-base font-medium text-zinc-600 dark:text-zinc-400">Theme</span>
-                <ThemeToggle />
               </div>
             </div>
           </nav>

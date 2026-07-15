@@ -142,10 +142,20 @@ export async function getDashboardData(batchId?: string) {
     unit: log.unit || "lbs",
   }));
 
-  return {
-    environmentReadings,
-    dryBackLogs,
-  };
+  // Fetch the latest irrigation event
+const latestIrrigation = await db.irrigationEvent.findFirst({
+  orderBy: { timestamp: "desc" },
+});
+
+return {
+  environmentReadings,
+  dryBackLogs,
+  latestIrrigation: latestIrrigation ? {
+    moisturePercent: Number(latestIrrigation.moisturePercentage),
+    ec: latestIrrigation.ecLevel ? Number(latestIrrigation.ecLevel) : null,
+    timestamp: latestIrrigation.timestamp.toISOString(),
+  } : null,
+};
 }
 
 export async function addManualClimateAndWeight(data: {

@@ -14,6 +14,8 @@ import {
   Moon,
   Mic,
   Send,
+  Sprout,
+  FlaskConical,
 } from 'lucide-react';
 import {
   Area,
@@ -45,6 +47,7 @@ export default function EnvironmentPage() {
   const [dbEnvironmentReadings, setDbEnvironmentReadings] = useState<EnvironmentReading[]>([]);
   const [dbDryBackLogs, setDbDryBackLogs] = useState<DryBackLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [latestIrrigation, setLatestIrrigation] = useState<any>(null);
 
   // Manual entry fields (always visible)
   const [manualTemp, setManualTemp] = useState(72); // °F
@@ -102,6 +105,7 @@ export default function EnvironmentPage() {
       const data = await getDashboardData();
       setDbEnvironmentReadings(data.environmentReadings || []);
       setDbDryBackLogs(data.dryBackLogs || []);
+      setLatestIrrigation(data.latestIrrigation || null);
     } catch (err) {
       console.error('Error loading environment data:', err);
     } finally {
@@ -551,6 +555,82 @@ export default function EnvironmentPage() {
             </div>
           </div>
         </div>
+
+        {/* Root Health & Nutrient Health Cards */}
+<div className="grid gap-4 md:grid-cols-2 mb-6">
+  {/* Root Health Card */}
+  <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl flex items-center gap-5">
+    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-inner shrink-0">
+      <Sprout className="size-7" />
+    </div>
+    <div className="flex-1 min-w-0">
+      <span className="text-[11px] uppercase tracking-wider font-bold text-gray-400 dark:text-zinc-500 block">Root Health</span>
+      {latestIrrigation ? (
+        <>
+          <div className="flex items-baseline gap-3 flex-wrap">
+            <span className="text-2xl font-black text-gray-900 dark:text-white">
+              {latestIrrigation.moisturePercent.toFixed(1)}%
+            </span>
+            <span className="text-sm text-gray-500 dark:text-zinc-400">
+              EC: {latestIrrigation.ec ? latestIrrigation.ec.toFixed(2) : 'N/A'}
+            </span>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+              latestIrrigation.moisturePercent > 80 ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400' :
+              latestIrrigation.moisturePercent < 40 ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' :
+              'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+            }`}>
+              {latestIrrigation.moisturePercent > 80 ? '🌊 Wet' :
+               latestIrrigation.moisturePercent < 40 ? '🌵 Dry' :
+               '✅ Good'}
+            </span>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">
+            {latestIrrigation.moisturePercent > 80 ? 'Reduce irrigation frequency' :
+             latestIrrigation.moisturePercent < 40 ? 'Increase irrigation' :
+             'Optimal moisture'}
+          </p>
+        </>
+      ) : (
+        <span className="text-sm text-gray-400 dark:text-zinc-500">No irrigation data yet</span>
+      )}
+    </div>
+  </div>
+
+  {/* Nutrient Health Card */}
+  <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl flex items-center gap-5">
+    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-inner shrink-0">
+      <FlaskConical className="size-7" />
+    </div>
+    <div className="flex-1 min-w-0">
+      <span className="text-[11px] uppercase tracking-wider font-bold text-gray-400 dark:text-zinc-500 block">Nutrient Health</span>
+      {latestIrrigation && latestIrrigation.ec ? (
+        <>
+          <div className="flex items-baseline gap-3 flex-wrap">
+            <span className="text-2xl font-black text-gray-900 dark:text-white">
+              {latestIrrigation.ec.toFixed(2)} EC
+            </span>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+              latestIrrigation.ec > 2.0 ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' :
+              latestIrrigation.ec < 0.8 ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400' :
+              'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+            }`}>
+              {latestIrrigation.ec > 2.0 ? '⬆️ High' :
+               latestIrrigation.ec < 0.8 ? '⬇️ Low' :
+               '✅ Good'}
+            </span>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">
+            {latestIrrigation.ec > 2.0 ? 'Dilute feed or flush' :
+             latestIrrigation.ec < 0.8 ? 'Increase feed concentration' :
+             'Optimal EC'}
+          </p>
+        </>
+      ) : (
+        <span className="text-sm text-gray-400 dark:text-zinc-500">No EC data yet</span>
+      )}
+    </div>
+  </div>
+</div>
 
         {/* VPD Chart */}
         <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl">
