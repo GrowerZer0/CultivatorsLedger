@@ -120,6 +120,8 @@ model Batch {
   startDate   DateTime     @default(now()) @map("start_date")
   harvestDate DateTime?    @map("harvest_date")
   isActive    Boolean      @default(true) @map("is_active")
+  wetWeight   Decimal?     @map("wet_weight") @db.Decimal(5, 2)   // default 18.4 lbs
+  dryTarget   Decimal?     @map("dry_target") @db.Decimal(5, 2)   // default 13.2 lbs
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
   dryBackLogs DryBackLog[]

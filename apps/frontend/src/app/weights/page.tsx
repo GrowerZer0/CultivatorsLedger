@@ -34,6 +34,7 @@ import {
   getBatches,
   createBatch,
   exportAllBatches,
+  updateBatchTargets,
 } from '@/app/actions';
 
 // --------------------------------------------
@@ -75,6 +76,9 @@ export default function WeightsPage() {
   const [newBatchName, setNewBatchName] = useState('');
   const [newBatchCultivar, setNewBatchCultivar] = useState('');
   const [newBatchRoom, setNewBatchRoom] = useState('tent_1');
+  const [editingBatchTargets, setEditingBatchTargets] = useState(false);
+  const [editWetWeight, setEditWetWeight] = useState<number | ''>('');
+  const [editDryTarget, setEditDryTarget] = useState<number | ''>('');
 
   // Dry‑back data
   const [dbDryBackLogs, setDbDryBackLogs] = useState<DryBackLog[]>([]);
@@ -177,6 +181,25 @@ export default function WeightsPage() {
     }
   }
 
+  const saveBatchTargets = async () => {
+  if (!selectedBatchId) return;
+  try {
+    const result = await updateBatchTargets({
+      batchId: selectedBatchId,
+      wetWeight: editWetWeight !== '' ? editWetWeight : null,
+      dryTarget: editDryTarget !== '' ? editDryTarget : null,
+    });
+    if (result.success) {
+      await loadData(); // refresh batches
+      setEditingBatchTargets(false);
+    } else {
+      alert('Failed to update targets');
+    }
+  } catch (error) {
+    alert('Failed to update targets');
+  }
+};
+
   // Export all batches
   const handleExportAll = async () => {
     const data = await exportAllBatches();
@@ -225,6 +248,20 @@ export default function WeightsPage() {
             >
               + New
             </button>
+
+            <button
+  onClick={() => {
+    const batch = batches.find(b => b.id === selectedBatchId);
+    if (batch) {
+      setEditWetWeight(batch.wetWeight !== null ? Number(batch.wetWeight) : '');
+      setEditDryTarget(batch.dryTarget !== null ? Number(batch.dryTarget) : '');
+      setEditingBatchTargets(true);
+    }
+  }}
+  className="text-xs font-bold text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200"
+>
+  Edit Targets
+</button>
 
             {selectedBatchId && (
               <>
@@ -431,6 +468,55 @@ export default function WeightsPage() {
             </div>
           </div>
         )}
+
+        {/* Edit Batch Targets Modal */}
+{editingBatchTargets && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+      <h2 className="text-lg font-bold text-white mb-4">Set Weight Targets</h2>
+      <div className="space-y-3">
+        <div>
+          <label className="block text-xs font-bold text-zinc-400 mb-1">
+            Target Saturated Weight (lbs)
+          </label>
+          <input
+            type="number"
+            step="0.05"
+            value={editWetWeight}
+            onChange={(e) => setEditWetWeight(parseFloat(e.target.value))}
+            className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-zinc-400 mb-1">
+            Target Dry Weight (lbs)
+          </label>
+          <input
+            type="number"
+            step="0.05"
+            value={editDryTarget}
+            onChange={(e) => setEditDryTarget(parseFloat(e.target.value))}
+            className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+          />
+        </div>
+        <div className="flex gap-3 pt-2">
+          <button
+            onClick={() => setEditingBatchTargets(false)}
+            className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm font-bold text-zinc-300 hover:bg-zinc-800 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={saveBatchTargets}
+            className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500 transition-all"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
       </div>
     </AppShell>
   );

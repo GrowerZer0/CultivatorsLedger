@@ -170,6 +170,20 @@ export async function addManualClimateAndWeight(data: {
 }) {
   const userId = await getUserId();
 
+    // If batchId is provided, get the batch targets
+  let wet = data.wetWeight;
+  let dryTarget = data.dryTargetWeight;
+if (data.batchId) {
+  const batch = await db.batch.findUnique({
+    where: { id: data.batchId },
+    select: { wetWeight: true, dryTarget: true },
+  });
+  if (batch) {
+    wet = data.wetWeight ?? (batch.wetWeight !== null ? Number(batch.wetWeight) : 18.4);
+    dryTarget = data.dryTargetWeight ?? (batch.dryTarget !== null ? Number(batch.dryTarget) : 13.2);
+  }
+}
+
   // Insert climate log
   const climateResult = await db.climateLog.create({
     data: {
@@ -247,10 +261,11 @@ export async function getBatches() {
   return await db.batch.findMany({
     where: { userId },
     orderBy: { startDate: 'desc' },
+    include: { dryBackLogs: true },
   });
 }
 
-export async function createBatch(data: { name: string; cultivar: string; roomId: string }) {
+export async function createBatch(data: { name: string; cultivar: string; roomId: string; wetWeight?: number; dryTargetWeight?: number }) {
   const userId = await getUserId();
   const batch = await db.batch.create({
     data: {
@@ -258,6 +273,8 @@ export async function createBatch(data: { name: string; cultivar: string; roomId
       cultivar: data.cultivar,
       roomId: data.roomId,
       userId: userId,
+      wetWeight: data.wetWeight || null,
+      dryTargetWeight: data.dryTargetWeight || null,
     },
   });
   revalidatePath('/');
@@ -433,4 +450,21 @@ Based on this, give ONE clear recommendation (e.g., "Increase humidity", "Irriga
     console.error("AI briefing error:", error);
     return { success: false, error: "Failed to generate briefing" };
   }
+}
+
+export async function updateBatchTargets(data: {
+  batchId: string;
+  wetWeight?: number | null;
+  dryTarget?: number | null;
+}) {
+  const userId = await getUserId();
+  const batch = await db.batch.update({
+    where: { id: data.batchId, userId },
+    data: {
+      wetWeight: data.wetWeight !== undefined && data.wetWeight !== null ? data.wetWeight : undefined,
+      dryTarget: data.dryTarget !== undefined && data.dryTarget !== null ? data.dryTarget : undefined,
+    },
+  });
+  revalidatePath('/');
+  return { success: true, batch };
 }
