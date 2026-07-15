@@ -35,6 +35,9 @@ import {
   createBatch,
   exportAllBatches,
   updateBatchTargets,
+  getPlantsForBatch, 
+  createPlant, 
+  updatePlant
 } from '@/app/actions';
 
 // --------------------------------------------
@@ -79,6 +82,15 @@ export default function WeightsPage() {
   const [editingBatchTargets, setEditingBatchTargets] = useState(false);
   const [editWetWeight, setEditWetWeight] = useState<number | ''>('');
   const [editDryTarget, setEditDryTarget] = useState<number | ''>('');
+
+  // Plants State
+  const [plants, setPlants] = useState<any[]>([]);
+const [selectedPlantId, setSelectedPlantId] = useState<string | null>(null);
+const [showPlantModal, setShowPlantModal] = useState(false);
+const [newPlantName, setNewPlantName] = useState('');
+const [newPlantWet, setNewPlantWet] = useState<number | ''>('');
+const [newPlantDry, setNewPlantDry] = useState<number | ''>('');
+const [editingPlant, setEditingPlant] = useState<any | null>(null);
 
   // Dry‑back data
   const [dbDryBackLogs, setDbDryBackLogs] = useState<DryBackLog[]>([]);
@@ -171,6 +183,7 @@ export default function WeightsPage() {
         runoff_ec: 0,
         unit: weightUnit,
         batchId: selectedBatchId || undefined,
+        plantId: selectedPlantId || undefined,
       });
       alert('Dry-back log saved!');
       await loadData();
@@ -199,6 +212,27 @@ export default function WeightsPage() {
     alert('Failed to update targets');
   }
 };
+
+const loadPlants = useCallback(async () => {
+  if (!selectedBatchId) {
+    setPlants([]);
+    setSelectedPlantId(null);
+    return;
+  }
+  try {
+    const data = await getPlantsForBatch(selectedBatchId);
+    setPlants(data);
+    if (data.length > 0 && !selectedPlantId) {
+      setSelectedPlantId(data[0].id);
+    }
+  } catch (err) {
+    console.error('Failed to load plants:', err);
+  }
+}, [selectedBatchId]);
+
+useEffect(() => {
+  loadPlants();
+}, [loadPlants]);
 
   // Export all batches
   const handleExportAll = async () => {
@@ -261,6 +295,36 @@ export default function WeightsPage() {
   className="text-xs font-bold text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200"
 >
   Edit Targets
+</button>
+{/* Plant Selector */}
+{plants.length > 0 && (
+  <div className="flex items-center gap-2">
+    <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Plant:</span>
+    <select
+      value={selectedPlantId || ''}
+      onChange={(e) => setSelectedPlantId(e.target.value || null)}
+      className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500"
+    >
+      <option value="">-- Select --</option>
+      {plants.map((p) => (
+        <option key={p.id} value={p.id}>
+          {p.name}
+        </option>
+      ))}
+    </select>
+  </div>
+)}
+<button
+  onClick={() => {
+    setEditingPlant(null);
+    setNewPlantName('');
+    setNewPlantWet('');
+    setNewPlantDry('');
+    setShowPlantModal(true);
+  }}
+  className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-full transition-colors"
+>
+  + Add Plant
 </button>
 
             {selectedBatchId && (
@@ -513,6 +577,101 @@ export default function WeightsPage() {
             Save
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+)}
+
+{/* Plant Management Modal */}
+{showPlantModal && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-bold text-white">
+          {editingPlant ? 'Edit Plant' : 'Add New Plant'}
+        </h2>
+        <button
+          onClick={() => setShowPlantModal(false)}
+          className="text-zinc-400 hover:text-white transition-colors"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className="space-y-3">
+        <div>
+          <label className="block text-xs font-bold text-zinc-400 mb-1">Plant Name (Cultivar)</label>
+          <input
+            type="text"
+            placeholder="e.g., Blueberry Muffin #2"
+            value={newPlantName}
+            onChange={(e) => setNewPlantName(e.target.value)}
+            className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-zinc-400 mb-1">Target Saturated Weight (lbs)</label>
+          <input
+            type="number"
+            step="0.05"
+            placeholder="18.4"
+            value={newPlantWet}
+            onChange={(e) => setNewPlantWet(e.target.value === '' ? '' : parseFloat(e.target.value))}
+            className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-zinc-400 mb-1">Target Dry Weight (lbs)</label>
+          <input
+            type="number"
+            step="0.05"
+            placeholder="13.2"
+            value={newPlantDry}
+            onChange={(e) => setNewPlantDry(e.target.value === '' ? '' : parseFloat(e.target.value))}
+            className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+          />
+        </div>
+      </div>
+
+      <div className="flex gap-3 pt-4 mt-2 border-t border-zinc-800">
+        <button
+          onClick={() => setShowPlantModal(false)}
+          className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm font-bold text-zinc-300 hover:bg-zinc-800 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={async () => {
+            if (!newPlantName.trim()) {
+              alert('Please enter a plant name');
+              return;
+            }
+            try {
+              if (editingPlant) {
+                await updatePlant({
+                  id: editingPlant.id,
+                  name: newPlantName,
+                  wetWeight: newPlantWet !== '' ? newPlantWet : null,
+                  dryTarget: newPlantDry !== '' ? newPlantDry : null,
+                });
+              } else {
+                await createPlant({
+                  batchId: selectedBatchId!,
+                  name: newPlantName,
+                  wetWeight: newPlantWet !== '' ? newPlantWet : undefined,
+                  dryTarget: newPlantDry !== '' ? newPlantDry : undefined,
+                });
+              }
+              setShowPlantModal(false);
+              loadPlants();
+            } catch (err) {
+              alert('Failed to save plant');
+            }
+          }}
+          className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500 transition-all"
+        >
+          {editingPlant ? 'Update' : 'Create'}
+        </button>
       </div>
     </div>
   </div>

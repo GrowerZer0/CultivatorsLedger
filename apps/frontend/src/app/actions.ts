@@ -93,7 +93,7 @@ export async function regenerateApiKey(sensorId: string) {
   return { ...updated, apiKey: newKey };
 }
 
-export async function getDashboardData(batchId?: string) {
+export async function getDashboardData(batchId?: string, plantId?: string) {
   const userId = await getUserId();
 
   // Fetch the 30 most recent climate logs (descending)
@@ -123,6 +123,7 @@ export async function getDashboardData(batchId?: string) {
     where: {
       userId,
       ...(batchId ? { batchId } : {}),
+      ...(plantId ? { plantId } : {}),
     },
     orderBy: { timestamp: "asc" },
     take: 30,
@@ -356,6 +357,7 @@ export async function addDryBackLog(data: {
   runoff_ec: number;
   unit: string;
   batchId?: string;
+  plantId?: string;
 }) {
   const userId = await getUserId();
   const dryBackPercent = ((data.wetWeight - data.weight) / (data.wetWeight - data.dryTargetWeight)) * 100;
