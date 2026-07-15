@@ -282,7 +282,7 @@ export async function getBatches() {
   });
 }
 
-export async function createBatch(data: { name: string; cultivar: string; roomId: string; wetWeight?: number; dryTargetWeight?: number }) {
+export async function createBatch(data: { name: string; cultivar: string; roomId: string; wetWeight?: number; dryTarget?: number }) {
   const userId = await getUserId();
   const batch = await db.batch.create({
     data: {
@@ -291,7 +291,7 @@ export async function createBatch(data: { name: string; cultivar: string; roomId
       roomId: data.roomId,
       userId: userId,
       wetWeight: data.wetWeight || null,
-      dryTargetWeight: data.dryTargetWeight || null,
+      dryTargetWeight: data.dryTarget || null,
     },
   });
   revalidatePath('/');
@@ -374,7 +374,9 @@ export async function addDryBackLog(data: {
       notes: `Cultivar: ${data.cultivar}`,
       timestamp: new Date(),
       batchId: data.batchId || null,
+      plantId: data.plantId || null,
       userId: userId,
+      unit: data.unit || 'lbs',
     },
   });
 
