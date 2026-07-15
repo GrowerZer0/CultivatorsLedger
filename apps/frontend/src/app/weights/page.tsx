@@ -99,7 +99,7 @@ const [editingPlant, setEditingPlant] = useState<any | null>(null);
   // Inputs
   const [containerGallons, setContainerGallons] = useState(5);
   const [wetWeight, setWetWeight] = useState(18.4);
-  const [dryTargetWeight, setDryTargetWeight] = useState(13.2);
+  const [dryTarget, setDryTarget] = useState(13.2);
   const [currentWeight, setCurrentWeight] = useState(14.2);
   const [weightUnit, setWeightUnit] = useState<'lbs' | 'g'>('lbs');
   const [isSaving, setIsSaving] = useState(false);
@@ -157,11 +157,11 @@ const [editingPlant, setEditingPlant] = useState<any | null>(null);
       cultivar: 'Active room',
       containerGallons,
       wetWeight,
-      dryTargetWeight,
+      dryTarget: dryTarget,
       weight: currentWeight,
       loggedAt: new Date().toISOString(),
     });
-  }, [containerGallons, wetWeight, dryTargetWeight, currentWeight]);
+  }, [containerGallons, wetWeight, dryTarget, currentWeight]);
 
   // Chart data
   const dryBackChartData = dbDryBackLogs.map((log) => ({
@@ -178,7 +178,7 @@ const [editingPlant, setEditingPlant] = useState<any | null>(null);
         cultivar: 'Batch',
         containerGallons,
         wetWeight,
-        dryTargetWeight,
+        dryTarget,
         weight: currentWeight,
         runoff_ec: 0,
         unit: weightUnit,
@@ -387,8 +387,8 @@ useEffect(() => {
             />
             <DarkNumberField
               label={`Target Dry Weight (${weightUnit})`}
-              value={dryTargetWeight}
-              onChange={setDryTargetWeight}
+              value={dryTarget}
+              onChange={setDryTarget}
             />
             <DarkNumberField
               label={`Target Saturated Weight (${weightUnit})`}

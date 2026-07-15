@@ -4,7 +4,7 @@ export type DryBackLog = {
   cultivar: string;
   containerGallons: number;
   wetWeight: number;
-  dryTargetWeight: number;
+  dryTarget: number;
   weight: number;
   runoff_ec?: number;
   loggedAt: string;
@@ -87,7 +87,7 @@ export function getVpdStatus(stage: 'VEG' | 'FLOWER', currentVpd: number): 'LOW'
 
 // 4. PERSISTENT CROP-STEERING CALCULATORS WITH BIOLOGICAL GUARDRAILS
 export function calculateDryBack(log: DryBackLog) {
-  const totalDrop = Math.max(log.wetWeight - log.dryTargetWeight, 0.01);
+  const totalDrop = Math.max(log.wetWeight - log.dryTarget, 0.01);
   const currentDrop = Math.max(log.wetWeight - log.weight, 0);
   
   let rawDryBackPercent = (currentDrop / totalDrop) * 100;
@@ -102,7 +102,7 @@ export function calculateDryBack(log: DryBackLog) {
   }
 
   const dryBackPercent = Math.max(0, Math.min(rawDryBackPercent, 100));
-  const poundsUntilIrrigation = Math.max(log.weight - log.dryTargetWeight, 0);
+  const poundsUntilIrrigation = Math.max(log.weight - log.dryTarget, 0);
   const estimatedHoursUntilWater = Math.round(poundsUntilIrrigation / 0.18);
 
   return {

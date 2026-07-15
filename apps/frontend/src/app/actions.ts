@@ -132,11 +132,11 @@ export async function getDashboardData(batchId?: string, plantId?: string) {
   // Map to the DryBackLog type expected by the frontend
   const dryBackLogs = dryBackLogsFromDb.map((log: PrismaDryBackLog) => ({
     id: String(log.id),
-    cultivar: "Batch", // later link to batch
+    cultivar: "Batch", 
     stage: "Main",
     containerGallons: Number(log.containerGallons),
     wetWeight: Number(log.wetWeightLbs),
-    dryTargetWeight: Number(log.dryTargetWeightLbs),
+    dryTarget: Number(log.dryTargetWeightLbs),
     weight: Number(log.currentWeightLbs),
     dryBackPercent: Number(log.dryBackPercent),
     runoff_ec: log.runoffEc ? Number(log.runoffEc) : 0,
@@ -167,14 +167,14 @@ export async function addManualClimateAndWeight(data: {
   notes?: string;
   plantId?: string;
   wetWeight?: number; 
-  dryTargetWeight?: number; 
+  dryTarget?: number; 
   batchId?: string;
 }) {
   const userId = await getUserId();
 
     // If batchId is provided, get the batch targets
 let wet: number | undefined = data.wetWeight;
-let dryTarget: number | undefined = data.dryTargetWeight;
+let dryTarget: number | undefined = data.dryTarget;
 
 if (data.plantId) {
   const plant = await db.plant.findUnique({
@@ -183,7 +183,7 @@ if (data.plantId) {
   });
   if (plant) {
     wet = data.wetWeight ?? (plant.wetWeight !== null ? Number(plant.wetWeight) : undefined);
-    dryTarget = data.dryTargetWeight ?? (plant.dryTarget !== null ? Number(plant.dryTarget) : undefined);
+    dryTarget = data.dryTarget ?? (plant.dryTarget !== null ? Number(plant.dryTarget) : undefined);
   }
 }
 
@@ -219,7 +219,7 @@ dryTarget = dryTarget ?? 13.2;
   let dryBackResult = null;
   if (data.weight !== undefined && data.weight !== null) {
     const wet = data.wetWeight ?? 18.4;
-    const dryTarget = data.dryTargetWeight ?? 13.2;
+    const dryTarget = data.dryTarget ?? 13.2;
     const dryBackPercent = Math.max(0, Math.min(100, ((wet - data.weight) / (wet - dryTarget)) * 100));
     dryBackResult = await db.dryBackLog.create({
       data: {
@@ -291,7 +291,7 @@ export async function createBatch(data: { name: string; cultivar: string; roomId
       roomId: data.roomId,
       userId: userId,
       wetWeight: data.wetWeight || null,
-      dryTargetWeight: data.dryTarget || null,
+      dryTarget: data.dryTarget || null,
     },
   });
   revalidatePath('/');
@@ -352,7 +352,7 @@ export async function addDryBackLog(data: {
   cultivar: string;
   containerGallons: number;
   wetWeight: number;
-  dryTargetWeight: number;
+  dryTarget: number;
   weight: number;
   runoff_ec: number;
   unit: string;
@@ -360,23 +360,23 @@ export async function addDryBackLog(data: {
   plantId?: string;
 }) {
   const userId = await getUserId();
-  const dryBackPercent = ((data.wetWeight - data.weight) / (data.wetWeight - data.dryTargetWeight)) * 100;
+  const dryBackPercent = ((data.wetWeight - data.weight) / (data.wetWeight - data.dryTarget)) * 100;
   const clampedPercent = Math.max(0, Math.min(100, dryBackPercent));
 
   const result = await db.dryBackLog.create({
     data: {
-      containerGallons: data.containerGallons,
-      wetWeightLbs: data.wetWeight,
-      dryTargetWeightLbs: data.dryTargetWeight,
-      currentWeightLbs: data.weight,
-      dryBackPercent: clampedPercent,
-      runoffEc: data.runoff_ec || null,
-      notes: `Cultivar: ${data.cultivar}`,
-      timestamp: new Date(),
-      batchId: data.batchId || null,
-      plantId: data.plantId || null,
-      userId: userId,
-      unit: data.unit || 'lbs',
+    containerGallons: data.containerGallons,
+    wetWeightLbs: data.wetWeight,
+    dryTargetWeightLbs: data.dryTarget, 
+    currentWeightLbs: data.weight,
+    dryBackPercent: clampedPercent,
+    runoffEc: data.runoff_ec || null,
+    notes: `Cultivar: ${data.cultivar}`,
+    timestamp: new Date(),
+    batchId: data.batchId || null,
+    plantId: data.plantId || null,
+    userId: userId,
+    unit: data.unit || 'lbs',
     },
   });
 

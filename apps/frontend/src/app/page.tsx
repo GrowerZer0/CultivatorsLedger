@@ -305,7 +305,7 @@ const loadBriefing = useCallback(async () => {
         weight: weightValue,
         notes: notes || undefined,
         wetWeight: 18.4,
-        dryTargetWeight: 13.2,
+        dryTarget: 13.2,
       });
       setNotes('');
       await loadData();
