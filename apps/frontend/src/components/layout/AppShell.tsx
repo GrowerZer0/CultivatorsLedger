@@ -32,7 +32,7 @@ export function AppShell({ children }: AppShellProps) {
       <header className="border-b border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 transition-colors duration-200 sticky top-0 z-40">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           
-          {/* Left: Brand Logo */}
+          {/* Brand Logo (left) */}
           <Link href="/" className="flex items-center gap-3 group">
             <div className="grid size-10 place-items-center rounded-md bg-canopy text-white">
               <Leaf aria-hidden="true" className="size-5" />
@@ -47,35 +47,25 @@ export function AppShell({ children }: AppShellProps) {
             </div>
           </Link>
 
-          {/* Right: Status badge, ThemeToggle, Settings, Hamburger */}
-          <div className="flex items-center gap-4">            
-            <ThemeToggle />
-
-            <Link href="/settings">
-              <button className="grid size-10 place-items-center rounded-md border border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800 transition-colors">
-                <Settings className="size-5" />
-              </button>
-            </Link>
-
-            {/* Hamburger – visible on all screen sizes */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="grid size-10 place-items-center rounded-md border border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800"
-              aria-label="Toggle navigation menu"
-            >
-              {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
-            </button>
-          </div>
+          {/* Hamburger (right) – only element */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="grid size-10 place-items-center rounded-md border border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800"
+            aria-label="Toggle navigation menu"
+          >
+            {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+          </button>
         </div>
       </header>
 
-      {/* Mobile Menu Drawer Overlay */}
+      {/* Dropdown Drawer */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)}>
           <nav 
             className="absolute top-[73px] left-0 right-0 border-b border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 flex flex-col gap-2 shadow-lg animate-in slide-in-from-top-2 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Tabs */}
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = pathname === tab.href;
@@ -95,6 +85,17 @@ export function AppShell({ children }: AppShellProps) {
                 </Link>
               );
             })}
+
+            {/* Separator */}
+            <div className="border-t border-[#d9e2dc] dark:border-zinc-800 my-2" />
+
+            {/* Theme */}
+            <div className="flex items-center justify-between px-4 py-3">
+              <span className="text-base font-medium text-zinc-600 dark:text-zinc-400">Theme</span>
+              <ThemeToggle />
+            </div>
+
+            {/* Settings */}
             <Link
               href="/settings"
               onClick={() => setMobileMenuOpen(false)}
@@ -104,20 +105,14 @@ export function AppShell({ children }: AppShellProps) {
               <span>Settings</span>
             </Link>
 
-            {/* Logout and ThemeToggle in the menu */}
-            <div className="border-t border-[#d9e2dc] dark:border-zinc-800 pt-4 mt-2">
-              <div className="flex items-center justify-between px-4 py-3">
-                <span className="text-base font-medium text-zinc-600 dark:text-zinc-400">Theme</span>
-              </div>
-                <ThemeToggle />
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-3 rounded-md px-4 py-3 text-base font-medium text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800/50 w-full transition-colors"
-              >
-                <LogOut className="size-5 text-red-400" />
-                <span>Logout</span>
-              </button>
-            </div>
+            {/* Logout */}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-3 rounded-md px-4 py-3 text-base font-medium text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800/50 w-full transition-colors"
+            >
+              <LogOut className="size-5 text-red-400" />
+              <span>Logout</span>
+            </button>
           </nav>
         </div>
       )}
