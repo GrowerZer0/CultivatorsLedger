@@ -32,47 +32,34 @@ export function AppShell({ children }: AppShellProps) {
       <header className="border-b border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 transition-colors duration-200 sticky top-0 z-40">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           
-          {/* Left: Brand + Desktop Tabs */}
-          <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-3 group">
-              <div className="grid size-10 place-items-center rounded-md bg-canopy text-white">
-                <Leaf aria-hidden="true" className="size-5" />
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-clay dark:text-orange-400">
-                  Single-grower command
-                </p>
-                <h1 className="text-xl font-semibold tracking-normal text-graphite dark:text-zinc-100">
-                  Cultivator's Ledger
-                </h1>
-              </div>
-            </Link>
-
-            {/* Desktop Tabs */}
-            <nav className="hidden md:flex items-center gap-1">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                const isActive = pathname === tab.href;
-                return (
-                  <Link
-                    key={tab.name}
-                    href={tab.href}
-                    className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                      isActive
-                        ? "bg-[#ebd2c1]/20 dark:bg-zinc-800 text-graphite dark:text-zinc-100"
-                        : "text-zinc-500 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800/50 hover:text-graphite dark:hover:text-zinc-200"
-                    }`}
-                  >
-                    <Icon className={`size-4 ${tab.color}`} />
-                    <span>{tab.name}</span>
-                  </Link>
-                );
-              })}
-            </nav>
-          </div>
+          {/* Left: Brand Logo */}
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="grid size-10 place-items-center rounded-md bg-canopy text-white">
+              <Leaf aria-hidden="true" className="size-5" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-clay dark:text-orange-400">
+                Single-grower command
+              </p>
+              <h1 className="text-xl font-semibold tracking-normal text-graphite dark:text-zinc-100">
+                Cultivator's Ledger
+              </h1>
+            </div>
+          </Link>
 
           {/* Right: Status badge, ThemeToggle, Settings, Hamburger */}
           <div className="flex items-center gap-4">
+            <div className="hidden rounded-md border border-[#d9e2dc] dark:border-zinc-800 bg-mist dark:bg-zinc-800/50 px-3 py-2 text-sm font-medium text-canopy dark:text-emerald-400 lg:block">
+              Local cultivation dashboard
+            </div>
+            
+            <ThemeToggle />
+
+            <Link href="/settings">
+              <button className="grid size-10 place-items-center rounded-md border border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800 transition-colors">
+                <Settings className="size-5" />
+              </button>
+            </Link>
 
             {/* Hamburger – visible on all screen sizes */}
             <button
