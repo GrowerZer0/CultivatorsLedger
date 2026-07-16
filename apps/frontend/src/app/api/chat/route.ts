@@ -156,7 +156,7 @@ export async function POST(req: Request) {
 
     // 3. Fire content request with the full multi-part payload intact
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash",
       contents: [...formattedHistory, { role: "user", parts: latestParts }],
       config: {
         systemInstruction: synthesizeSystemInstruction(context),
