@@ -169,6 +169,7 @@ const [editingPlant, setEditingPlant] = useState<any | null>(null);
     time: new Date(log.loggedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
     weight: log.weight,
     runoff_ec: log.runoff_ec ?? 0,
+    source: log.source || 'manual',
   }));
 
   // Save log
@@ -495,7 +496,7 @@ useEffect(() => {
                   }}
                 />
                 <Tooltip contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', color: '#fff', fontSize: '12px' }} />
-                <Line type="monotone" dataKey="weight" name="Weight" stroke="#10B981" strokeWidth={2.5} dot={false} />
+                <Line type="monotone" dataKey="weight" name="Weight" stroke="#10B981" strokeWidth={2} dot={{ r: 3, fill: '#10B981' }} connectNulls />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -669,38 +670,43 @@ useEffect(() => {
         >
           Cancel
         </button>
-        <button
-          onClick={async () => {
-            if (!newPlantName.trim()) {
-              alert('Please enter a plant name');
-              return;
-            }
-            try {
-              if (editingPlant) {
-                await updatePlant({
-                  id: editingPlant.id,
-                  name: newPlantName,
-                  wetWeight: newPlantWet !== '' ? newPlantWet : null,
-                  dryTarget: newPlantDry !== '' ? newPlantDry : null,
-                });
-              } else {
-                await createPlant({
-                  batchId: selectedBatchId!,
-                  name: newPlantName,
-                  wetWeight: newPlantWet !== '' ? newPlantWet : undefined,
-                  dryTarget: newPlantDry !== '' ? newPlantDry : undefined,
-                });
-              }
-              setShowPlantModal(false);
-              loadPlants();
-            } catch (err) {
-              alert('Failed to save plant');
-            }
-          }}
-          className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500 transition-all"
-        >
-          {editingPlant ? 'Update' : 'Create'}
-        </button>
+<button
+  onClick={async () => {
+    if (!selectedBatchId) {
+      alert('Please select a batch first.');
+      return;
+    }
+    if (!newPlantName.trim()) {
+      alert('Please enter a plant name');
+      return;
+    }
+    try {
+      if (editingPlant) {
+        await updatePlant({
+          id: editingPlant.id,
+          name: newPlantName,
+          wetWeight: newPlantWet !== '' ? newPlantWet : null,
+          dryTarget: newPlantDry !== '' ? newPlantDry : null,
+        });
+      } else {
+        await createPlant({
+          batchId: selectedBatchId,
+          name: newPlantName,
+          wetWeight: newPlantWet !== '' ? newPlantWet : undefined,
+          dryTarget: newPlantDry !== '' ? newPlantDry : undefined,
+        });
+      }
+      setShowPlantModal(false);
+      loadPlants();
+    } catch (err) {
+      console.error('Plant save error:', err);
+      alert('Failed to save plant: ' + (err instanceof Error ? err.message : 'unknown error'));
+    }
+  }}
+  className="..."
+>
+  {editingPlant ? 'Update' : 'Create'}
+</button>
       </div>
     </div>
   </div>

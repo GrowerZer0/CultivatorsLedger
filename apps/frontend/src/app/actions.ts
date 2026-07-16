@@ -142,6 +142,7 @@ export async function getDashboardData(batchId?: string, plantId?: string) {
     runoff_ec: log.runoffEc ? Number(log.runoffEc) : 0,
     loggedAt: log.timestamp.toISOString(),
     unit: log.unit || "lbs",
+    source: (log as any).source || 'manual',
   }));
 
   // Fetch the latest irrigation event
@@ -594,6 +595,7 @@ export async function logIrrigation(data: {
       notes: data.notes || `Irrigation logged (weight: ${data.weight} lbs)`,
       unit: 'lbs',
       userId: userId,
+      source: 'manual',
     },
   });
 

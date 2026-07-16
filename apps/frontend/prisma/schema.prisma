@@ -111,7 +111,8 @@ model DryBackLog {
   batch              Batch?   @relation(fields: [batchId], references: [id], onDelete: SetNull)
   plantId            String?  @map("plant_id")
   plant              Plant?   @relation(fields: [plantId], references: [id], onDelete: SetNull)
-
+  source             String   @default("manual") // 'manual' or 'irrigation'
+  
   @@map("dry_back_logs")
 }
 
