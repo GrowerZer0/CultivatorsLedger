@@ -148,6 +148,9 @@ model IrrigationEvent {
   user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   importId           Int?           @map("import_id")
   import             ImportHistory? @relation(fields: [importId], references: [id], onDelete: Cascade)
+  batchId          String?  @map("batch_id")
+  plantId          String?  @map("plant_id")
+  currentWeightLbs Decimal? @map("current_weight_lbs") @db.Decimal(5, 2)
 
   @@index([roomId, timestamp])
   @@map("irrigation_events")

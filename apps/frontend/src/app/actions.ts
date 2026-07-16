@@ -538,3 +538,87 @@ export async function updatePlant(data: {
   revalidatePath('/');
   return plant;
 }
+
+export async function logIrrigation(data: {
+  batchId?: string;
+  plantId?: string;
+  weight: number;
+  notes?: string;
+}) {
+  const userId = await getUserId();
+
+  // Determine targets (from plant, then batch, then defaults)
+  let wetWeight: number | undefined;
+  let dryTarget: number | undefined;
+
+  if (data.plantId) {
+    const plant = await db.plant.findUnique({
+      where: { id: data.plantId, userId },
+      select: { wetWeight: true, dryTarget: true },
+    });
+    if (plant) {
+      wetWeight = plant.wetWeight !== null ? Number(plant.wetWeight) : undefined;
+      dryTarget = plant.dryTarget !== null ? Number(plant.dryTarget) : undefined;
+    }
+  }
+
+  if (data.batchId && (wetWeight === undefined || dryTarget === undefined)) {
+    const batch = await db.batch.findUnique({
+      where: { id: data.batchId, userId },
+      select: { wetWeight: true, dryTarget: true },
+    });
+    if (batch) {
+      wetWeight = wetWeight ?? (batch.wetWeight !== null ? Number(batch.wetWeight) : undefined);
+      dryTarget = dryTarget ?? (batch.dryTarget !== null ? Number(batch.dryTarget) : undefined);
+    }
+  }
+
+  wetWeight = wetWeight ?? 18.4;
+  dryTarget = dryTarget ?? 13.2;
+
+  // Compute dry-back percent
+  const dryBackPercent = Math.max(0, Math.min(100, ((wetWeight - data.weight) / (wetWeight - dryTarget)) * 100));
+
+  // 1. Insert dry-back log
+  const dryBackLog = await db.dryBackLog.create({
+    data: {
+      timestamp: new Date(),
+      batchId: data.batchId || null,
+      plantId: data.plantId || null,
+      containerGallons: 5, // can be configurable later
+      wetWeightLbs: wetWeight,
+      dryTargetWeightLbs: dryTarget,
+      currentWeightLbs: data.weight,
+      dryBackPercent: dryBackPercent,
+      runoffEc: null,
+      notes: data.notes || `Irrigation logged (weight: ${data.weight} lbs)`,
+      unit: 'lbs',
+      userId: userId,
+    },
+  });
+
+  // 2. Insert irrigation event
+  const irrigation = await db.irrigationEvent.create({
+    data: {
+      timestamp: new Date(),
+      roomId: 'Manual',
+      zoneId: 'Main',
+      moisturePercentage: dryBackPercent, // or we can store weight? but we have a separate field
+      isManualEntry: true,
+      userId: userId,
+      batchId: data.batchId || null,
+      plantId: data.plantId || null,
+      // If you added currentWeightLbs, you can set it:
+      // currentWeightLbs: data.weight,
+    },
+  });
+
+  revalidatePath('/');
+  revalidatePath('/weights');
+
+  return {
+    success: true,
+    dryBackId: dryBackLog.id,
+    irrigationId: irrigation.id,
+  };
+}

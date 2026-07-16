@@ -37,7 +37,8 @@ import {
   updateBatchTargets,
   getPlantsForBatch, 
   createPlant, 
-  updatePlant
+  updatePlant,
+  logIrrigation
 } from '@/app/actions';
 
 // --------------------------------------------
@@ -434,6 +435,34 @@ useEffect(() => {
           >
             {isSaving ? 'Saving...' : 'Log Dry-Back Reading'}
           </button>
+          <button
+  onClick={async () => {
+    if (!selectedBatchId && !selectedPlantId) {
+      alert('Please select a batch or plant first.');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await logIrrigation({
+        batchId: selectedBatchId || undefined,
+        plantId: selectedPlantId || undefined,
+        weight: currentWeight,
+        notes: 'Irrigation via button',
+      });
+      alert('Irrigation logged!');
+      await loadData();
+    } catch (err) {
+      console.error(err);
+      alert('Failed to log irrigation.');
+    } finally {
+      setIsSaving(false);
+    }
+  }}
+  disabled={isSaving || activeDryBack.isClamped}
+  className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 active:scale-[0.99] font-bold text-white text-xs px-4 py-3 shadow-lg shadow-cyan-950/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+>
+  {isSaving ? 'Logging...' : '💧 Irrigate Now'}
+</button>
         </div>
 
         {/* Dry‑Back Trend Chart */}
