@@ -460,7 +460,7 @@ Based on this, give ONE clear recommendation (e.g., "Increase humidity", "Irriga
     // Call AI
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       contents: [{ role: "user", parts: [{ text: prompt }] }],
     });
 
