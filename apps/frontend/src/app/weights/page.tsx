@@ -778,41 +778,41 @@ useEffect(() => {
         >
           Cancel
         </button>
-<button
-  onClick={async () => {
-    if (!selectedBatchId) {
-      alert('Please select a batch first.');
-      return;
-    }
-    if (!newPlantName.trim()) {
-      alert('Please enter a plant name');
-      return;
-    }
-    try {
-      if (editingPlant) {
-        await updatePlant({
-          id: editingPlant.id,
-          name: newPlantName,
-          wetWeight: newPlantWet !== '' ? newPlantWet : null,
-          dryTarget: newPlantDry !== '' ? newPlantDry : null,
-        });
-      } else {
-        await createPlant({
-          batchId: selectedBatchId,
-          name: newPlantName,
-          wetWeight: newPlantWet !== '' ? newPlantWet : undefined,
-          dryTarget: newPlantDry !== '' ? newPlantDry : undefined,
-        });
-      }
-      setShowPlantModal(false);
-      loadPlants();
-    } catch (err) {
-      console.error('Plant save error:', err);
-      alert('Failed to save plant: ' + (err instanceof Error ? err.message : 'unknown error'));
-    }
-  }}
-  className="..."
->
+        <button
+          onClick={async () => {
+            if (!selectedBatchId) {
+              alert('Please select a batch first.');
+              return;
+            }
+            if (!newPlantName.trim()) {
+              alert('Please enter a plant name');
+              return;
+            }
+            try {
+              if (editingPlant) {
+                await updatePlant({
+                  id: editingPlant.id,
+                  name: newPlantName,
+                  wetWeight: newPlantWet !== '' ? newPlantWet : null,
+                  dryTarget: newPlantDry !== '' ? newPlantDry : null,
+                });
+              } else {
+                await createPlant({
+                  batchId: selectedBatchId,
+                  name: newPlantName,
+                  wetWeight: newPlantWet !== '' ? newPlantWet : undefined,
+                  dryTarget: newPlantDry !== '' ? newPlantDry : undefined,
+                });
+              }
+              setShowPlantModal(false);
+              loadPlants();
+            } catch (err) {
+              console.error('Plant save error:', err);
+              alert('Failed to save plant: ' + (err instanceof Error ? err.message : 'unknown error'));
+            }
+          }}
+          className="..."
+        >
   {editingPlant ? 'Update' : 'Create'}
 </button>
       </div>
