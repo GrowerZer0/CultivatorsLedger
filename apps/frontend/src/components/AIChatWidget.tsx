@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import { AnyActionArg, useMemo, useState } from "react";
+import { AnyActionArg, useMemo, useState, useRef, useEffect } from "react";
 import {
   type EnvironmentReading,
   type FeedSchedule,
@@ -99,6 +99,8 @@ export default function AIChatWidget({
   const [isPending, setIsPending] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
+  const widgetRef = useRef<HTMLDivElement>(null);
+
   const contextSummary = useMemo(() => {
     const climate = latestEnvironment
       ? `${latestEnvironment.temperatureF.toFixed(1)} F, ${latestEnvironment.humidity}% RH, ${latestEnvironment.vpd.toFixed(2)} VPD${
@@ -118,6 +120,25 @@ export default function AIChatWidget({
   const recovery = recoveryStatus ? 
     `Phase ${recoveryStatus.phase}: ${recoveryStatus.status}. ${recoveryStatus.recommendation}` :
     'No recovery status';
+
+    // Click‑outside handler
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isOpen && widgetRef.current && !widgetRef.current.contains(event.target as Node)) {
+        // Check if the click was on the floating button
+        const target = event.target as HTMLElement;
+        if (target.closest('button') && target.closest('button')?.getAttribute('aria-label') === 'Open assistant') {
+          return; // Don't close if clicking the toggle button
+        }
+        setIsOpen(false);
+      }
+    };
+    
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen]);
 
   return {
       climate,
@@ -248,6 +269,11 @@ export default function AIChatWidget({
       {isOpen && (
         <section className="fixed bottom-24 right-6 z-50 flex h-[520px] w-[380px] max-w-[calc(100vw-48px)] flex-col overflow-hidden rounded-2xl border border-[#cad6cf] dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl transition-all duration-200">
           
+          <section
+            ref={widgetRef}
+            className="fixed bottom-24 right-6 z-50 flex h-[520px] w-[380px] max-w-[calc(100vw-48px)] flex-col overflow-hidden rounded-2xl border border-[#cad6cf] dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl transition-all duration-200"
+          ></section>
+
           {/* Header Bar */}
           <div className="flex items-center gap-2 bg-[#f4f1ea] dark:bg-zinc-800 px-4 py-3 border-b border-[#cad6cf] dark:border-zinc-800">
             <CanopyLogoIcon className="size-5 text-canopy dark:text-emerald-400" />
