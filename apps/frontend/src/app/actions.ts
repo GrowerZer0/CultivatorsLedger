@@ -680,3 +680,65 @@ export async function getWaterUseData(batchId?: string, plantId?: string) {
     dryTarget: Number(first.dryTargetWeightLbs),
   };
 }
+export async function getTrendInsights(batchId?: string, plantId?: string) {
+  const userId = await getUserId();
+
+  // Fetch last 30 dry-back logs (ordered by timestamp descending)
+  const logs = await db.dryBackLog.findMany({
+    where: {
+      userId,
+      ...(batchId ? { batchId } : {}),
+      ...(plantId ? { plantId } : {}),
+    },
+    orderBy: { timestamp: "desc" },
+    take: 30,
+  });
+
+  if (logs.length < 6) {
+    return { drybackSpeed: null, uptakeTrend: null };
+  }
+
+  // Sort ascending (oldest first)
+  const sorted = [...logs].reverse();
+
+  // Take last 5 for recent average, and the 5 before that for historical average
+  const recent = sorted.slice(-5);
+  const historical = sorted.slice(-10, -5);
+
+  // Calculate average daily weight change (lbs per day)
+  // For each segment, compute total weight change over the period
+  const calcDailyRate = (segment: any[]) => {
+    if (segment.length < 2) return 0;
+    const first = segment[0];
+    const last = segment[segment.length - 1];
+    const hours = (new Date(last.timestamp).getTime() - new Date(first.timestamp).getTime()) / (1000 * 60 * 60);
+    if (hours < 1) return 0;
+    const weightDiff = Number(first.currentWeightLbs) - Number(last.currentWeightLbs);
+    return (weightDiff / hours) * 24; // lbs per day
+  };
+
+  const recentRate = calcDailyRate(recent);
+  const historicalRate = calcDailyRate(historical);
+
+  // Dryback speed insight
+  let drybackSpeed = null;
+  if (recentRate > 0 && historicalRate > 0) {
+    const pctChange = ((recentRate - historicalRate) / historicalRate) * 100;
+    drybackSpeed = {
+      pct: Math.round(pctChange),
+      direction: pctChange > 5 ? 'faster' : pctChange < -5 ? 'slower' : 'stable',
+    };
+  }
+
+  // Uptake trend (daily water use – compare recent to historical)
+  let uptakeTrend = null;
+  if (recentRate > 0 && historicalRate > 0) {
+    const pctChange = ((recentRate - historicalRate) / historicalRate) * 100;
+    uptakeTrend = {
+      pct: Math.round(pctChange),
+      direction: pctChange > 10 ? 'increasing' : pctChange < -10 ? 'decreasing' : 'stable',
+    };
+  }
+
+  return { drybackSpeed, uptakeTrend };
+}

@@ -39,7 +39,8 @@ import {
   createPlant, 
   updatePlant,
   logIrrigation,
-  getWaterUseData
+  getWaterUseData,
+  getTrendInsights
 } from '@/app/actions';
 
 // --------------------------------------------
@@ -87,18 +88,20 @@ export default function WeightsPage() {
 
   // Plants State
   const [plants, setPlants] = useState<any[]>([]);
-const [selectedPlantId, setSelectedPlantId] = useState<string | null>(null);
-const [showPlantModal, setShowPlantModal] = useState(false);
-const [newPlantName, setNewPlantName] = useState('');
-const [newPlantWet, setNewPlantWet] = useState<number | ''>('');
-const [newPlantDry, setNewPlantDry] = useState<number | ''>('');
-const [editingPlant, setEditingPlant] = useState<any | null>(null);
+  const [selectedPlantId, setSelectedPlantId] = useState<string | null>(null);
+  const [showPlantModal, setShowPlantModal] = useState(false);
+  const [newPlantName, setNewPlantName] = useState('');
+  const [newPlantWet, setNewPlantWet] = useState<number | ''>('');
+  const [newPlantDry, setNewPlantDry] = useState<number | ''>('');
+  const [editingPlant, setEditingPlant] = useState<any | null>(null);
 
   // Dry‑back data
   const [dbDryBackLogs, setDbDryBackLogs] = useState<DryBackLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [waterUseData, setWaterUseData] = useState<any>(null);
-const [waterUseLoading, setWaterUseLoading] = useState(false);
+  const [waterUseLoading, setWaterUseLoading] = useState(false);
+  const [trendInsights, setTrendInsights] = useState<any>(null);
+  
   // Inputs
   const [containerGallons, setContainerGallons] = useState(5);
   const [wetWeight, setWetWeight] = useState(18.4);
@@ -147,6 +150,11 @@ const loadData = useCallback(async () => {
     setWaterUseLoading(true);
     const waterUse = await getWaterUseData(selectedBatchId || undefined, selectedPlantId || undefined);
     setWaterUseData(waterUse);
+
+    // Fetch trend insights
+    const insights = await getTrendInsights(selectedBatchId || undefined, selectedPlantId || undefined);
+    setTrendInsights(insights);
+
   } catch (err) {
     console.error('Failed to load weights data:', err);
   } finally {
@@ -536,6 +544,37 @@ useEffect(() => {
     )}
   </div>
 </div>
+
+{/* Trend Insights */}
+{trendInsights && (trendInsights.drybackSpeed || trendInsights.uptakeTrend) && (
+  <div className="mt-4 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 shadow-xl">
+    <h4 className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Crop Steering Insights</h4>
+    <div className="space-y-2 text-sm">
+      {trendInsights.drybackSpeed && (
+        <p className="text-gray-800 dark:text-zinc-200">
+          {trendInsights.drybackSpeed.direction === 'faster' && '🔽 Drying '}
+          {trendInsights.drybackSpeed.direction === 'slower' && '🔼 Drying '}
+          {trendInsights.drybackSpeed.direction === 'stable' && '➖ Drying at '}
+          {trendInsights.drybackSpeed.pct !== 0 && `${Math.abs(trendInsights.drybackSpeed.pct)}% `}
+          {trendInsights.drybackSpeed.direction === 'faster' && 'faster than the last 5 irrigations'}
+          {trendInsights.drybackSpeed.direction === 'slower' && 'slower than the last 5 irrigations'}
+          {trendInsights.drybackSpeed.direction === 'stable' && 'at the same rate as the last 5 irrigations'}
+        </p>
+      )}
+      {trendInsights.uptakeTrend && (
+        <p className="text-gray-800 dark:text-zinc-200">
+          {trendInsights.uptakeTrend.direction === 'increasing' && '📈 Daily water uptake increased '}
+          {trendInsights.uptakeTrend.direction === 'decreasing' && '📉 Daily water uptake decreased '}
+          {trendInsights.uptakeTrend.direction === 'stable' && '➖ Daily water uptake stable '}
+          {trendInsights.uptakeTrend.pct !== 0 && `${Math.abs(trendInsights.uptakeTrend.pct)}% `}
+          {trendInsights.uptakeTrend.direction === 'increasing' && '– root expansion likely'}
+          {trendInsights.uptakeTrend.direction === 'decreasing' && '– possible stress or slowing growth'}
+          {trendInsights.uptakeTrend.direction === 'stable' && '– maintaining'}
+        </p>
+      )}
+    </div>
+  </div>
+)}
 
         {/* New Batch Modal */}
         {showNewBatchModal && (
