@@ -98,8 +98,26 @@ export default function AIChatWidget({
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-
   const widgetRef = useRef<HTMLDivElement>(null);
+
+    // Click‑outside handler
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isOpen && widgetRef.current && !widgetRef.current.contains(event.target as Node)) {
+        // Check if the click was on the floating button
+        const target = event.target as HTMLElement;
+        if (target.closest('button') && target.closest('button')?.getAttribute('aria-label') === 'Open assistant') {
+          return; // Don't close if clicking the toggle button
+        }
+        setIsOpen(false);
+      }
+    };
+    
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen]);
 
   const contextSummary = useMemo(() => {
     const climate = latestEnvironment
@@ -120,25 +138,6 @@ export default function AIChatWidget({
   const recovery = recoveryStatus ? 
     `Phase ${recoveryStatus.phase}: ${recoveryStatus.status}. ${recoveryStatus.recommendation}` :
     'No recovery status';
-
-    // Click‑outside handler
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (isOpen && widgetRef.current && !widgetRef.current.contains(event.target as Node)) {
-        // Check if the click was on the floating button
-        const target = event.target as HTMLElement;
-        if (target.closest('button') && target.closest('button')?.getAttribute('aria-label') === 'Open assistant') {
-          return; // Don't close if clicking the toggle button
-        }
-        setIsOpen(false);
-      }
-    };
-    
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isOpen]);
 
   return {
       climate,
