@@ -142,7 +142,7 @@ export async function getDashboardData(batchId?: string, plantId?: string) {
     runoff_ec: log.runoffEc ? Number(log.runoffEc) : 0,
     loggedAt: log.timestamp.toISOString(),
     unit: log.unit || "lbs",
-    source: (log as any).source || 'manual',
+    source: log.source || 'manual',
   }));
 
   // Fetch the latest irrigation event
@@ -636,5 +636,47 @@ export async function logIrrigation(data: {
     success: true,
     dryBackId: dryBackLog.id,
     irrigationId: irrigation.id,
+  };
+}
+
+export async function getWaterUseData(batchId?: string, plantId?: string) {
+  const userId = await getUserId();
+  const logs = await db.dryBackLog.findMany({
+    where: {
+      userId,
+      ...(batchId ? { batchId } : {}),
+      ...(plantId ? { plantId } : {}),
+    },
+    orderBy: { timestamp: "desc" },
+    take: 48, // last 48 entries (assuming 1 per day)
+  });
+
+  if (logs.length < 2) return null;
+
+  // Sort ascending
+  const sorted = logs.reverse();
+  const now = new Date();
+  const last24h = sorted.filter(log => (now.getTime() - new Date(log.timestamp).getTime()) < 24 * 60 * 60 * 1000);
+
+  if (last24h.length < 2) return null;
+
+  const first = last24h[0];
+  const last = last24h[last24h.length - 1];
+  const hoursDiff = (new Date(last.timestamp).getTime() - new Date(first.timestamp).getTime()) / (1000 * 60 * 60);
+  if (hoursDiff < 1) return null;
+
+  const weightDiff = Number(first.currentWeightLbs) - Number(last.currentWeightLbs);
+  const dailyWaterUse = (weightDiff / hoursDiff) * 24;
+
+  // Project next irrigation
+  const avgDryBackPerDay = dailyWaterUse / 24; // lbs per hour
+  const remainingToDryTarget = Number(first.currentWeightLbs) - Number(first.dryTargetWeightLbs);
+  const hoursUntilIrrigation = remainingToDryTarget / avgDryBackPerDay;
+
+  return {
+    dailyWaterUse: Math.round(dailyWaterUse * 10) / 10,
+    hoursUntilIrrigation,
+    currentWeight: Number(first.currentWeightLbs),
+    dryTarget: Number(first.dryTargetWeightLbs),
   };
 }

@@ -38,7 +38,8 @@ import {
   getPlantsForBatch, 
   createPlant, 
   updatePlant,
-  logIrrigation
+  logIrrigation,
+  getWaterUseData
 } from '@/app/actions';
 
 // --------------------------------------------
@@ -96,7 +97,8 @@ const [editingPlant, setEditingPlant] = useState<any | null>(null);
   // Dry‑back data
   const [dbDryBackLogs, setDbDryBackLogs] = useState<DryBackLog[]>([]);
   const [loading, setLoading] = useState(true);
-
+  const [waterUseData, setWaterUseData] = useState<any>(null);
+const [waterUseLoading, setWaterUseLoading] = useState(false);
   // Inputs
   const [containerGallons, setContainerGallons] = useState(5);
   const [wetWeight, setWetWeight] = useState(18.4);
@@ -128,24 +130,30 @@ const [editingPlant, setEditingPlant] = useState<any | null>(null);
   }
 
   // Load data
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await getDashboardData(selectedBatchId || undefined);
-      setDbDryBackLogs(data.dryBackLogs || []);
+const loadData = useCallback(async () => {
+  setLoading(true);
+  try {
+    const data = await getDashboardData(selectedBatchId || undefined);
+    setDbDryBackLogs(data.dryBackLogs || []);
 
-      const fetchedBatches = await getBatches();
-      setBatches(fetchedBatches);
-      if (fetchedBatches.length > 0 && !selectedBatchId) {
-        const active = fetchedBatches.find(b => b.isActive) || fetchedBatches[0];
-        setSelectedBatchId(active.id);
-      }
-    } catch (err) {
-      console.error('Failed to load weights data:', err);
-    } finally {
-      setLoading(false);
+    const fetchedBatches = await getBatches();
+    setBatches(fetchedBatches);
+    if (fetchedBatches.length > 0 && !selectedBatchId) {
+      const active = fetchedBatches.find(b => b.isActive) || fetchedBatches[0];
+      setSelectedBatchId(active.id);
     }
-  }, [selectedBatchId]);
+
+    // Fetch water use data
+    setWaterUseLoading(true);
+    const waterUse = await getWaterUseData(selectedBatchId || undefined, selectedPlantId || undefined);
+    setWaterUseData(waterUse);
+  } catch (err) {
+    console.error('Failed to load weights data:', err);
+  } finally {
+    setLoading(false);
+    setWaterUseLoading(false);
+  }
+}, [selectedBatchId, selectedPlantId]);
 
   useEffect(() => {
     loadData();
@@ -501,6 +509,33 @@ useEffect(() => {
             </ResponsiveContainer>
           </div>
         </div>
+{/* Water Use Stats */}
+<div className="mt-6 grid gap-4 sm:grid-cols-2">
+  <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 shadow-xl">
+    <p className="text-xs text-gray-500 dark:text-zinc-400">Daily Water Use</p>
+    {waterUseLoading ? (
+      <p className="text-sm text-gray-400 animate-pulse">Calculating...</p>
+    ) : waterUseData ? (
+      <p className="text-2xl font-bold text-gray-900 dark:text-white">
+        {waterUseData.dailyWaterUse} lbs/day
+      </p>
+    ) : (
+      <p className="text-sm text-gray-500">Log more data</p>
+    )}
+  </div>
+  <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 shadow-xl">
+    <p className="text-xs text-gray-500 dark:text-zinc-400">Projected Irrigation</p>
+    {waterUseLoading ? (
+      <p className="text-sm text-gray-400 animate-pulse">Calculating...</p>
+    ) : waterUseData ? (
+      <p className="text-2xl font-bold text-gray-900 dark:text-white">
+        {Math.round(waterUseData.hoursUntilIrrigation)} hrs
+      </p>
+    ) : (
+      <p className="text-sm text-gray-500">Log more data</p>
+    )}
+  </div>
+</div>
 
         {/* New Batch Modal */}
         {showNewBatchModal && (

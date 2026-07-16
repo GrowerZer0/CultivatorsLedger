@@ -8,7 +8,7 @@ export type DryBackLog = {
   weight: number;
   runoff_ec?: number;
   loggedAt: string;
-  source?: 'manual' | 'irrigation'; 
+  source?: string; 
 };
 
 export type NutrientDose = {
