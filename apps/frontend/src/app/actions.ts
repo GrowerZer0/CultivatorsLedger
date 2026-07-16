@@ -506,17 +506,31 @@ export async function createPlant(data: {
   dryTarget?: number;
 }) {
   const userId = await getUserId();
-  const plant = await db.plant.create({
-    data: {
-      name: data.name,
-      batchId: data.batchId,
-      userId,
-      wetWeight: data.wetWeight || null,
-      dryTarget: data.dryTarget || null,
-    },
-  });
-  revalidatePath('/');
-  return plant;
+  try {
+    // Validate batch exists and belongs to user
+    const batch = await db.batch.findUnique({
+      where: { id: data.batchId, userId },
+      select: { id: true },
+    });
+    if (!batch) {
+      throw new Error('Batch not found or unauthorized');
+    }
+
+    const plant = await db.plant.create({
+      data: {
+        name: data.name,
+        batchId: data.batchId,
+        userId,
+        wetWeight: data.wetWeight ?? null,
+        dryTarget: data.dryTarget ?? null,
+      },
+    });
+    revalidatePath('/');
+    return plant;
+  } catch (error) {
+    console.error('createPlant error:', error);
+    throw error;
+  }
 }
 
 export async function updatePlant(data: {
