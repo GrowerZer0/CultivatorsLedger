@@ -811,3 +811,127 @@ export async function getRecoveryStatus(batchId?: string, plantId?: string) {
 
   return { phase, status, recommendation };
 }
+
+export async function getDiagnostics(batchId?: string, plantId?: string) {
+  const userId = await getUserId();
+
+  // Fetch latest data
+  const [logs, env, irrigation] = await Promise.all([
+    db.dryBackLog.findMany({
+      where: {
+        userId,
+        ...(batchId ? { batchId } : {}),
+        ...(plantId ? { plantId } : {}),
+      },
+      orderBy: { timestamp: "desc" },
+      take: 10,
+    }),
+    db.climateLog.findFirst({
+      where: { userId },
+      orderBy: { timestamp: "desc" },
+    }),
+    db.irrigationEvent.findFirst({
+      where: { userId },
+      orderBy: { timestamp: "desc" },
+    }),
+  ]);
+
+  if (logs.length < 5 || !env) {
+    return { error: "Insufficient data for diagnostics" };
+  }
+
+  const latestLog = logs[0];
+  const weight = Number(latestLog.currentWeightLbs);
+  const dryback = Number(latestLog.dryBackPercent);
+  const wetTarget = Number(latestLog.wetWeightLbs);
+  const dryTarget = Number(latestLog.dryTargetWeightLbs);
+  const vpd = env.calculatedVpdKpa ? Number(env.calculatedVpdKpa) : computeVPD(Number(env.airTempC), Number(env.relativeHumidity));
+  const moisture = irrigation ? Number(irrigation.moisturePercentage) : null;
+  const ec = irrigation?.ecLevel ? Number(irrigation.ecLevel) : null;
+
+  // --- Scoring logic ---
+
+  // 1. Overwatering score
+  let overwaterScore = 0;
+  if (weight > wetTarget * 0.95) {
+    overwaterScore += 40;
+  }
+  if (dryback < 20) {
+    overwaterScore += 30;
+  }
+  if (moisture !== null && moisture > 80) {
+    overwaterScore += 30;
+  }
+  overwaterScore = Math.min(100, overwaterScore);
+
+  // 2. Drought stress
+  let droughtScore = 0;
+  if (dryback > 80) {
+    droughtScore += 50;
+  }
+  if (weight < dryTarget * 0.9) {
+    droughtScore += 30;
+  }
+  if (moisture !== null && moisture < 40) {
+    droughtScore += 20;
+  }
+  droughtScore = Math.min(100, droughtScore);
+
+  // 3. Nutrient deficiency (simple EC-based)
+  let nutrientScore = 0;
+  if (ec !== null) {
+    if (ec < 0.8) {
+      nutrientScore += 70;
+    } else if (ec < 1.2) {
+      nutrientScore += 30;
+    }
+  } else {
+    nutrientScore = 0; // unknown
+  }
+
+  // 4. Light stress (VPD high + low moisture)
+  let lightStressScore = 0;
+  if (vpd > 1.5) {
+    lightStressScore += 50;
+  }
+  if (moisture !== null && moisture < 50) {
+    lightStressScore += 30;
+  }
+  if (dryback > 70) {
+    lightStressScore += 20;
+  }
+  lightStressScore = Math.min(100, lightStressScore);
+
+  // Normalize scores to sum to 100
+  const total = overwaterScore + droughtScore + nutrientScore + lightStressScore;
+  if (total === 0) {
+    return {
+      overwater: 0,
+      drought: 0,
+      nutrient: 0,
+      lightStress: 0,
+      recommendation: "All systems optimal.",
+    };
+  }
+
+  // Weighted scores (percentage of total)
+  const normalize = (score: number) => Math.round((score / total) * 100);
+
+  return {
+    overwater: normalize(overwaterScore),
+    drought: normalize(droughtScore),
+    nutrient: normalize(nutrientScore),
+    lightStress: normalize(lightStressScore),
+    recommendation: getDiagnosticRecommendation(overwaterScore, droughtScore, nutrientScore, lightStressScore),
+  };
+}
+
+function getDiagnosticRecommendation(overwater: number, drought: number, nutrient: number, light: number): string {
+  const max = Math.max(overwater, drought, nutrient, light);
+  if (max === 0) return "All systems optimal.";
+  if (max === overwater) return "Reduce irrigation frequency. Allow more dryback.";
+  if (max === drought) return "Increase irrigation. Monitor moisture levels.";
+  if (max === nutrient) return "Check EC. Adjust nutrient strength.";
+  if (max === light) return "Reduce light intensity or increase humidity.";
+  return "Monitor closely.";
+}

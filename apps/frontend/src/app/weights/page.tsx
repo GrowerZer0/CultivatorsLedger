@@ -41,7 +41,8 @@ import {
   logIrrigation,
   getWaterUseData,
   getTrendInsights,
-  getRecoveryStatus
+  getRecoveryStatus,
+  getDiagnostics,
 } from '@/app/actions';
 
 // --------------------------------------------
@@ -104,6 +105,8 @@ export default function WeightsPage() {
   const [trendInsights, setTrendInsights] = useState<any>(null);
   const [recoveryStatus, setRecoveryStatus] = useState<any>(null);
   const [recoveryLoading, setRecoveryLoading] = useState(false);
+  const [diagnostics, setDiagnostics] = useState<any>(null);
+  const [diagnosticsLoading, setDiagnosticsLoading] = useState(false);
 
   // Inputs
   const [containerGallons, setContainerGallons] = useState(5);
@@ -162,6 +165,11 @@ const loadData = useCallback(async () => {
     const recovery = await getRecoveryStatus(selectedBatchId || undefined, selectedPlantId || undefined);
     setRecoveryStatus(recovery);
     setRecoveryLoading(false);
+
+    setDiagnosticsLoading(true);
+    const diag = await getDiagnostics(selectedBatchId || undefined, selectedPlantId || undefined);
+    setDiagnostics(diag);
+    setDiagnosticsLoading(false);
 
   } catch (err) {
     console.error('Failed to load weights data:', err);
@@ -570,6 +578,48 @@ useEffect(() => {
               }`}>
                 Phase {recoveryStatus.phase}
               </span>
+            </div>
+          </div>
+        )}
+
+        {/* Diagnostic Engine */}
+        {diagnostics && !diagnostics.error && (
+          <div className="mt-4 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 shadow-xl">
+            <h4 className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-3">Diagnostic Engine</h4>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-700 dark:text-zinc-300">💧 Overwatered</span>
+                <span className="text-sm font-bold text-blue-600 dark:text-blue-400">{diagnostics.overwater}%</span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2">
+                <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${diagnostics.overwater}%` }} />
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-700 dark:text-zinc-300">🏜️ Drought</span>
+                <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{diagnostics.drought}%</span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2">
+                <div className="bg-amber-500 h-2 rounded-full" style={{ width: `${diagnostics.drought}%` }} />
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-700 dark:text-zinc-300">🧪 Nutrient Deficiency</span>
+                <span className="text-sm font-bold text-purple-600 dark:text-purple-400">{diagnostics.nutrient}%</span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2">
+                <div className="bg-purple-500 h-2 rounded-full" style={{ width: `${diagnostics.nutrient}%` }} />
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-700 dark:text-zinc-300">☀️ Light Stress</span>
+                <span className="text-sm font-bold text-yellow-600 dark:text-yellow-400">{diagnostics.lightStress}%</span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-zinc-700 rounded-full h-2">
+                <div className="bg-yellow-500 h-2 rounded-full" style={{ width: `${diagnostics.lightStress}%` }} />
+              </div>
+              <div className="mt-3 p-3 bg-gray-50 dark:bg-zinc-800/50 rounded-xl border border-gray-200 dark:border-zinc-700">
+                <p className="text-xs font-medium text-gray-800 dark:text-zinc-200">
+                  💡 {diagnostics.recommendation}
+                </p>
+              </div>
             </div>
           </div>
         )}
