@@ -156,7 +156,7 @@ export async function POST(req: Request) {
 
     // 3. Fire content request with the full multi-part payload intact
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-1.5-flash",
       contents: [...formattedHistory, { role: "user", parts: latestParts }],
       config: {
         systemInstruction: synthesizeSystemInstruction(context),
@@ -167,6 +167,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ text: response.text });
   } catch (error) {
     console.error("Gemini Edge Route Error:", error);
-    return NextResponse.json({ error: "Failed to communicate with cultivation AI node" }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "AI service unavailable" }, { status: 500 });
   }
 }
