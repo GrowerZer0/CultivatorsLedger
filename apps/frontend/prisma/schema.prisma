@@ -195,7 +195,7 @@ model Plant {
   batch          Batch?       @relation(fields: [batchId], references: [id], onDelete: Cascade)
   userId         String       @map("user_id")
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  startDate      DateTime     @default(now())
+  startDate      DateTime     @default(now()) @map("start_date")
   wetWeight      Decimal?     @map("wet_weight") @db.Decimal(5, 2)
   dryTarget      Decimal?     @map("dry_target") @db.Decimal(5, 2)
   currentWeight  Decimal?     @map("current_weight") @db.Decimal(5, 2)
