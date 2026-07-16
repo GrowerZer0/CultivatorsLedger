@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Plus,
   Upload,
@@ -109,6 +109,8 @@ export default function EnvironmentPage() {
     recognition.start();
   };
 
+    const hasLoaded = useRef(false);
+
   // --- DATA FETCH ---
 const loadData = useCallback(async (skipLoading = false) => {
   try {
@@ -155,6 +157,8 @@ const loadData = useCallback(async (skipLoading = false) => {
 }, [setData]);
 
   useEffect(() => {
+    if (hasLoaded.current) return;
+    hasLoaded.current = true;
     loadData();
   }, [loadData]);
 
