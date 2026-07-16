@@ -40,7 +40,8 @@ import {
   updatePlant,
   logIrrigation,
   getWaterUseData,
-  getTrendInsights
+  getTrendInsights,
+  getRecoveryStatus
 } from '@/app/actions';
 
 // --------------------------------------------
@@ -101,7 +102,9 @@ export default function WeightsPage() {
   const [waterUseData, setWaterUseData] = useState<any>(null);
   const [waterUseLoading, setWaterUseLoading] = useState(false);
   const [trendInsights, setTrendInsights] = useState<any>(null);
-  
+  const [recoveryStatus, setRecoveryStatus] = useState<any>(null);
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
+
   // Inputs
   const [containerGallons, setContainerGallons] = useState(5);
   const [wetWeight, setWetWeight] = useState(18.4);
@@ -154,12 +157,18 @@ const loadData = useCallback(async () => {
     // Fetch trend insights
     const insights = await getTrendInsights(selectedBatchId || undefined, selectedPlantId || undefined);
     setTrendInsights(insights);
+    
+    setRecoveryLoading(true);
+    const recovery = await getRecoveryStatus(selectedBatchId || undefined, selectedPlantId || undefined);
+    setRecoveryStatus(recovery);
+    setRecoveryLoading(false);
 
   } catch (err) {
     console.error('Failed to load weights data:', err);
   } finally {
     setLoading(false);
     setWaterUseLoading(false);
+    setRecoveryLoading(false);
   }
 }, [selectedBatchId, selectedPlantId]);
 
@@ -314,24 +323,24 @@ useEffect(() => {
 >
   Edit Targets
 </button>
-{/* Plant Selector */}
-{plants.length > 0 && (
-  <div className="flex items-center gap-2">
-    <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Plant:</span>
-    <select
-      value={selectedPlantId || ''}
-      onChange={(e) => setSelectedPlantId(e.target.value || null)}
-      className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500"
-    >
-      <option value="">-- Select --</option>
-      {plants.map((p) => (
-        <option key={p.id} value={p.id}>
-          {p.name}
-        </option>
-      ))}
-    </select>
-  </div>
-)}
+  {/* Plant Selector */}
+  {plants.length > 0 && (
+    <div className="flex items-center gap-2">
+      <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Plant:</span>
+      <select
+        value={selectedPlantId || ''}
+        onChange={(e) => setSelectedPlantId(e.target.value || null)}
+        className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500"
+      >
+        <option value="">-- Select --</option>
+        {plants.map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.name}
+          </option>
+        ))}
+      </select>
+    </div>
+  )}
 <button
   onClick={() => {
     setEditingPlant(null);
@@ -482,6 +491,89 @@ useEffect(() => {
 </button>
         </div>
 
+        {/* Water Use Stats */}
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 shadow-xl">
+            <p className="text-xs text-gray-500 dark:text-zinc-400">Daily Water Use</p>
+            {waterUseLoading ? (
+              <p className="text-sm text-gray-400 animate-pulse">Calculating...</p>
+            ) : waterUseData ? (
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {waterUseData.dailyWaterUse} lbs/day
+              </p>
+            ) : (
+              <p className="text-sm text-gray-500">Log more data</p>
+            )}
+          </div>
+          <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 shadow-xl">
+            <p className="text-xs text-gray-500 dark:text-zinc-400">Projected Irrigation</p>
+            {waterUseLoading ? (
+              <p className="text-sm text-gray-400 animate-pulse">Calculating...</p>
+            ) : waterUseData ? (
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {Math.round(waterUseData.hoursUntilIrrigation)} hrs
+              </p>
+            ) : (
+              <p className="text-sm text-gray-500">Log more data</p>
+            )}
+          </div>
+        </div>
+
+        {/* Trend Insights */}
+        {trendInsights && (trendInsights.drybackSpeed || trendInsights.uptakeTrend) && (
+          <div className="mt-4 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 shadow-xl">
+            <h4 className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Crop Steering Insights</h4>
+            <div className="space-y-2 text-sm">
+              {trendInsights.drybackSpeed && (
+                <p className="text-gray-800 dark:text-zinc-200">
+                  {trendInsights.drybackSpeed.direction === 'faster' && '🔽 Drying '}
+                  {trendInsights.drybackSpeed.direction === 'slower' && '🔼 Drying '}
+                  {trendInsights.drybackSpeed.direction === 'stable' && '➖ Drying at '}
+                  {trendInsights.drybackSpeed.pct !== 0 && `${Math.abs(trendInsights.drybackSpeed.pct)}% `}
+                  {trendInsights.drybackSpeed.direction === 'faster' && 'faster than the last 5 irrigations'}
+                  {trendInsights.drybackSpeed.direction === 'slower' && 'slower than the last 5 irrigations'}
+                  {trendInsights.drybackSpeed.direction === 'stable' && 'at the same rate as the last 5 irrigations'}
+                </p>
+              )}
+              {trendInsights.uptakeTrend && (
+                <p className="text-gray-800 dark:text-zinc-200">
+                  {trendInsights.uptakeTrend.direction === 'increasing' && '📈 Daily water uptake increased '}
+                  {trendInsights.uptakeTrend.direction === 'decreasing' && '📉 Daily water uptake decreased '}
+                  {trendInsights.uptakeTrend.direction === 'stable' && '➖ Daily water uptake stable '}
+                  {trendInsights.uptakeTrend.pct !== 0 && `${Math.abs(trendInsights.uptakeTrend.pct)}% `}
+                  {trendInsights.uptakeTrend.direction === 'increasing' && '– root expansion likely'}
+                  {trendInsights.uptakeTrend.direction === 'decreasing' && '– possible stress or slowing growth'}
+                  {trendInsights.uptakeTrend.direction === 'stable' && '– maintaining'}
+                </p>
+              )}
+            </div>
+          </div>
+            )}
+
+        {/* Recovery Status */}
+        {recoveryStatus && recoveryStatus.phase > 0 && (
+          <div className="mt-4 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 shadow-xl">
+            <h4 className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Recovery Status</h4>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  Phase {recoveryStatus.phase}: {recoveryStatus.status}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">{recoveryStatus.recommendation}</p>
+              </div>
+              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                recoveryStatus.phase === 1 ? 'bg-red-500/20 text-red-500' :
+                recoveryStatus.phase === 2 ? 'bg-yellow-500/20 text-yellow-500' :
+                recoveryStatus.phase === 3 ? 'bg-blue-500/20 text-blue-500' :
+                recoveryStatus.phase === 4 ? 'bg-green-500/20 text-green-500' :
+                'bg-gray-500/20 text-gray-500'
+              }`}>
+                Phase {recoveryStatus.phase}
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Dry‑Back Trend Chart */}
         <div className="mt-6 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 shadow-xl">
           <div className="flex justify-between items-center mb-3">
@@ -517,64 +609,6 @@ useEffect(() => {
             </ResponsiveContainer>
           </div>
         </div>
-{/* Water Use Stats */}
-<div className="mt-6 grid gap-4 sm:grid-cols-2">
-  <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 shadow-xl">
-    <p className="text-xs text-gray-500 dark:text-zinc-400">Daily Water Use</p>
-    {waterUseLoading ? (
-      <p className="text-sm text-gray-400 animate-pulse">Calculating...</p>
-    ) : waterUseData ? (
-      <p className="text-2xl font-bold text-gray-900 dark:text-white">
-        {waterUseData.dailyWaterUse} lbs/day
-      </p>
-    ) : (
-      <p className="text-sm text-gray-500">Log more data</p>
-    )}
-  </div>
-  <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 shadow-xl">
-    <p className="text-xs text-gray-500 dark:text-zinc-400">Projected Irrigation</p>
-    {waterUseLoading ? (
-      <p className="text-sm text-gray-400 animate-pulse">Calculating...</p>
-    ) : waterUseData ? (
-      <p className="text-2xl font-bold text-gray-900 dark:text-white">
-        {Math.round(waterUseData.hoursUntilIrrigation)} hrs
-      </p>
-    ) : (
-      <p className="text-sm text-gray-500">Log more data</p>
-    )}
-  </div>
-</div>
-
-{/* Trend Insights */}
-{trendInsights && (trendInsights.drybackSpeed || trendInsights.uptakeTrend) && (
-  <div className="mt-4 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 shadow-xl">
-    <h4 className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Crop Steering Insights</h4>
-    <div className="space-y-2 text-sm">
-      {trendInsights.drybackSpeed && (
-        <p className="text-gray-800 dark:text-zinc-200">
-          {trendInsights.drybackSpeed.direction === 'faster' && '🔽 Drying '}
-          {trendInsights.drybackSpeed.direction === 'slower' && '🔼 Drying '}
-          {trendInsights.drybackSpeed.direction === 'stable' && '➖ Drying at '}
-          {trendInsights.drybackSpeed.pct !== 0 && `${Math.abs(trendInsights.drybackSpeed.pct)}% `}
-          {trendInsights.drybackSpeed.direction === 'faster' && 'faster than the last 5 irrigations'}
-          {trendInsights.drybackSpeed.direction === 'slower' && 'slower than the last 5 irrigations'}
-          {trendInsights.drybackSpeed.direction === 'stable' && 'at the same rate as the last 5 irrigations'}
-        </p>
-      )}
-      {trendInsights.uptakeTrend && (
-        <p className="text-gray-800 dark:text-zinc-200">
-          {trendInsights.uptakeTrend.direction === 'increasing' && '📈 Daily water uptake increased '}
-          {trendInsights.uptakeTrend.direction === 'decreasing' && '📉 Daily water uptake decreased '}
-          {trendInsights.uptakeTrend.direction === 'stable' && '➖ Daily water uptake stable '}
-          {trendInsights.uptakeTrend.pct !== 0 && `${Math.abs(trendInsights.uptakeTrend.pct)}% `}
-          {trendInsights.uptakeTrend.direction === 'increasing' && '– root expansion likely'}
-          {trendInsights.uptakeTrend.direction === 'decreasing' && '– possible stress or slowing growth'}
-          {trendInsights.uptakeTrend.direction === 'stable' && '– maintaining'}
-        </p>
-      )}
-    </div>
-  </div>
-)}
 
         {/* New Batch Modal */}
         {showNewBatchModal && (

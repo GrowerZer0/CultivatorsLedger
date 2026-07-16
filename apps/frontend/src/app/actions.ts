@@ -742,3 +742,72 @@ export async function getTrendInsights(batchId?: string, plantId?: string) {
 
   return { drybackSpeed, uptakeTrend };
 }
+
+export async function getRecoveryStatus(batchId?: string, plantId?: string) {
+  const userId = await getUserId();
+
+  // Fetch last 14 days of dry-back logs
+  const logs = await db.dryBackLog.findMany({
+    where: {
+      userId,
+      ...(batchId ? { batchId } : {}),
+      ...(plantId ? { plantId } : {}),
+      timestamp: { gte: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) },
+    },
+    orderBy: { timestamp: "asc" },
+  });
+
+  if (logs.length < 3) {
+    return {
+      phase: 0,
+      status: 'Insufficient data',
+      recommendation: 'Log more dry-back readings to track recovery.',
+    };
+  }
+
+  // Extract weights and dates
+  const weights = logs.map(l => Number(l.currentWeightLbs));
+  const timestamps = logs.map(l => new Date(l.timestamp));
+
+  // Detect trends: is weight decreasing, increasing, or stable?
+  const first = weights[0];
+  const last = weights[weights.length - 1];
+  const change = last - first;
+  const percentChange = (change / first) * 100;
+
+  // Simple trend detection
+  let phase = 0;
+  let status = '';
+  let recommendation = '';
+
+  if (percentChange < -15) {
+    // Significant weight drop – drought stress or active dryback
+    phase = 1;
+    status = '🔴 Drought stress detected';
+    recommendation = 'Increase irrigation frequency. Monitor for recovery in 24h.';
+  } else if (percentChange > 5 && logs.length > 5) {
+    // Weight increasing – potential overwatering or recovery
+    const recentTrend = weights.slice(-3);
+    if (recentTrend.every((w, i) => i === 0 || w >= recentTrend[i-1])) {
+      phase = 2;
+      status = '⚠️ Overwatering risk';
+      recommendation = 'Reduce irrigation volume. Allow longer dryback between feeds.';
+    } else {
+      phase = 3;
+      status = '📈 Recovery phase';
+      recommendation = 'Continue current irrigation plan. Monitor daily uptake.';
+    }
+  } else if (percentChange > -5 && percentChange < 5) {
+    // Stable weight – likely normal growth or maintenance
+    phase = 4;
+    status = '✅ Stable growth';
+    recommendation = 'Maintain current irrigation plan.';
+  } else {
+    // Slow dryback – possibly mild stress
+    phase = 5;
+    status = '🔄 Moderate dryback';
+    recommendation = 'Continue monitoring. Adjust irrigation if weight drops below target.';
+  }
+
+  return { phase, status, recommendation };
+}
