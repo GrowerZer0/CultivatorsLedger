@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { TelemetryProvider } from "@/lib/telemetry-context";
 
 export const metadata: Metadata = {
   title: "Cultivator's Ledger",
@@ -16,7 +17,9 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="antialiased min-h-screen bg-[#f6f8f4] text-graphite dark:bg-zinc-950 dark:text-zinc-100 transition-colors duration-200">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {children}
+          <TelemetryProvider>
+            {children}
+          </TelemetryProvider>
         </ThemeProvider>
       </body>
     </html>

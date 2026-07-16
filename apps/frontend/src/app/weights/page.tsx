@@ -558,30 +558,6 @@ useEffect(() => {
           </div>
             )}
 
-        {/* Recovery Status */}
-        {recoveryStatus && recoveryStatus.phase > 0 && (
-          <div className="mt-4 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 shadow-xl">
-            <h4 className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Recovery Status</h4>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  Phase {recoveryStatus.phase}: {recoveryStatus.status}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">{recoveryStatus.recommendation}</p>
-              </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                recoveryStatus.phase === 1 ? 'bg-red-500/20 text-red-500' :
-                recoveryStatus.phase === 2 ? 'bg-yellow-500/20 text-yellow-500' :
-                recoveryStatus.phase === 3 ? 'bg-blue-500/20 text-blue-500' :
-                recoveryStatus.phase === 4 ? 'bg-green-500/20 text-green-500' :
-                'bg-gray-500/20 text-gray-500'
-              }`}>
-                Phase {recoveryStatus.phase}
-              </span>
-            </div>
-          </div>
-        )}
-
         {/* Diagnostic Engine */}
         {diagnostics && !diagnostics.error && (
           <div className="mt-4 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 shadow-xl">
@@ -620,6 +596,30 @@ useEffect(() => {
                   💡 {diagnostics.recommendation}
                 </p>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Recovery Status */}
+        {recoveryStatus && recoveryStatus.phase > 0 && (
+          <div className="mt-4 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 shadow-xl">
+            <h4 className="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Recovery Status</h4>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  Phase {recoveryStatus.phase}: {recoveryStatus.status}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">{recoveryStatus.recommendation}</p>
+              </div>
+              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                recoveryStatus.phase === 1 ? 'bg-red-500/20 text-red-500' :
+                recoveryStatus.phase === 2 ? 'bg-yellow-500/20 text-yellow-500' :
+                recoveryStatus.phase === 3 ? 'bg-blue-500/20 text-blue-500' :
+                recoveryStatus.phase === 4 ? 'bg-green-500/20 text-green-500' :
+                'bg-gray-500/20 text-gray-500'
+              }`}>
+                Phase {recoveryStatus.phase}
+              </span>
             </div>
           </div>
         )}
@@ -722,153 +722,153 @@ useEffect(() => {
         )}
 
         {/* Edit Batch Targets Modal */}
-{editingBatchTargets && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-    <div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
-      <h2 className="text-lg font-bold text-white mb-4">Set Weight Targets</h2>
-      <div className="space-y-3">
-        <div>
-          <label className="block text-xs font-bold text-zinc-400 mb-1">
-            Target Saturated Weight (lbs)
-          </label>
-          <input
-            type="number"
-            step="0.05"
-            value={editWetWeight}
-            onChange={(e) => setEditWetWeight(parseFloat(e.target.value))}
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-bold text-zinc-400 mb-1">
-            Target Dry Weight (lbs)
-          </label>
-          <input
-            type="number"
-            step="0.05"
-            value={editDryTarget}
-            onChange={(e) => setEditDryTarget(parseFloat(e.target.value))}
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
-          />
-        </div>
-        <div className="flex gap-3 pt-2">
-          <button
-            onClick={() => setEditingBatchTargets(false)}
-            className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm font-bold text-zinc-300 hover:bg-zinc-800 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={saveBatchTargets}
-            className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500 transition-all"
-          >
-            Save
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+        {editingBatchTargets && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+            <div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+              <h2 className="text-lg font-bold text-white mb-4">Set Weight Targets</h2>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 mb-1">
+                    Target Saturated Weight (lbs)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.05"
+                    value={editWetWeight}
+                    onChange={(e) => setEditWetWeight(parseFloat(e.target.value))}
+                    className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 mb-1">
+                    Target Dry Weight (lbs)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.05"
+                    value={editDryTarget}
+                    onChange={(e) => setEditDryTarget(parseFloat(e.target.value))}
+                    className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => setEditingBatchTargets(false)}
+                    className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm font-bold text-zinc-300 hover:bg-zinc-800 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveBatchTargets}
+                    className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500 transition-all"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
-{/* Plant Management Modal */}
-{showPlantModal && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-    <div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-bold text-white">
-          {editingPlant ? 'Edit Plant' : 'Add New Plant'}
-        </h2>
-        <button
-          onClick={() => setShowPlantModal(false)}
-          className="text-zinc-400 hover:text-white transition-colors"
-        >
-          ✕
+        {/* Plant Management Modal */}
+        {showPlantModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+            <div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-bold text-white">
+                  {editingPlant ? 'Edit Plant' : 'Add New Plant'}
+                </h2>
+                <button
+                  onClick={() => setShowPlantModal(false)}
+                  className="text-zinc-400 hover:text-white transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 mb-1">Plant Name (Cultivar)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., Blueberry Muffin #2"
+                    value={newPlantName}
+                    onChange={(e) => setNewPlantName(e.target.value)}
+                    className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 mb-1">Target Saturated Weight (lbs)</label>
+                  <input
+                    type="number"
+                    step="0.05"
+                    placeholder="18.4"
+                    value={newPlantWet}
+                    onChange={(e) => setNewPlantWet(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                    className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 mb-1">Target Dry Weight (lbs)</label>
+                  <input
+                    type="number"
+                    step="0.05"
+                    placeholder="13.2"
+                    value={newPlantDry}
+                    onChange={(e) => setNewPlantDry(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                    className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4 mt-2 border-t border-zinc-800">
+                <button
+                  onClick={() => setShowPlantModal(false)}
+                  className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm font-bold text-zinc-300 hover:bg-zinc-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!selectedBatchId) {
+                      alert('Please select a batch first.');
+                      return;
+                    }
+                    if (!newPlantName.trim()) {
+                      alert('Please enter a plant name');
+                      return;
+                    }
+                    try {
+                      if (editingPlant) {
+                        await updatePlant({
+                          id: editingPlant.id,
+                          name: newPlantName,
+                          wetWeight: newPlantWet !== '' ? newPlantWet : null,
+                          dryTarget: newPlantDry !== '' ? newPlantDry : null,
+                        });
+                      } else {
+                        await createPlant({
+                          batchId: selectedBatchId,
+                          name: newPlantName,
+                          wetWeight: newPlantWet !== '' ? newPlantWet : undefined,
+                          dryTarget: newPlantDry !== '' ? newPlantDry : undefined,
+                        });
+                      }
+                      setShowPlantModal(false);
+                      loadPlants();
+                    } catch (err) {
+                      console.error('Plant save error:', err);
+                      alert('Failed to save plant: ' + (err instanceof Error ? err.message : 'unknown error'));
+                    }
+                  }}
+                  className="..."
+                >
+          {editingPlant ? 'Update' : 'Create'}
         </button>
-      </div>
-
-      <div className="space-y-3">
-        <div>
-          <label className="block text-xs font-bold text-zinc-400 mb-1">Plant Name (Cultivar)</label>
-          <input
-            type="text"
-            placeholder="e.g., Blueberry Muffin #2"
-            value={newPlantName}
-            onChange={(e) => setNewPlantName(e.target.value)}
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-bold text-zinc-400 mb-1">Target Saturated Weight (lbs)</label>
-          <input
-            type="number"
-            step="0.05"
-            placeholder="18.4"
-            value={newPlantWet}
-            onChange={(e) => setNewPlantWet(e.target.value === '' ? '' : parseFloat(e.target.value))}
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-bold text-zinc-400 mb-1">Target Dry Weight (lbs)</label>
-          <input
-            type="number"
-            step="0.05"
-            placeholder="13.2"
-            value={newPlantDry}
-            onChange={(e) => setNewPlantDry(e.target.value === '' ? '' : parseFloat(e.target.value))}
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
-          />
-        </div>
-      </div>
-
-      <div className="flex gap-3 pt-4 mt-2 border-t border-zinc-800">
-        <button
-          onClick={() => setShowPlantModal(false)}
-          className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm font-bold text-zinc-300 hover:bg-zinc-800 transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={async () => {
-            if (!selectedBatchId) {
-              alert('Please select a batch first.');
-              return;
-            }
-            if (!newPlantName.trim()) {
-              alert('Please enter a plant name');
-              return;
-            }
-            try {
-              if (editingPlant) {
-                await updatePlant({
-                  id: editingPlant.id,
-                  name: newPlantName,
-                  wetWeight: newPlantWet !== '' ? newPlantWet : null,
-                  dryTarget: newPlantDry !== '' ? newPlantDry : null,
-                });
-              } else {
-                await createPlant({
-                  batchId: selectedBatchId,
-                  name: newPlantName,
-                  wetWeight: newPlantWet !== '' ? newPlantWet : undefined,
-                  dryTarget: newPlantDry !== '' ? newPlantDry : undefined,
-                });
-              }
-              setShowPlantModal(false);
-              loadPlants();
-            } catch (err) {
-              console.error('Plant save error:', err);
-              alert('Failed to save plant: ' + (err instanceof Error ? err.message : 'unknown error'));
-            }
-          }}
-          className="..."
-        >
-  {editingPlant ? 'Update' : 'Create'}
-</button>
-      </div>
-    </div>
-  </div>
-)}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AppShell>
   );

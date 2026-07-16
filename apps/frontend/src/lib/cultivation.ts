@@ -49,7 +49,6 @@ export type EnvironmentReading = {
   temperatureF: number;
   humidity: number;
   vpd: number;
-  lightPpfd?: number;
 };
 
 // 2. CROP PHASE TARGET DATA MAPS (Restored & Enhanced)

@@ -6,7 +6,6 @@ export const controllerReadingSchema = z.object({
   humidity: z.number().min(0).max(100),
   vpd: z.number().min(0),
   co2Ppm: z.number().optional(),
-  lightPpfd: z.number().optional(),
   recordedAt: z.string().datetime().optional()
 });
 

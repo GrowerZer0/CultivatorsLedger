@@ -7,6 +7,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { useTelemetry } from "@/lib/telemetry-context";
+import AIChatWidget from "@/components/AIChatWidget";
 
 type AppShellProps = {
   children: ReactNode;
@@ -15,6 +17,7 @@ type AppShellProps = {
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { data } = useTelemetry();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -29,9 +32,9 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <main className="min-h-screen bg-[#f6f8f4] dark:bg-zinc-950 text-graphite dark:text-zinc-100 transition-colors duration-200">
+      {/* Header */}
       <header className="border-b border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 transition-colors duration-200 sticky top-0 z-40">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          
           {/* Brand Logo (left) */}
           <Link href="/" className="flex items-center gap-3 group">
             <div className="grid size-10 place-items-center rounded-md bg-canopy text-white">
@@ -47,7 +50,7 @@ export function AppShell({ children }: AppShellProps) {
             </div>
           </Link>
 
-          {/* Hamburger (right) – only element */}
+          {/* Hamburger (right) */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="grid size-10 place-items-center rounded-md border border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800"
@@ -65,7 +68,6 @@ export function AppShell({ children }: AppShellProps) {
             className="absolute top-[73px] left-0 right-0 border-b border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 flex flex-col gap-2 shadow-lg animate-in slide-in-from-top-2 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Tabs */}
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = pathname === tab.href;
@@ -86,16 +88,13 @@ export function AppShell({ children }: AppShellProps) {
               );
             })}
 
-            {/* Separator */}
             <div className="border-t border-[#d9e2dc] dark:border-zinc-800 my-2" />
 
-            {/* Theme */}
             <div className="flex items-center justify-between px-4 py-3">
               <span className="text-base font-medium text-zinc-600 dark:text-zinc-400">Theme</span>
               <ThemeToggle />
             </div>
 
-            {/* Settings */}
             <Link
               href="/settings"
               onClick={() => setMobileMenuOpen(false)}
@@ -105,7 +104,6 @@ export function AppShell({ children }: AppShellProps) {
               <span>Settings</span>
             </Link>
 
-            {/* Logout */}
             <button
               onClick={handleLogout}
               className="flex items-center gap-3 rounded-md px-4 py-3 text-base font-medium text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800/50 w-full transition-colors"
@@ -117,9 +115,23 @@ export function AppShell({ children }: AppShellProps) {
         </div>
       )}
 
+      {/* Main content */}
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         {children}
       </div>
+
+      {/* AI Grow Coach – always visible, floating */}
+      <AIChatWidget
+        activeDryBack={data.activeDryBack || { dryBackPercent: 0, estimatedHoursUntilWater: 0, poundsUntilIrrigation: 0 }}
+        reservoirDelta={data.reservoirDelta || { topOffGallons: 0, waterPercentToAdd: 0, nutrientsToAdd: [] }}
+        latestEnvironment={data.latestEnvironment}
+        latestRunoffEc={data.latestRunoffEc}
+        activeSchedule={data.activeSchedule || { doses: [] }}
+        leftoverGallons={data.leftoverGallons || 0}
+        dailyWaterUse={data.dailyWaterUse}
+        trendInsights={data.trendInsights}
+        recoveryStatus={data.recoveryStatus}
+      />
     </main>
   );
 }

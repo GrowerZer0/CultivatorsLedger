@@ -14,11 +14,34 @@ interface AIChatWidgetProps {
     estimatedHoursUntilWater: number;
     poundsUntilIrrigation: number;
   };
-  reservoirDelta: ReservoirDelta;
-  latestEnvironment?: EnvironmentReading;
-  latestRunoffEc?: number;
-  activeSchedule: FeedSchedule;
+  reservoirDelta: {
+    topOffGallons: number;
+    waterPercentToAdd: number;
+    nutrientsToAdd: { product: string; mlPerGallon: number; totalMl: number }[];
+    adjustedTopOffEc?: number;      // optional
+    alerts?: string[];              // optional
+    isCriticalClamp?: boolean;      // optional
+  };
+  latestEnvironment?: {
+    temperatureF: number;
+    humidity: number;
+    vpd: number;
+    id?: string;
+    recordedAt?: string;
+  };
+  latestRunoffEc?: number | null;
+  activeSchedule: { doses: { product: string; mlPerGallon: number }[] };
   leftoverGallons: number;
+  dailyWaterUse?: number;
+  trendInsights?: {
+    drybackSpeed: { pct: number; direction: string } | null;
+    uptakeTrend: { pct: number; direction: string } | null;
+  } | null;
+  recoveryStatus?: {
+    phase: number;
+    status: string;
+    recommendation: string;
+  } | null;
 }
 
 type BuddyMessage = {
@@ -59,7 +82,10 @@ export default function AIChatWidget({
   latestEnvironment,
   latestRunoffEc,
   activeSchedule,
-  leftoverGallons
+  leftoverGallons,
+  dailyWaterUse,
+  trendInsights,
+  recoveryStatus
 }: AIChatWidgetProps) {
   const [buddyMessages, setBuddyMessages] = useState<BuddyMessage[]>([
     {
@@ -76,25 +102,36 @@ export default function AIChatWidget({
   const contextSummary = useMemo(() => {
     const climate = latestEnvironment
       ? `${latestEnvironment.temperatureF.toFixed(1)} F, ${latestEnvironment.humidity}% RH, ${latestEnvironment.vpd.toFixed(2)} VPD${
-          latestEnvironment.lightPpfd ? `, ${latestEnvironment.lightPpfd} PPFD` : ""
+          latestEnvironment.id ? '': ''}
         }`
       : "No recent environment reading is synced";
 
-    const runoff = latestRunoffEc !== undefined ? `${latestRunoffEc.toFixed(2)} EC` : "No runoff EC logged";
+    const runoff = latestRunoffEc !== null && latestRunoffEc !== undefined ? `${latestRunoffEc.toFixed(2)} EC` : "No runoff EC logged";
     const doseList = reservoirDelta.nutrientsToAdd
       .map((dose) => `${dose.product}: ${dose.totalMl} ml`)
       .join(", ");
+  const waterUse = dailyWaterUse !== undefined ? `${dailyWaterUse} lbs/day` : 'Not enough data';
+  const trend = trendInsights ? 
+    `Dryback speed: ${trendInsights.drybackSpeed ? trendInsights.drybackSpeed.direction : 'stable'} (${trendInsights.drybackSpeed ? Math.abs(trendInsights.drybackSpeed.pct) : 0}%). ` +
+    `Uptake: ${trendInsights.uptakeTrend ? trendInsights.uptakeTrend.direction : 'stable'} (${trendInsights.uptakeTrend ? Math.abs(trendInsights.uptakeTrend.pct) : 0}%)` :
+    'No trend data yet';
+  const recovery = recoveryStatus ? 
+    `Phase ${recoveryStatus.phase}: ${recoveryStatus.status}. ${recoveryStatus.recommendation}` :
+    'No recovery status';
 
-    return {
+  return {
       climate,
       runoff,
       doseList: doseList || "No nutrients currently listed",
       dryBack: `${activeDryBack.dryBackPercent.toFixed(1)}% dry-back, ${activeDryBack.poundsUntilIrrigation.toFixed(
         1
       )} lb until irrigation target, about ${activeDryBack.estimatedHoursUntilWater} hr remaining`,
+      waterUse,
+      trend,
+      recovery,
       reservoir: `${reservoirDelta.topOffGallons} gal top-off, ${reservoirDelta.waterPercentToAdd}% of the tank, ${leftoverGallons} gal leftover`
     };
-  }, [activeDryBack, activeSchedule, latestEnvironment, latestRunoffEc, leftoverGallons, reservoirDelta]);
+  }, [activeDryBack, activeSchedule, latestEnvironment, latestRunoffEc, leftoverGallons, reservoirDelta, dailyWaterUse, trendInsights, recoveryStatus]);
 
   /**
    * FORM SUBMISSION HANDLER
@@ -161,7 +198,17 @@ export default function AIChatWidget({
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ history, context }),
+        body: JSON.stringify({ history, 
+          context: {
+            activeDryBack,
+            reservoirDelta,
+            latestEnvironment,
+            latestRunoffEc,
+            dailyWaterUse,
+            trendInsights,
+            recoveryStatus,
+          }
+        }),
       });
 
       if (!response.ok) throw new Error("Cultivation node offline");

@@ -35,6 +35,7 @@ import Link from 'next/link';
 import {
   type EnvironmentReading,
   type DryBackLog,
+  calculateDryBack,
 } from '@/lib/cultivation';
 import {
   getDashboardData,
@@ -42,9 +43,11 @@ import {
   exportAllBatches,
   generateDailyBriefing,
 } from '@/app/actions';
+import {useTelemetry} from '@/lib/telemetry-context';
 
 export default function EnvironmentPage() {
   const { theme, setTheme } = useTheme();
+  const { setData } = useTelemetry();
 
   // --- STATE ---
   const [dbEnvironmentReadings, setDbEnvironmentReadings] = useState<EnvironmentReading[]>([]);
@@ -107,19 +110,49 @@ export default function EnvironmentPage() {
   };
 
   // --- DATA FETCH ---
-  const loadData = useCallback(async (skipLoading = false) => {
-    try {
-      if (!skipLoading) setLoading(true);
-      const data = await getDashboardData();
-      setDbEnvironmentReadings(data.environmentReadings || []);
-      setDbDryBackLogs(data.dryBackLogs || []);
-      setLatestIrrigation(data.latestIrrigation || null);
-    } catch (err) {
-      console.error('Error loading environment data:', err);
-    } finally {
-      if (!skipLoading) setLoading(false);
+const loadData = useCallback(async (skipLoading = false) => {
+  try {
+    if (!skipLoading) setLoading(true);
+    const data = await getDashboardData();
+    setDbEnvironmentReadings(data.environmentReadings || []);
+    setDbDryBackLogs(data.dryBackLogs || []);
+    setLatestIrrigation(data.latestIrrigation || null);
+
+    // Build activeDryBack from the latest log (if any)
+    let activeDryBack = undefined;
+    if (data.dryBackLogs && data.dryBackLogs.length > 0) {
+      const latest = data.dryBackLogs[data.dryBackLogs.length - 1];
+      // Use default container size and targets – these can be overridden later
+      const wet = 18.4;
+      const dry = 13.2;
+      const calc = calculateDryBack({
+        id: 'active',
+        cultivar: 'Environment',
+        containerGallons: 5,
+        wetWeight: wet,
+        dryTarget: dry,
+        weight: Number(latest.weight),
+        loggedAt: new Date().toISOString(),
+      });
+      activeDryBack = {
+        dryBackPercent: calc.dryBackPercent,
+        estimatedHoursUntilWater: calc.estimatedHoursUntilWater,
+        poundsUntilIrrigation: calc.poundsUntilIrrigation,
+      };
     }
-  }, []);
+
+    // Push data to the global telemetry context
+    setData({
+      latestEnvironment: data.environmentReadings?.[data.environmentReadings.length - 1],
+      activeDryBack,
+      latestRunoffEc: data.latestIrrigation?.ec,
+    });
+  } catch (err) {
+    console.error('Error loading environment data:', err);
+  } finally {
+    if (!skipLoading) setLoading(false);
+  }
+}, [setData]);
 
   useEffect(() => {
     loadData();

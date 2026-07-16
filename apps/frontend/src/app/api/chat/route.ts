@@ -36,32 +36,77 @@ const chatRequestSchema = z.object({
       vpd: z.number(),
     }).optional(),
     latestRunoffEc: z.number().optional(),
+        dailyWaterUse: z.number().optional(),
+    trendInsights: z.object({
+      drybackSpeed: z.object({
+        pct: z.number(),
+        direction: z.enum(["faster", "slower", "stable"]),
+      }).nullable(),
+      uptakeTrend: z.object({
+        pct: z.number(),
+        direction: z.enum(["increasing", "decreasing", "stable"]),
+      }).nullable(),
+    }).optional(),
+    recoveryStatus: z.object({
+      phase: z.number(),
+      status: z.string(),
+      recommendation: z.string(),
+    }).optional(),
   }),
 });
 
 function synthesizeSystemInstruction(context: z.infer<typeof chatRequestSchema>["context"]) {
-  const { activeDryBack, reservoirDelta, latestEnvironment, latestRunoffEc } = context;
+  const { activeDryBack, reservoirDelta, latestEnvironment, latestRunoffEc, dailyWaterUse, trendInsights, recoveryStatus, 
+  } = context;
 
   const nutrientsList = reservoirDelta.nutrientsToAdd
     .map((n) => `- ${n.product}: ${n.totalMl}ml (${n.mlPerGallon}ml/gal)`)
     .join("\n");
 
-  return `You are an expert commercial cultivation supervisor monitoring live facility telemetry.
+    // Build insights string
+  let insights = "";
+  if (trendInsights) {
+    if (trendInsights.drybackSpeed) {
+      const dir = trendInsights.drybackSpeed.direction;
+      const pct = Math.abs(trendInsights.drybackSpeed.pct);
+      insights += `- Dryback speed: ${dir}${pct > 0 ? ` (${pct}%)` : ''}\n`;
+    }
+    if (trendInsights.uptakeTrend) {
+      const dir = trendInsights.uptakeTrend.direction;
+      const pct = Math.abs(trendInsights.uptakeTrend.pct);
+      insights += `- Water uptake trend: ${dir}${pct > 0 ? ` (${pct}%)` : ''}\n`;
+    }
+  }
+  if (dailyWaterUse !== undefined) {
+    insights += `- Daily water use: ${dailyWaterUse} lbs/day\n`;
+  }
+  if (recoveryStatus) {
+    insights += `- Recovery phase: ${recoveryStatus.phase} – ${recoveryStatus.status}\n`;
+    insights += `- Recovery recommendation: ${recoveryStatus.recommendation}\n`;
+  }
+
+  return `You are an AI Grow Coach – a cultivation advisor that uses real‑time telemetry to give actionable, concise, and data‑driven recommendations.
 
 CURRENT TELEMETRY CONTEXT:
-- Media Dry-Back: ${activeDryBack.dryBackPercent.toFixed(1)}% (${activeDryBack.poundsUntilIrrigation.toFixed(1)} lbs above target limit).
-- Irrigation Window: Next watering is dynamically projected in ${activeDryBack.estimatedHoursUntilWater} hours.
-- Reservoir Top-Off: Missing volume is exactly ${reservoirDelta.topOffGallons} gallons (${reservoirDelta.waterPercentToAdd}% of total capacity remaining).
-- Nutrients Required for Top-Off Volume:
-${nutrientsList || "- No nutrients listed in active schedule"}
-- Active Climate: ${latestEnvironment ? `${latestEnvironment.temperatureF}°F, ${latestEnvironment.humidity}% RH, ${latestEnvironment.vpd} kPa VPD` : "Sensors offline/No sync data available"}.
-- Last Logged Runoff EC: ${latestRunoffEc ?? "N/A"}.
+- Media Dry‑Back: ${activeDryBack.dryBackPercent.toFixed(1)}% (${activeDryBack.poundsUntilIrrigation.toFixed(1)} lbs above target).
+- Irrigation Window: Next watering projected in ${activeDryBack.estimatedHoursUntilWater} hours.
+- Reservoir Top‑Off: ${reservoirDelta.topOffGallons} gallons (${reservoirDelta.waterPercentToAdd}% of capacity).
+- Nutrients Required:
+${nutrientsList || "- No nutrients listed"}
+- Climate: ${latestEnvironment ? `${latestEnvironment.temperatureF}°F, ${latestEnvironment.humidity}% RH, ${latestEnvironment.vpd} kPa VPD` : "No live data"}.
+- Runoff EC: ${latestRunoffEc !== undefined ? latestRunoffEc : "N/A"}.
+
+${insights ? `ADDITIONAL INSIGHTS:\n${insights}` : ""}
 
 OPERATIONAL RULES:
-1. Provide hyper-specific agricultural advice rooted strictly in these numerical metrics.
-2. If Runoff EC is elevated (> 2.5), cross-reference with the active top-off matrix and recommend a 10% flush volume.
-3. Prioritize Vapour Pressure Deficit (VPD) stability over nutrient tweaks if climate values fall out of the standard 1.1-1.4 kPa flowering sweet spot.
-4. Keep feedback clean, direct, concise, and highly professional. Do not hallucinate data.`;
+1. Base your advice strictly on the numbers above – do not guess.
+2. If VPD is outside 0.8–1.2 kPa, prioritise environment adjustments.
+3. If EC > 2.5, recommend a flush or dilution.
+4. If daily water use is increasing, suggest root expansion may be occurring – adjust feed accordingly.
+5. Provide a single, clear action (e.g., “Increase irrigation volume by 10%”, “Flush with pH‑balanced water”, “Monitor VPD”).
+6. If recovery status is given, incorporate it into your recommendation.
+
+Keep responses brief, professional, and actionable.`;
 }
 
 export async function POST(req: Request) {
