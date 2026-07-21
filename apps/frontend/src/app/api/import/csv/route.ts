@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    revalidatePath("/");
+    // revalidatePath("/");
 
     return NextResponse.json({
       success: true,

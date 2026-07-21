@@ -15,11 +15,19 @@ export function MorningBrief({ plant, insight, onActionComplete }: MorningBriefP
     return typeof val === 'number' ? val : Number(val);
   };
 
-  const weightLoss = toNum(insight.overnightWeightLoss);
-  const vpdAvg = toNum(insight.overnightVpdAvg);
-  const moistureStart = toNum(insight.overnightMoistureStart);
-  const moistureEnd = toNum(insight.overnightMoistureEnd);
+  const weightLoss = toNum(insight?.overnightWeightLoss);
+  const vpdAvg = toNum(insight?.overnightVpdAvg);
+  const moistureStart = toNum(insight?.overnightMoistureStart);
+  const moistureEnd = toNum(insight?.overnightMoistureEnd);
   const currentWeight = plant ? toNum(plant.currentWeight) : 0;
+
+  if (!insight) {
+    return (
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-xl border border-gray-200 dark:border-zinc-800">
+        <p className="text-sm text-gray-500">No insight data available for today.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-xl border border-gray-200 dark:border-zinc-800">
@@ -33,7 +41,7 @@ export function MorningBrief({ plant, insight, onActionComplete }: MorningBriefP
             {plant?.name || 'Unknown Plant'}
           </h2>
           <p className="text-sm text-gray-500 dark:text-zinc-400">
-            Week 5 Flower
+            {(plant as any)?.strain || 'Active Cultivation'}
           </p>
         </div>
         <div className="text-right">
@@ -88,7 +96,7 @@ export function MorningBrief({ plant, insight, onActionComplete }: MorningBriefP
           ✓ Completed
         </button>
         <button
-          onClick={() => {/* handle skip – implement later */}}
+          onClick={() => {/* handle snooze */}}
           className="flex-1 border border-gray-300 dark:border-zinc-700 text-gray-700 dark:text-zinc-300 font-bold py-3 px-4 rounded-xl hover:bg-gray-50 dark:hover:bg-zinc-800 transition-all"
         >
           Snooze

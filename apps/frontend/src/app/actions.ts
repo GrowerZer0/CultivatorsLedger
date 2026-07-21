@@ -542,20 +542,20 @@ export async function generateDailyBriefing() {
     const moisture = irrigationEvent ? Number(irrigationEvent.moisturePercentage) : null;
     const ec = irrigationEvent?.ecLevel ? Number(irrigationEvent.ecLevel) : null;
 
-    // Build prompt
-    const prompt = `
-You are a cultivation assistant. Provide a brief, actionable summary (2-3 sentences) based on the following data:
+          // Build prompt
+          const prompt = `
+      You are a cultivation assistant. Provide a brief, actionable summary (2-3 sentences) based on the following data:
 
-- Latest VPD: ${latestEnv ? Number(latestEnv.calculatedVpdKpa || computeVPD(Number(latestEnv.airTempC), Number(latestEnv.relativeHumidity))).toFixed(2) : 'N/A'}
-- Average VPD over last 24h: ${avgVpd.toFixed(2)}
-- Latest Temperature: ${latestEnv ? Number(latestEnv.airTempC).toFixed(1) : 'N/A'}°C (${latestEnv ? (Number(latestEnv.airTempC)*9/5+32).toFixed(1) : 'N/A'}°F)
-- Latest Humidity: ${latestEnv ? Number(latestEnv.relativeHumidity).toFixed(0) : 'N/A'}%
-- Dry-back trend: ${dryBackTrend} (latest: ${dryBackLogs.length > 0 ? Number(dryBackLogs[0].dryBackPercent).toFixed(0) : 'N/A'}%)
-- Root moisture: ${moisture !== null ? moisture.toFixed(0) : 'N/A'}%
-- EC: ${ec !== null ? ec.toFixed(2) : 'N/A'}
+      - Latest VPD: ${latestEnv ? Number(latestEnv.calculatedVpdKpa || computeVPD(Number(latestEnv.airTempC), Number(latestEnv.relativeHumidity))).toFixed(2) : 'N/A'}
+      - Average VPD over last 24h: ${avgVpd.toFixed(2)}
+      - Latest Temperature: ${latestEnv ? Number(latestEnv.airTempC).toFixed(1) : 'N/A'}°C (${latestEnv ? (Number(latestEnv.airTempC)*9/5+32).toFixed(1) : 'N/A'}°F)
+      - Latest Humidity: ${latestEnv ? Number(latestEnv.relativeHumidity).toFixed(0) : 'N/A'}%
+      - Dry-back trend: ${dryBackTrend} (latest: ${dryBackLogs.length > 0 ? Number(dryBackLogs[0].dryBackPercent).toFixed(0) : 'N/A'}%)
+      - Root moisture: ${moisture !== null ? moisture.toFixed(0) : 'N/A'}%
+      - EC: ${ec !== null ? ec.toFixed(2) : 'N/A'}
 
-Based on this, give ONE clear recommendation (e.g., "Increase humidity", "Irrigate today", "Check EC", "Monitor closely") and a brief explanation. Keep it concise and actionable.
-`;
+      Based on this, give ONE clear recommendation (e.g., "Increase humidity", "Irrigate today", "Check EC", "Monitor closely") and a brief explanation. Keep it concise and actionable.
+      `;
 
     // Call AI
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
