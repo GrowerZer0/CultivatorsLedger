@@ -1,6 +1,6 @@
 'use client';
 
-import type { Plant } from '@/types';
+import type { Plant } from '@/lib/cultivation';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Plus,

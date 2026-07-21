@@ -69,7 +69,7 @@ export async function generateDailyInsight(plantId: string) {
   const last = sorted[sorted.length - 1];
 
   const weightLoss = Number(first.currentWeightLbs) - Number(last.currentWeightLbs);
-  const drybackPercent = ((plant.wetWeight || 18.4) - Number(last.currentWeight)) / ((plant.wetWeight || 18.4) - (plant.dryTarget || 13.2)) * 100;
+  const drybackPercent = ((Number(plant.wetWeight) || 18.4) - Number(last.currentWeightLbs)) / ((Number(plant.wetWeight) || 18.4) - (Number(plant.dryTarget) || 13.2)) * 100;
 
   // Determine recommendation
   let recommendationType = 'monitor';
@@ -627,7 +627,7 @@ export async function updatePlant(data: {
   name?: string;
   wetWeight?: number | null;
   dryTarget?: number | null;
-  currentWeight?: number | null;
+  currentWeightLbs?: number | null; // Changed to currentWeightLbs
 }) {
   const userId = await getUserId();
   const plant = await db.plant.update({
@@ -636,7 +636,7 @@ export async function updatePlant(data: {
       name: data.name,
       wetWeight: data.wetWeight !== undefined ? data.wetWeight : undefined,
       dryTarget: data.dryTarget !== undefined ? data.dryTarget : undefined,
-      currentWeight: data.currentWeight !== undefined ? data.currentWeight : undefined,
+      currentWeightLbs: data.currentWeightLbs !== undefined ? data.currentWeightLbs : undefined, // Changed to currentWeightLbs
     },
   });
   revalidatePath('/');
