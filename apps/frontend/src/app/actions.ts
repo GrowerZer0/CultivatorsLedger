@@ -69,7 +69,19 @@ export async function generateDailyInsight(plantId: string) {
   const last = sorted[sorted.length - 1];
 
   const weightLoss = Number(first.currentWeightLbs) - Number(last.currentWeightLbs);
-  const drybackPercent = ((Number(plant.wetWeight) || 18.4) - Number(last.currentWeightLbs)) / ((Number(plant.wetWeight) || 18.4) - (Number(plant.dryTarget) || 13.2)) * 100;
+
+// 1. Pull wetWeight and dryTarget directly from plant (no "Lbs" suffix on plant)
+const wetWeightNum = plant?.wetWeight ? Number(plant.wetWeight) : 18.4;
+const dryTargetNum = plant?.dryTarget ? Number(plant.dryTarget) : 13.2;
+
+// 2. Pull currentWeightLbs from the log entry (`last`)
+const currentWeightNum = last?.currentWeightLbs ? Number(last.currentWeightLbs) : 0;
+
+// 3. Compute math safely on JavaScript numbers
+const weightRange = wetWeightNum - dryTargetNum;
+const weightLost = wetWeightNum - currentWeightNum;
+
+const drybackPercent = weightRange > 0 ? (weightLost / weightRange) * 100 : 0;
 
   // Determine recommendation
   let recommendationType = 'monitor';
@@ -79,8 +91,7 @@ export async function generateDailyInsight(plantId: string) {
   if (drybackPercent > 80) {
     recommendationType = 'irrigate';
     recommendationText = 'Irrigate today – dryback is high.';
-    actionPlan = `Feed ${Math.round((plant.wetWeight || 18.4) * 0.05 * 1000)}ml at 2.2 EC.`;
-  } else if (drybackPercent > 60) {
+actionPlan = `Feed ${Math.round(wetWeightNum * 0.05 * 1000)}ml at 2.2 EC.`;  } else if (drybackPercent > 60) {
     recommendationType = 'monitor';
     recommendationText = 'Dryback progressing. Check again in 4-6 hours.';
   } else if (weightLoss < 0.1 && drybackPercent < 40) {
@@ -627,7 +638,7 @@ export async function updatePlant(data: {
   name?: string;
   wetWeight?: number | null;
   dryTarget?: number | null;
-  currentWeightLbs?: number | null; // Changed to currentWeightLbs
+  currentWeight?: number | null;
 }) {
   const userId = await getUserId();
   const plant = await db.plant.update({
@@ -636,7 +647,7 @@ export async function updatePlant(data: {
       name: data.name,
       wetWeight: data.wetWeight !== undefined ? data.wetWeight : undefined,
       dryTarget: data.dryTarget !== undefined ? data.dryTarget : undefined,
-      currentWeightLbs: data.currentWeightLbs !== undefined ? data.currentWeightLbs : undefined, // Changed to currentWeightLbs
+      currentWeight: data.currentWeight !== undefined ? data.currentWeight : undefined, 
     },
   });
   revalidatePath('/');

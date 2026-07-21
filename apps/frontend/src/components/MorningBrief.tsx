@@ -3,7 +3,7 @@
 import type { Plant, PlantInsight } from '@prisma/client';
 
 interface MorningBriefProps {
-  plant: Plant;
+  plant?: Plant | null;
   insight: PlantInsight;
   onActionComplete: () => void;
 }
@@ -19,7 +19,7 @@ export function MorningBrief({ plant, insight, onActionComplete }: MorningBriefP
   const vpdAvg = toNum(insight.overnightVpdAvg);
   const moistureStart = toNum(insight.overnightMoistureStart);
   const moistureEnd = toNum(insight.overnightMoistureEnd);
-  const currentWeight = toNum(plant.currentWeight);
+  const currentWeight = plant ? toNum(plant.currentWeight) : 0;
 
   return (
     <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-xl border border-gray-200 dark:border-zinc-800">
@@ -30,7 +30,7 @@ export function MorningBrief({ plant, insight, onActionComplete }: MorningBriefP
             Morning Brief
           </span>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-            {plant.name}
+            {plant?.name || 'Unknown Plant'}
           </h2>
           <p className="text-sm text-gray-500 dark:text-zinc-400">
             Week 5 Flower
