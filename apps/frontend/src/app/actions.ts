@@ -507,29 +507,45 @@ export async function deleteCustomBlueprint(id: string) {
 
 // --- DAILY AI BRIEFING ---
 
-export async function generateDailyBriefing() {
+export async function getOrGenerateDailyBriefing(plantId: string, forceRefresh = false) {
   try {
     const userId = await getUserId();
 
-    // Fetch latest data
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+ // 1. Check for an existing insight for this plant generated today
+    const existingInsight = await db.plantInsight.findFirst({
+      where: {
+        plantId,
+        date: { gte: today },
+      },
+      orderBy: { date: "desc" },
+    });
+
+    // 2. Return cached insight if available and not forced
+    if (existingInsight && !forceRefresh) {
+      return { success: true, insight: existingInsight, cached: true };
+    }
+
+    // 3. Fetch latest data for AI generation
     const [climateLogs, dryBackLogs, irrigationEvent] = await Promise.all([
       db.climateLog.findMany({
         where: { userId },
         orderBy: { timestamp: "desc" },
-        take: 24, // last 24 hours
+        take: 24,
       }),
       db.dryBackLog.findMany({
-        where: { userId },
+        where: { userId, plantId },
         orderBy: { timestamp: "desc" },
-        take: 5, // last 5 logs for trend
+        take: 5,
       }),
       db.irrigationEvent.findFirst({
-        where: { userId },
+        where: { userId, plantId },
         orderBy: { timestamp: "desc" },
       }),
     ]);
 
-    // Prepare data for AI
     const latestEnv = climateLogs[0];
     const avgVpd = climateLogs.length > 0
       ? climateLogs.reduce((sum, l) => sum + Number(l.calculatedVpdKpa || computeVPD(Number(l.airTempC), Number(l.relativeHumidity))), 0) / climateLogs.length
@@ -542,8 +558,7 @@ export async function generateDailyBriefing() {
     const moisture = irrigationEvent ? Number(irrigationEvent.moisturePercentage) : null;
     const ec = irrigationEvent?.ecLevel ? Number(irrigationEvent.ecLevel) : null;
 
-          // Build prompt
-          const prompt = `
+    const prompt = `
       You are a cultivation assistant. Provide a brief, actionable summary (2-3 sentences) based on the following data:
 
       - Latest VPD: ${latestEnv ? Number(latestEnv.calculatedVpdKpa || computeVPD(Number(latestEnv.airTempC), Number(latestEnv.relativeHumidity))).toFixed(2) : 'N/A'}
@@ -555,21 +570,34 @@ export async function generateDailyBriefing() {
       - EC: ${ec !== null ? ec.toFixed(2) : 'N/A'}
 
       Based on this, give ONE clear recommendation (e.g., "Increase humidity", "Irrigate today", "Check EC", "Monitor closely") and a brief explanation. Keep it concise and actionable.
-      `;
+    `;
 
-    // Call AI
+    // Call Gemini API
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: [{ role: "user", parts: [{ text: prompt }] }],
     });
 
-    const text = response.text || "No response generated.";
+    const recommendationText = response.text || "No response generated.";
 
-    return { success: true, summary: text };
+    // Save/update insight entry in DB
+    const newInsight = await db.plantInsight.create({
+      data: {
+        plantId,
+        date: new Date(),
+        lastBriefingAt: new Date(),
+        recommendationType: "monitor",
+        recommendationText,
+        overnightVpdAvg: avgVpd,
+      },
+    });
+
+    revalidatePath('/');
+    return { success: true, insight: newInsight, cached: false };
   } catch (error) {
     console.error("AI briefing error:", error);
-    return { success: false, error: "Failed to generate briefing" };
+    return { success: false, error: "Failed to generate briefing or rate limit exceeded." };
   }
 }
 

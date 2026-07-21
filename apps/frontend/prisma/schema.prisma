@@ -210,11 +210,12 @@ model Plant {
 }
 
 model PlantInsight {
-  id          String   @id @default(cuid())
-  plantId     String   @map("plant_id")
-  plant       Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now()) @map("created_at")
-  date        DateTime @default(now()) @db.Date
+  id             String   @id @default(cuid())
+  plantId        String   @map("plant_id")
+  plant          Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now()) @map("created_at")
+  date           DateTime @default(now()) @db.Date
+  lastBriefingAt DateTime @default(now())
   
   // Overnight Summary
   overnightWeightLoss Decimal? @map("overnight_weight_loss") @db.Decimal(5, 2)
