@@ -22,6 +22,7 @@ docker-compose.override.yml
 
 # AI Instructions
 AGENTS.md
+PROJECT_STATE.md
 
 # Build outputs
 dist/
