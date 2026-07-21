@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Plant, PlantInsight } from '@prisma/client';
-import { getOrGenerateDailyBriefing } from "@/app/actions";
+import { generateDailyBriefing } from "@/app/actions";
 
 interface MorningBriefProps {
   plant?: Plant | null;
@@ -31,7 +31,7 @@ export function MorningBrief({ plant, insight: initialInsight, onActionComplete 
     setIsRefreshing(true);
 
     try {
-      const res = await getOrGenerateDailyBriefing(plant.id, true);
+      const res = await generateDailyBriefing(plant.id, true);
       if (res.success && res.insight) {
         setInsight(res.insight);
       }

@@ -507,7 +507,7 @@ export async function deleteCustomBlueprint(id: string) {
 
 // --- DAILY AI BRIEFING ---
 
-export async function getOrGenerateDailyBriefing(plantId: string, forceRefresh = false) {
+export async function generateDailyBriefing(plantId: string, forceRefresh = false) {
   try {
     const userId = await getUserId();
 
