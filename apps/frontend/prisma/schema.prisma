@@ -203,6 +203,32 @@ model Plant {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   dryBackLogs    DryBackLog[]
+  plantInsights  PlantInsight[]
 
   @@map("plants")
+}
+
+model PlantInsight {
+  id          String   @id @default(cuid())
+  plantId     String   @map("plant_id")
+  plant       Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now()) @map("created_at")
+  date        DateTime @default(now()) @db.Date
+  
+  // Overnight Summary
+  overnightWeightLoss Decimal? @map("overnight_weight_loss") @db.Decimal(5, 2)
+  overnightVpdAvg     Decimal? @map("overnight_vpd_avg") @db.Decimal(4, 2)
+  overnightMoistureStart Decimal? @map("overnight_moisture_start") @db.Decimal(5, 2)
+  overnightMoistureEnd   Decimal? @map("overnight_moisture_end") @db.Decimal(5, 2)
+  
+  // Recommendation
+  recommendationType String @map("recommendation_type") // 'irrigate', 'wait', 'monitor', 'feed', 'flush'
+  recommendationText String @map("recommendation_text")
+  actionPlan         String? @map("action_plan")
+  
+  // Outcome (logged after action)
+  outcome          String? // 'completed', 'skipped', 'modified'
+  outcomeNotes     String? @map("outcome_notes")
+  
+  @@map("plant_insights")
 }

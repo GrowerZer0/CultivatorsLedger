@@ -20,6 +20,9 @@ docker-compose.override.yml
 .vscode/
 .idea/
 
+# AI Instructions
+AGENTS.md
+
 # Build outputs
 dist/
 build/

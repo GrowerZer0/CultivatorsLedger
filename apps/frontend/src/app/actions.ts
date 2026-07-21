@@ -28,6 +28,95 @@ function generateApiKey(): string {
   return randomBytes(16).toString('hex');
 }
 
+// --- DAILY INSIGHTS ---
+
+export async function generateDailyInsight(plantId: string) {
+  const userId = await getUserId();
+
+  // Fetch plant with logs from last 48 hours
+  const plant = await db.plant.findFirst({
+    where: { id: plantId, userId },
+    include: {
+      dryBackLogs: {
+        orderBy: { timestamp: "desc" },
+        take: 48,
+      },
+    },
+  });
+
+  if (!plant) throw new Error('Plant not found');
+
+  const now = new Date();
+  const overnightLogs = plant.dryBackLogs.filter((log) => {
+    const hours = (now.getTime() - new Date(log.timestamp).getTime()) / (1000 * 60 * 60);
+    return hours <= 12 && hours >= 6;
+  });
+
+  // If not enough data, return a default insight
+  if (overnightLogs.length < 2) {
+    return await db.plantInsight.create({
+      data: {
+        plantId,
+        date: new Date(),
+        recommendationType: 'monitor',
+        recommendationText: 'Not enough data for overnight analysis. Log more weights.',
+      },
+    });
+  }
+
+  const sorted = overnightLogs.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  const first = sorted[0];
+  const last = sorted[sorted.length - 1];
+
+  const weightLoss = Number(first.currentWeightLbs) - Number(last.currentWeightLbs);
+  const drybackPercent = ((plant.wetWeight || 18.4) - Number(last.currentWeight)) / ((plant.wetWeight || 18.4) - (plant.dryTarget || 13.2)) * 100;
+
+  // Determine recommendation
+  let recommendationType = 'monitor';
+  let recommendationText = 'Monitor plant status.';
+  let actionPlan = '';
+
+  if (drybackPercent > 80) {
+    recommendationType = 'irrigate';
+    recommendationText = 'Irrigate today – dryback is high.';
+    actionPlan = `Feed ${Math.round((plant.wetWeight || 18.4) * 0.05 * 1000)}ml at 2.2 EC.`;
+  } else if (drybackPercent > 60) {
+    recommendationType = 'monitor';
+    recommendationText = 'Dryback progressing. Check again in 4-6 hours.';
+  } else if (weightLoss < 0.1 && drybackPercent < 40) {
+    recommendationType = 'wait';
+    recommendationText = 'Hold irrigation – moisture is sufficient.';
+  } else {
+    recommendationType = 'monitor';
+    recommendationText = 'Everything looks stable. Continue current plan.';
+  }
+
+  return await db.plantInsight.create({
+    data: {
+      plantId,
+      date: new Date(),
+      overnightWeightLoss: weightLoss,
+      overnightMoistureStart: 0, // we don't have moisture
+      overnightMoistureEnd: 0,
+      overnightVpdAvg: 0,
+      recommendationType,
+      recommendationText,
+      actionPlan,
+    },
+  });
+}
+
+async function createDefaultInsight(plantId: string, message: string) {
+  return await db.plantInsight.create({
+    data: {
+      plantId,
+      date: new Date(),
+      recommendationType: 'monitor',
+      recommendationText: message,
+    },
+  });
+}
+
 // --- SENSOR CONFIG CRUD ---
 
 export async function getSensors() {
