@@ -282,75 +282,78 @@ const loadBriefing = useCallback(async () => {
   }, [dbDryBackLogs]);
 
   // --- RECOVERY STATUS ---
-  const recoveryStatus = useMemo(() => {
-    const vpd = dbEnvironmentReadings.at(-1)?.vpd;
-    const moisture = latestIrrigation?.moisturePercent;
-    const ec = latestIrrigation?.ec;
-    const dryBack = dryBackData.percent;
+const recoveryStatus = useMemo(() => {
+  const vpd = dbEnvironmentReadings.at(-1)?.vpd;
+  const moisture = latestIrrigation?.moisturePercent;
+  const ecRaw = latestIrrigation?.ec;          
+  const dryBack = dryBackData.percent;
 
-    // If we don't have enough data, return a neutral state
-    if (vpd === undefined || moisture === undefined || ec === undefined || dryBack === 0) {
-      return {
-        icon: <AlertCircle className="size-6" />,
-        color: 'gray',
-        recommendation: 'Log more data',
-        details: 'Need VPD, moisture, EC, and dry‑back to provide a recommendation.'
-      };
-    }
+  // Guard: ensure ec is a number
+  const ec = (typeof ecRaw === 'number' && !isNaN(ecRaw)) ? ecRaw : null;
 
-    // Determine statuses
-    const vpdHigh = vpd > 1.2;
-    const vpdLow = vpd < 0.8;
-    const moistureHigh = moisture > 80;
-    const moistureLow = moisture < 40;
-    const ecHigh = ec > 2.0;
-    const ecLow = ec < 0.8;
-    const dryBackHigh = dryBack > 80;
+  // If any critical value is missing, show neutral state
+  if (vpd === undefined || moisture === undefined || ec === null || dryBack === 0) {
+    return {
+      icon: <AlertCircle className="size-6" />,
+      color: 'gray',
+      recommendation: 'Log more data',
+      details: 'Need VPD, moisture, EC, and dry‑back to provide a recommendation.'
+    };
+  }
 
-    let recommendation = '';
-    let details = '';
-    let color = 'green';
-    let icon = <CheckCircle className="size-6" />;
+  // Now we know ec is a valid number
+  const vpdHigh = vpd > 1.2;
+  const vpdLow = vpd < 0.8;
+  const moistureHigh = moisture > 80;
+  const moistureLow = moisture < 40;
+  const ecHigh = ec > 2.0;
+  const ecLow = ec < 0.8;
+  const dryBackHigh = dryBack > 80;
 
-    if (dryBackHigh && moistureLow) {
-      recommendation = 'Irrigate now – dry‑back high and moisture low';
-      details = 'Water thoroughly and monitor runoff EC.';
-      color = 'red';
-      icon = <AlertTriangle className="size-6" />;
-    } else if (dryBackHigh && moistureHigh) {
-      recommendation = 'Check sensor – conflicting dry‑back and moisture';
-      details = 'Verify weight and moisture readings.';
-      color = 'yellow';
-      icon = <AlertCircle className="size-6" />;
-    } else if (vpdHigh && moistureLow) {
-      recommendation = 'Increase humidity and water';
-      details = 'VPD is high and moisture is low – increase RH and irrigate.';
-      color = 'red';
-      icon = <AlertTriangle className="size-6" />;
-    } else if (vpdLow && moistureHigh) {
-      recommendation = 'Decrease humidity and reduce watering';
-      details = 'VPD is low and moisture is high – improve airflow and reduce irrigation.';
-      color = 'yellow';
-      icon = <AlertCircle className="size-6" />;
-    } else if (ecHigh) {
-      recommendation = 'Flush or dilute feed';
-      details = `EC is high (${ec.toFixed(2)}) – flush with pH‑balanced water.`;
-      color = 'red';
-      icon = <AlertTriangle className="size-6" />;
-    } else if (ecLow) {
-      recommendation = 'Increase feed concentration';
-      details = `EC is low (${ec.toFixed(2)}) – increase nutrient strength.`;
-      color = 'yellow';
-      icon = <AlertCircle className="size-6" />;
-    } else {
-      recommendation = 'All systems optimal';
-      details = 'VPD, moisture, EC, and dry‑back are all in target ranges. Keep it up!';
-      color = 'green';
-      icon = <CheckCircle className="size-6" />;
-    }
+  let recommendation = '';
+  let details = '';
+  let color = 'green';
+  let icon = <CheckCircle className="size-6" />;
 
-    return { icon, color, recommendation, details };
-  }, [dbEnvironmentReadings, latestIrrigation, dryBackData]);
+  if (dryBackHigh && moistureLow) {
+    recommendation = 'Irrigate now – dry‑back high and moisture low';
+    details = 'Water thoroughly and monitor runoff EC.';
+    color = 'red';
+    icon = <AlertTriangle className="size-6" />;
+  } else if (dryBackHigh && moistureHigh) {
+    recommendation = 'Check sensor – conflicting dry‑back and moisture';
+    details = 'Verify weight and moisture readings.';
+    color = 'yellow';
+    icon = <AlertCircle className="size-6" />;
+  } else if (vpdHigh && moistureLow) {
+    recommendation = 'Increase humidity and water';
+    details = 'VPD is high and moisture is low – increase RH and irrigate.';
+    color = 'red';
+    icon = <AlertTriangle className="size-6" />;
+  } else if (vpdLow && moistureHigh) {
+    recommendation = 'Decrease humidity and reduce watering';
+    details = 'VPD is low and moisture is high – improve airflow and reduce irrigation.';
+    color = 'yellow';
+    icon = <AlertCircle className="size-6" />;
+  } else if (ecHigh) {
+    recommendation = 'Flush or dilute feed';
+    details = `EC is high (${ec.toFixed(2)}) – flush with pH‑balanced water.`;
+    color = 'red';
+    icon = <AlertTriangle className="size-6" />;
+  } else if (ecLow) {
+    recommendation = 'Increase feed concentration';
+    details = `EC is low (${ec.toFixed(2)}) – increase nutrient strength.`;
+    color = 'yellow';
+    icon = <AlertCircle className="size-6" />;
+  } else {
+    recommendation = 'All systems optimal';
+    details = 'VPD, moisture, EC, and dry‑back are all in target ranges. Keep it up!';
+    color = 'green';
+    icon = <CheckCircle className="size-6" />;
+  }
+
+  return { icon, color, recommendation, details };
+}, [dbEnvironmentReadings, latestIrrigation, dryBackData]);
 
   // --- MANUAL ENTRY HANDLER ---
   const handleManualSubmit = async (e: React.FormEvent) => {
