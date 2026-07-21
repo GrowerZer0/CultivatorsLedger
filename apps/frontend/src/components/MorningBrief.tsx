@@ -41,7 +41,7 @@ export function MorningBrief({ plant, insight, onActionComplete }: MorningBriefP
             {plant?.name || 'Unknown Plant'}
           </h2>
           <p className="text-sm text-gray-500 dark:text-zinc-400">
-            {(plant as any)?.strain || 'Active Cultivation'}
+            {(plant)?.strain || 'Active Cultivation'}
           </p>
         </div>
         <div className="text-right">

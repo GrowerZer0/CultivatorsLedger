@@ -191,6 +191,7 @@ model SensorConfig {
 model Plant {
   id             String       @id @default(cuid())
   name           String       // cultivar or plant identifier
+  strain         String?
   batchId        String?      @map("batch_id")
   batch          Batch?       @relation(fields: [batchId], references: [id], onDelete: Cascade)
   userId         String       @map("user_id")
