@@ -1,5 +1,6 @@
 'use client';
 
+import type { Plant } from '@prisma/client';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Plus,
@@ -42,8 +43,10 @@ import {
   addManualClimateAndWeight,
   exportAllBatches,
   generateDailyBriefing,
+  generateDailyInsight
 } from '@/app/actions';
 import {useTelemetry} from '@/lib/telemetry-context';
+import { MorningBrief } from '@/components/MorningBrief';
 
 export default function EnvironmentPage() {
   const { theme, setTheme } = useTheme();
@@ -59,6 +62,10 @@ export default function EnvironmentPage() {
   const [briefing, setBriefing] = useState<string | null>(null);
   const [briefingLoading, setBriefingLoading] = useState(false);
   const [briefingError, setBriefingError] = useState<string | null>(null);
+  const [currentInsight, setCurrentInsight] = useState<any>(null);
+  const [insightLoading, setInsightLoading] = useState(false);
+  const [selectedPlantId, setSelectedPlantId] = useState<string | null>(null);
+  const [plants, setPlants] = useState<Plant[]>([]);
 
   // Manual entry fields (always visible)
   const [manualTemp, setManualTemp] = useState(72); // °F
@@ -182,6 +189,22 @@ const loadData = useCallback(async (skipLoading = false) => {
       setManualWeight(Number(lastDry.weight));
     }
   }, [dbEnvironmentReadings, dbDryBackLogs]);
+
+    useEffect(() => {
+  if (!selectedPlantId) return;
+  const fetchInsight = async () => {
+    setInsightLoading(true);
+    try {
+      const insight = await generateDailyInsight(selectedPlantId);
+      setCurrentInsight(insight);
+    } catch (err) {
+      console.error('Failed to load daily insight:', err);
+    } finally {
+      setInsightLoading(false);
+    }
+  };
+  fetchInsight();
+}, [selectedPlantId]);
 
   // --- AI BRIEFING ---
 const loadBriefing = useCallback(async () => {
@@ -413,7 +436,8 @@ const loadBriefing = useCallback(async () => {
   return (
     <AppShell>
       <div className="min-h-screen bg-white dark:bg-[#0B0F19] text-gray-900 dark:text-zinc-100 p-4">
-        {/* Daily AI Briefing */}
+       
+       {/* Daily AI Briefing */}
         <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl mb-6">
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-300">🤖 Daily AI Briefing</h3>
@@ -425,16 +449,52 @@ const loadBriefing = useCallback(async () => {
               {briefingLoading ? 'Refreshing...' : '↻ Refresh'}
             </button>
           </div>
-{briefingLoading ? (
-  <p className="text-sm text-gray-500 dark:text-zinc-400 animate-pulse">Generating briefing...</p>
-) : briefingError ? (
-  <p className="text-sm text-red-500 dark:text-red-400">{briefingError}</p>
-) : briefing ? (
-  <p className="text-sm text-gray-800 dark:text-zinc-200 leading-relaxed">{briefing}</p>
-) : (
-  <p className="text-sm text-gray-400 dark:text-zinc-500">No briefing available. Click refresh to generate.</p>
-)}
+            {briefingLoading ? (
+              <p className="text-sm text-gray-500 dark:text-zinc-400 animate-pulse">Generating briefing...</p>
+            ) : briefingError ? (
+              <p className="text-sm text-red-500 dark:text-red-400">{briefingError}</p>
+            ) : briefing ? (
+              <p className="text-sm text-gray-800 dark:text-zinc-200 leading-relaxed">{briefing}</p>
+            ) : (
+              <p className="text-sm text-gray-400 dark:text-zinc-500">No briefing available. Click refresh to generate.</p>
+            )}
+          </div>
+
+        {/* Daily Insight Card */}
+        {selectedPlantId && (
+        <div className="mb-6">
+          {insightLoading ? (
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-xl border border-gray-200 dark:border-zinc-800 animate-pulse">
+              <div className="h-32 bg-gray-200 dark:bg-zinc-700 rounded"></div>
+            </div>
+          ) : currentInsight ? (
+            <MorningBrief
+              plant={plants.find(p => p.id === selectedPlantId)}
+              insight={currentInsight}
+              onActionComplete={async () => {
+                // Mark as completed (you'll need to implement this action)
+                // For now, just refetch to refresh the insight
+                const refreshed = await generateDailyInsight(selectedPlantId);
+                setCurrentInsight(refreshed);
+              }}
+            />
+          ) : (
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-xl border border-gray-200 dark:border-zinc-800 text-center">
+              <p className="text-sm text-gray-500 dark:text-zinc-400">No insight generated yet.</p>
+              <button
+                onClick={async () => {
+                  const insight = await generateDailyInsight(selectedPlantId);
+                  setCurrentInsight(insight);
+                }}
+                className="mt-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
+              >
+                Generate Today's Insight
+              </button>
+            </div>
+          )}
         </div>
+        )}
+
 
         {/* Manual Entry Form */}
         <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl mb-6">
@@ -711,99 +771,99 @@ const loadBriefing = useCallback(async () => {
           </div>
         </div>
 
-{/* Recovery Recommendation Card */}
-{dbDryBackLogs.length > 0 && latestIrrigation && (
-  <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl mb-6">
-    <div className="flex items-center gap-3">
-      <div className={`p-3 rounded-xl border ${
-        recoveryStatus.color === 'red' ? 'bg-red-500/10 border-red-500/20 text-red-500' :
-        recoveryStatus.color === 'yellow' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500' :
-        'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'
-      }`}>
-        {recoveryStatus.icon}
-      </div>
-      <div className="flex-1">
-        <span className="text-[11px] uppercase tracking-wider font-bold text-gray-400 dark:text-zinc-500 block">Recovery Recommendation</span>
-        <p className="text-sm font-bold text-gray-900 dark:text-white">{recoveryStatus.recommendation}</p>
-        <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">{recoveryStatus.details}</p>
-      </div>
-    </div>
-  </div>
-)}
-
-{/* Root Health & Nutrient Health Cards */}
-{latestIrrigation && (
-  <div className="grid gap-4 md:grid-cols-2 mb-6">
-    {/* Root Health Card */}
-    <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl flex items-center gap-5">
-      <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-inner shrink-0">
-        <Sprout className="size-7" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <span className="text-[11px] uppercase tracking-wider font-bold text-gray-400 dark:text-zinc-500 block">Root Health</span>
-        {latestIrrigation ? (
-          <>
-            <div className="flex items-baseline gap-3 flex-wrap">
-              <span className="text-2xl font-black text-gray-900 dark:text-white">
-                {latestIrrigation.moisturePercent.toFixed(1)}%
-              </span>
-              <span className="text-sm text-gray-500 dark:text-zinc-400">
-                EC: {latestIrrigation.ec ? latestIrrigation.ec.toFixed(2) : 'N/A'}
-              </span>
-              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                latestIrrigation.moisturePercent > 80 ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400' :
-                latestIrrigation.moisturePercent < 40 ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' :
-                'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+        {/* Recovery Recommendation Card */}
+        {dbDryBackLogs.length > 0 && latestIrrigation && (
+          <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl mb-6">
+            <div className="flex items-center gap-3">
+              <div className={`p-3 rounded-xl border ${
+                recoveryStatus.color === 'red' ? 'bg-red-500/10 border-red-500/20 text-red-500' :
+                recoveryStatus.color === 'yellow' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500' :
+                'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'
               }`}>
-                {latestIrrigation.moisturePercent > 80 ? '🌊 Wet' :
-                 latestIrrigation.moisturePercent < 40 ? '🌵 Dry' :
-                 '✅ Good'}
-              </span>
+                {recoveryStatus.icon}
+              </div>
+              <div className="flex-1">
+                <span className="text-[11px] uppercase tracking-wider font-bold text-gray-400 dark:text-zinc-500 block">Recovery Recommendation</span>
+                <p className="text-sm font-bold text-gray-900 dark:text-white">{recoveryStatus.recommendation}</p>
+                <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">{recoveryStatus.details}</p>
+              </div>
             </div>
-            <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">
-              {latestIrrigation.moisturePercent > 80 ? 'Reduce irrigation frequency' :
-               latestIrrigation.moisturePercent < 40 ? 'Increase irrigation' :
-               'Optimal moisture'}
-            </p>
-          </>
-        ) : (
-          <span className="text-sm text-gray-400 dark:text-zinc-500">No irrigation data yet</span>
-        )}
-      </div>
-    </div>
-
-    {/* Nutrient Health Card */}
-    {latestIrrigation.ec && (
-      <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl flex items-center gap-5">
-        <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-inner shrink-0">
-          <FlaskConical className="size-7" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <span className="text-[11px] uppercase tracking-wider font-bold text-gray-400 dark:text-zinc-500 block">Nutrient Health</span>
-          <div className="flex items-baseline gap-3 flex-wrap">
-            <span className="text-2xl font-black text-gray-900 dark:text-white">
-              {latestIrrigation.ec.toFixed(2)} EC
-            </span>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-              latestIrrigation.ec > 2.0 ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' :
-              latestIrrigation.ec < 0.8 ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400' :
-              'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-            }`}>
-              {latestIrrigation.ec > 2.0 ? '⬆️ High' :
-               latestIrrigation.ec < 0.8 ? '⬇️ Low' :
-               '✅ Good'}
-            </span>
           </div>
-          <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">
-            {latestIrrigation.ec > 2.0 ? 'Dilute feed or flush' :
-             latestIrrigation.ec < 0.8 ? 'Increase feed concentration' :
-             'Optimal EC'}
-          </p>
-        </div>
-      </div>
-    )}
-  </div>
-)}
+        )}
+
+        {/* Root Health & Nutrient Health Cards */}
+        {latestIrrigation && (
+          <div className="grid gap-4 md:grid-cols-2 mb-6">
+            {/* Root Health Card */}
+            <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl flex items-center gap-5">
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-inner shrink-0">
+                <Sprout className="size-7" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="text-[11px] uppercase tracking-wider font-bold text-gray-400 dark:text-zinc-500 block">Root Health</span>
+                {latestIrrigation ? (
+                  <>
+                    <div className="flex items-baseline gap-3 flex-wrap">
+                      <span className="text-2xl font-black text-gray-900 dark:text-white">
+                        {latestIrrigation.moisturePercent.toFixed(1)}%
+                      </span>
+                      <span className="text-sm text-gray-500 dark:text-zinc-400">
+                        EC: {latestIrrigation.ec ? latestIrrigation.ec.toFixed(2) : 'N/A'}
+                      </span>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                        latestIrrigation.moisturePercent > 80 ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400' :
+                        latestIrrigation.moisturePercent < 40 ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' :
+                        'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                      }`}>
+                        {latestIrrigation.moisturePercent > 80 ? '🌊 Wet' :
+                        latestIrrigation.moisturePercent < 40 ? '🌵 Dry' :
+                        '✅ Good'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">
+                      {latestIrrigation.moisturePercent > 80 ? 'Reduce irrigation frequency' :
+                      latestIrrigation.moisturePercent < 40 ? 'Increase irrigation' :
+                      'Optimal moisture'}
+                    </p>
+                  </>
+                ) : (
+                  <span className="text-sm text-gray-400 dark:text-zinc-500">No irrigation data yet</span>
+                )}
+              </div>
+            </div>
+
+            {/* Nutrient Health Card */}
+            {latestIrrigation.ec && (
+              <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl flex items-center gap-5">
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-inner shrink-0">
+                  <FlaskConical className="size-7" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-[11px] uppercase tracking-wider font-bold text-gray-400 dark:text-zinc-500 block">Nutrient Health</span>
+                  <div className="flex items-baseline gap-3 flex-wrap">
+                    <span className="text-2xl font-black text-gray-900 dark:text-white">
+                      {latestIrrigation.ec.toFixed(2)} EC
+                    </span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                      latestIrrigation.ec > 2.0 ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' :
+                      latestIrrigation.ec < 0.8 ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400' :
+                      'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                    }`}>
+                      {latestIrrigation.ec > 2.0 ? '⬆️ High' :
+                      latestIrrigation.ec < 0.8 ? '⬇️ Low' :
+                      '✅ Good'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1">
+                    {latestIrrigation.ec > 2.0 ? 'Dilute feed or flush' :
+                    latestIrrigation.ec < 0.8 ? 'Increase feed concentration' :
+                    'Optimal EC'}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* VPD Chart */}
         <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl">
