@@ -206,9 +206,11 @@ const loadData = useCallback(async (skipLoading = false) => {
   fetchInsight();
 }, [selectedPlantId]);
 
+const hasFetchedBriefing = useRef(false);
+
   // --- AI BRIEFING ---
-const loadBriefing = useCallback(async () => {
-  // If there's no data, show a friendly message instead of calling the API
+const loadBriefing = useCallback(async (force = false) => {
+  // 1. Guard against no data
   if (dbEnvironmentReadings.length === 0 && dbDryBackLogs.length === 0) {
     setBriefing('📊 Log some data first, then AI will provide a daily summary.');
     setBriefingLoading(false);
@@ -216,12 +218,17 @@ const loadBriefing = useCallback(async () => {
     return;
   }
 
+  // 2. Prevent repeat calls unless explicitly forced (e.g., via a manual refresh button)
+  if (hasFetchedBriefing.current && !force) return;
+
   setBriefingLoading(true);
   setBriefingError(null);
+  
   try {
     const result = await generateDailyBriefing();
     if (result.success) {
       setBriefing(result.summary || null);
+      hasFetchedBriefing.current = true; // Mark as successfully fetched
     } else {
       setBriefingError(result.error || 'Failed to load briefing');
     }
@@ -230,11 +237,11 @@ const loadBriefing = useCallback(async () => {
   } finally {
     setBriefingLoading(false);
   }
-}, [dbEnvironmentReadings, dbDryBackLogs]); 
+}, [dbEnvironmentReadings.length, dbDryBackLogs.length]); 
 
-  useEffect(() => {
-    loadBriefing();
-  }, [loadBriefing]);
+useEffect(() => {
+  loadBriefing();
+}, [loadBriefing]);
 
   // --- ALERTS (based on VPD) ---
   const alerts = useMemo(() => {
@@ -445,7 +452,7 @@ const recoveryStatus = useMemo(() => {
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-300">🤖 Daily AI Briefing</h3>
             <button
-              onClick={loadBriefing}
+              onClick={() => loadBriefing(true)}
               disabled={briefingLoading}
               className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 transition-colors disabled:opacity-50"
             >
