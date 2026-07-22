@@ -163,6 +163,8 @@ export default function SettingsPage() {
       const formattedBatches = fetchedBatches.map(batch => ({
         ...batch,
         startDate: new Date(batch.startDate).toISOString(),
+        wetWeight: batch.wetWeight !== null ? Number(batch.wetWeight) : null,
+        dryTarget: batch.dryTarget !== null ? Number(batch.dryTarget) : null,
       }));
       setBatches(formattedBatches || []);
       if (formattedBatches.length > 0 && !selectedBatchId) {

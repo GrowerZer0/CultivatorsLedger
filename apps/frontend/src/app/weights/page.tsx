@@ -565,7 +565,7 @@ export default function WeightsPage() {
             <DarkNumberField
               label={`Current Container Weight (${weightUnit})`}
               value={currentWeight}
-              onChange={setCurrentWeight}
+              onChange={(val) => setCurrentWeight(val === '' ? 0 : val)}
             />
             <DarkNumberField
               label={`Target Dry Weight (${weightUnit})`}
