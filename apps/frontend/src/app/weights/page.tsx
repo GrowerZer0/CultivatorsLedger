@@ -424,7 +424,7 @@ export default function WeightsPage() {
             {/* Top Level: Location / Room Selector */}
             <RoomNav rooms={rooms} selectedRoomId={selectedRoomId} onSelectRoom={setSelectedRoomId} />
 
-            {/* Middle Level: Batch Selector & Actions */}
+            {/* Middle Level: Batch Selector */}
             <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
               <span className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider pr-1">
                 Batch:
@@ -434,6 +434,7 @@ export default function WeightsPage() {
                 onChange={(e) => {
                   setSelectedBatchId(e.target.value || null);
                   setSelectedPlantId(null); // Reset plant selection when batch changes
+                  setContainerGallons(plants.find((p) => p.batchId === e.target.value)?.containerGallons || 5); // Update container gallons
                 }}
                 className="bg-gray-100 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs font-bold text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white outline-none focus:border-emerald-500 transition-all"
               >
@@ -446,53 +447,29 @@ export default function WeightsPage() {
                     </option>
                   ))}
               </select>
-
               <button
-                onClick={() => setShowNewBatchModal(true)}
+                onClick={() => router.push('/settings')}
                 className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-full transition-colors flex items-center gap-1"
               >
-                <Plus className="size-3" /> New
+                Manage Facility
               </button>
-
-              {selectedBatchId && (
-                <button
-                  onClick={() => {
-                    const batch = batches.find((b) => b.id === selectedBatchId);
-                    if (batch) {
-                      setEditWetWeight(batch.wetWeight !== null ? Number(batch.wetWeight) : '');
-                      setEditDryTarget(batch.dryTarget !== null ? Number(batch.dryTarget) : '');
-                      setEditingBatchTargets(true);
-                    }
-                  }}
-                  className="text-xs font-bold text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200"
-                >
-                  Edit Targets
-                </button>
-              )}
             </div>
 
             {/* Bottom Level: Plant Selector for selected Batch */}
-            {(selectedBatchId || selectedRoomId) && plants.filter(p => (!selectedBatchId || p.batchId === selectedBatchId) && (!selectedRoomId || p.roomId === selectedRoomId)).length > 0 && (
+            {selectedBatchId && plants.filter(p => (!selectedBatchId || p.batchId === selectedBatchId) && (!selectedRoomId || p.roomId === selectedRoomId)).length > 0 && (
               <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
                 <span className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider pr-1">
                   Plant:
                 </span>
-                <button
-                  onClick={() => setSelectedPlantId(null)}
-                  className={`px-3 py-1 text-xs font-semibold rounded-full transition-all ${
-                    selectedPlantId === null
-                      ? 'bg-zinc-800 text-emerald-400 border border-emerald-500/30'
-                      : 'bg-transparent text-gray-500 dark:text-zinc-400 border border-gray-200 dark:border-zinc-800 hover:text-gray-800 dark:hover:text-zinc-200'
-                  }`}
-                >
-                  All Plants
-                </button>
                 {plants
                   .filter((plant) => (!selectedBatchId || plant.batchId === selectedBatchId) && (!selectedRoomId || plant.roomId === selectedRoomId))
                   .map((plant) => (
                     <button
                       key={plant.id}
-                      onClick={() => setSelectedPlantId(plant.id)}
+                      onClick={() => {
+                        setSelectedPlantId(plant.id);
+                        setContainerGallons(plant.containerGallons || 5); // Update container gallons on plant selection
+                      }}
                       className={`px-3 py-1 text-xs font-semibold rounded-full transition-all flex items-center gap-1.5 ${
                         selectedPlantId === plant.id
                           ? 'bg-zinc-800 text-emerald-400 border border-emerald-500/30'
@@ -507,19 +484,6 @@ export default function WeightsPage() {
                       )}
                     </button>
                   ))}
-                <button
-                  onClick={() => {
-                    setEditingPlant(null);
-                    setNewPlantName('');
-                    setNewPlantWet('');
-                    setNewPlantDry('');
-                    setShowPlantModal(true);
-                  }}
-                  disabled={!selectedBatchId}
-                  className="text-xs font-bold bg-zinc-800 hover:bg-zinc-700 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <Plus className="size-3" /> Add Plant
-                </button>
               </div>
             )}
             {/* Display batch stats only if a batch is selected */}
