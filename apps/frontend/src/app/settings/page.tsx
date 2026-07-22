@@ -16,7 +16,10 @@ import {
   Keyboard,
   Cpu,
   ChevronRight,
-  Bell
+  Bell,
+  Building, // New icon for rooms
+  TreePine, // New icon for plants
+  Edit,     // New icon for editing
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { SectionPanel } from "@/components/layout/SectionPanel";
@@ -34,11 +37,39 @@ import {
   regenerateApiKey,
   getBatches,
   createBatch,
+  updateBatch, // New action for updating batches
+  deleteBatch, // New action for deleting batches
+  getRooms,    // New action to get rooms
+  getPlantsForBatch, // New action for plants by batch
+  createPlant, // New action for creating plants
+  updatePlant, // New action for updating plants
+  deletePlant, // New action for deleting plants
 } from "@/app/actions";
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { supabase } from '@/lib/supabase';
 
 type UserProfile = any;
+type Room = { id: string; name: string };
+type Batch = { 
+  id: string; 
+  name: string; 
+  cultivar: string; 
+  roomId?: string | null; 
+  isActive: boolean;
+  startDate: string;
+  wetWeight?: number | null;
+  dryTarget?: number | null;
+  dryBackLogs?: any[];
+};
+type Plant = { 
+  id: string; 
+  name: string; 
+  strain?: string | null;
+  batchId?: string | null;
+  roomId?: string | null;
+  wetWeight?: number | null;
+  dryTarget?: number | null;
+};
 
 export const dynamic = 'force-dynamic';
 
@@ -59,10 +90,28 @@ export default function SettingsPage() {
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   const [isSensorDriven, setIsSensorDriven] = useState(false);
   const [showNewBatchModal, setShowNewBatchModal] = useState(false);
+  const [rooms, setRooms] = useState<Room[]>([]); // To populate room selectors
   const [newBatchName, setNewBatchName] = useState('');
   const [newBatchCultivar, setNewBatchCultivar] = useState('');
-  const [newBatchRoom, setNewBatchRoom] = useState('tent_1');
-  const [batches, setBatches] = useState<any[]>([]);
+  const [newBatchRoom, setNewBatchRoom] = useState<string | null>(null); // Use null for no specific room
+  const [batches, setBatches] = useState<Batch[]>([]);
+  const [editingBatch, setEditingBatch] = useState<Batch | null>(null);
+  const [editingBatchTargets, setEditingBatchTargets] = useState(false);
+  const [editWetWeight, setEditWetWeight] = useState<number | ''>('');
+  const [editDryTarget, setEditDryTarget] = useState<number | ''>('');
+
+
+  // Plant management states
+  const [plants, setPlants] = useState<Plant[]>([]);
+  const [showPlantModal, setShowPlantModal] = useState(false);
+  const [editingPlant, setEditingPlant] = useState<Plant | null>(null);
+  const [newPlantName, setNewPlantName] = useState('');
+  const [newPlantWet, setNewPlantWet] = useState<number | ''>('');
+  const [newPlantDry, setNewPlantDry] = useState<number | ''>('');
+  const [newPlantStrain, setNewPlantStrain] = useState(''); // Added strain for plants
+  const [newPlantRoomId, setNewPlantRoomId] = useState<string | null>(null);
+  const [newPlantBatchId, setNewPlantBatchId] = useState<string | null>(null); // To assign plant to a batch
+
 
   const loadSensors = useCallback(async () => {
     setLoadingSensors(true);
@@ -77,9 +126,9 @@ export default function SettingsPage() {
   }, []);
 
   const handleLogout = async () => {
-  await supabase.auth.signOut();
-  window.location.href = '/auth/login';
-};
+    await supabase.auth.signOut();
+    window.location.href = '/auth/login';
+  };
 
   useEffect(() => {
     loadSensors();
@@ -106,21 +155,45 @@ export default function SettingsPage() {
     loadProfileAndBlueprints();
   }, [loadProfileAndBlueprints]);
 
-  const loadBatches = useCallback(async () => {
+  const loadBatchesAndRooms = useCallback(async () => {
     try {
-      const data = await getBatches();
-      setBatches(data || []);
-      if (data.length > 0 && !selectedBatchId) {
-        setSelectedBatchId(data[0].id);
+      const fetchedBatches = await getBatches();
+      setBatches(fetchedBatches || []);
+      if (fetchedBatches.length > 0 && !selectedBatchId) {
+        setSelectedBatchId(fetchedBatches[0].id);
+      }
+
+      const fetchedRooms = await getRooms();
+      setRooms(fetchedRooms || []);
+      if (fetchedRooms.length > 0 && !newBatchRoom) {
+        setNewBatchRoom(fetchedRooms[0].id); // Set default new batch room
+        setNewPlantRoomId(fetchedRooms[0].id); // Set default new plant room
       }
     } catch (err) {
-      console.error(err);
+      console.error("Failed to load batches or rooms:", err);
+    }
+  }, [selectedBatchId, newBatchRoom]);
+
+  const loadPlantsForSelectedBatch = useCallback(async () => {
+    if (selectedBatchId) {
+      try {
+        const fetchedPlants = await getPlantsForBatch(selectedBatchId);
+        setPlants(fetchedPlants || []);
+      } catch (err) {
+        console.error("Failed to load plants for batch:", err);
+      }
+    } else {
+      setPlants([]);
     }
   }, [selectedBatchId]);
 
   useEffect(() => {
-    loadBatches();
-  }, [loadBatches]);
+    loadBatchesAndRooms();
+  }, [loadBatchesAndRooms]);
+
+  useEffect(() => {
+    loadPlantsForSelectedBatch();
+  }, [loadPlantsForSelectedBatch]);
 
   async function handleSetActiveLine(id: string, event: React.MouseEvent) {
     event.stopPropagation();
@@ -190,6 +263,94 @@ export default function SettingsPage() {
     return days;
   }
 
+  async function handleUpdateBatchStatus(batchId: string, isActive: boolean) {
+    try {
+      await updateBatch(batchId, { isActive });
+      loadBatchesAndRooms();
+    } catch (error) {
+      console.error('Failed to update batch status:', error);
+      alert('Failed to update batch status.');
+    }
+  }
+
+  async function handleDeleteBatch(batchId: string) {
+    if (!confirm("Are you sure you want to delete this batch and all associated plants and logs? This action cannot be undone.")) return;
+    try {
+      await deleteBatch(batchId);
+      loadBatchesAndRooms();
+    } catch (error) {
+      console.error('Failed to delete batch:', error);
+      alert('Failed to delete batch. It might have associated data preventing deletion.');
+    }
+  }
+
+  async function handleAddPlant() {
+    if (!newPlantName || !newPlantBatchId) {
+      alert("Plant name and batch are required.");
+      return;
+    }
+    try {
+      await createPlant({
+        name: newPlantName,
+        batchId: newPlantBatchId,
+        roomId: newPlantRoomId || undefined,
+        strain: newPlantStrain || undefined,
+        wetWeight: newPlantWet !== '' ? Number(newPlantWet) : undefined,
+        dryTarget: newPlantDry !== '' ? Number(newPlantDry) : undefined,
+      });
+      setShowPlantModal(false);
+      setNewPlantName('');
+      setNewPlantWet('');
+      setNewPlantDry('');
+      setNewPlantStrain('');
+      setNewPlantRoomId(rooms.length > 0 ? rooms[0].id : null);
+      setNewPlantBatchId(selectedBatchId); // Keep current batch selected
+      loadPlantsForSelectedBatch();
+    } catch (error) {
+      console.error('Failed to add plant:', error);
+      alert('Failed to add plant.');
+    }
+  }
+
+  async function handleUpdatePlant() {
+    if (!editingPlant || !newPlantName) {
+      alert("Plant name is required.");
+      return;
+    }
+    try {
+      await updatePlant({
+        id: editingPlant.id,
+        name: newPlantName,
+        strain: newPlantStrain || undefined,
+        roomId: newPlantRoomId || undefined,
+        wetWeight: newPlantWet !== '' ? Number(newPlantWet) : null,
+        dryTarget: newPlantDry !== '' ? Number(newPlantDry) : null,
+      });
+      setShowPlantModal(false);
+      setEditingPlant(null);
+      setNewPlantName('');
+      setNewPlantWet('');
+      setNewPlantDry('');
+      setNewPlantStrain('');
+      setNewPlantRoomId(rooms.length > 0 ? rooms[0].id : null);
+      loadPlantsForSelectedBatch();
+    } catch (error) {
+      console.error('Failed to update plant:', error);
+      alert('Failed to update plant.');
+    }
+  }
+
+  async function handleDeletePlant(plantId: string) {
+    if (!confirm("Are you sure you want to delete this plant and all its associated logs? This action cannot be undone.")) return;
+    try {
+      await deletePlant(plantId);
+      loadPlantsForSelectedBatch();
+    } catch (error) {
+      console.error('Failed to delete plant:', error);
+      alert('Failed to delete plant.');
+    }
+  }
+
   async function handleSave() {
     if (!editingSchedule) return;
     if (!editingSchedule.brand.trim()) {
@@ -242,7 +403,7 @@ export default function SettingsPage() {
         {/* TABS */}
         <div className="border-b border-slate-200 dark:border-zinc-800">
           <nav className="-mb-px flex space-x-8">
-            {["hardware", "nutrients", "batches", "system"].map((tab) => {
+            {["hardware", "nutrients", "facility", "system"].map((tab) => {
               const isActive = activeTab === tab;
               return (
                 <button
@@ -256,7 +417,7 @@ export default function SettingsPage() {
                 >
                   {tab === "nutrients" ? "Nutrient Feed Library" : 
                    tab === "hardware" ? "Hardware" : 
-                   tab === "batches" ? "Batches" : 
+                   tab === "facility" ? "Facility Management" : // Renamed tab
                    "System"}
                 </button>
               );
@@ -507,104 +668,173 @@ export default function SettingsPage() {
         )}
 
         {/* ======================================================= */}
-        {/* BATCHES TAB */}
+        {/* FACILITY MANAGEMENT TAB */}
         {/* ======================================================= */}
-        {activeTab === "batches" && (
+        {activeTab === "facility" && (
           <div className="space-y-6 animate-in fade-in duration-200">
+            {/* Batch Management */}
             <SectionPanel 
               title="Batch Management" 
-              subtitle="Create and manage grow batches."
+              subtitle="Create, update, and manage grow batches."
             >
               <div className="space-y-4">
-                {/* Batch Selector + New Button */}
-                <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Active Batch:</span>
-                    <select
-                      value={selectedBatchId || ''}
-                      onChange={(e) => setSelectedBatchId(e.target.value || null)}
-                      className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 transition-all"
-                    >
-                      <option value="">-- Select --</option>
-                      {batches.map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.name} ({b.cultivar})
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={() => setShowNewBatchModal(true)}
-                      className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-full transition-colors whitespace-nowrap"
-                    >
-                      + New
-                    </button>
-                  </div>
-
-                  {/* Batch Summary */}
-                  {selectedBatchId && (
-                    <div className="flex items-center gap-3 px-3 py-1 bg-zinc-800/30 dark:bg-zinc-800/30 rounded-lg border border-zinc-700/60">
-                      <span className="flex items-center gap-1.5">
-                        <span className="inline-block w-2 h-2 rounded-full bg-emerald-400" />
-                        <span className="text-sm font-bold text-gray-900 dark:text-white">
-                          {batches.find(b => b.id === selectedBatchId)?.name}
-                        </span>
-                      </span>
-                      <span className="text-xs text-gray-500 dark:text-zinc-400">
-                        Day {getBatchDaysSinceStart(selectedBatchId)}
-                      </span>
-                      <span className="text-xs text-gray-500 dark:text-zinc-400">
-                        {getBatchLogCount(selectedBatchId)} logs
-                      </span>
-                      <span className="text-xs text-emerald-400 font-mono">
-                        Avg: {getBatchAverage(selectedBatchId).toFixed(1)}%
-                      </span>
-                    </div>
-                  )}
+                <div className="flex justify-between items-center">
+                  <h3 className="text-sm font-bold text-zinc-400">Current Batches</h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingBatch(null);
+                      setNewBatchName('');
+                      setNewBatchCultivar('');
+                      setNewBatchRoom(rooms.length > 0 ? rooms[0].id : null);
+                      setShowNewBatchModal(true);
+                    }}
+                    className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-full transition-colors whitespace-nowrap"
+                  >
+                    + New Batch
+                  </button>
                 </div>
-
-                {/* Action buttons */}
-                {selectedBatchId && (
-                  <div className="flex gap-3">
-                    <Link
-                      href={`/batches/${selectedBatchId}`}
-                      className="text-xs font-bold text-emerald-400 hover:text-emerald-300 px-3 py-1.5 rounded border border-emerald-500/20 hover:bg-emerald-500/10 transition-colors"
-                    >
-                      View Details
-                    </Link>
-                    <Link
-                      href="/batches/compare"
-                      className="text-xs font-bold text-zinc-400 hover:text-zinc-300 px-3 py-1.5 rounded border border-zinc-700 hover:bg-zinc-800/50 transition-colors"
-                    >
-                      Compare
-                    </Link>
-                  </div>
+                {batches.length === 0 ? (
+                  <p className="text-sm text-zinc-500">No batches created yet.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {batches.map((batch) => (
+                      <li key={batch.id} className="flex items-center justify-between p-3 bg-zinc-900 rounded-xl border border-zinc-800">
+                        <div>
+                          <p className="font-bold text-white flex items-center gap-2">
+                            <Building className="size-4 text-emerald-400" />
+                            {batch.name}
+                          </p>
+                          <p className="text-xs text-zinc-400">{batch.cultivar} • Room: {rooms.find(r => r.id === batch.roomId)?.name || batch.roomId || 'N/A'}</p>
+                          <p className="text-xs text-zinc-500">Started: {new Date(batch.startDate).toLocaleDateString()}</p>
+                          {batch.wetWeight && batch.dryTarget && (
+                            <p className="text-xs text-zinc-500">Targets: {batch.wetWeight}lbs (Wet) / {batch.dryTarget}lbs (Dry)</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${batch.isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-zinc-500/20 text-zinc-400'}`}>
+                            {batch.isActive ? 'Active' : 'Archived'}
+                          </span>
+                          <button
+                            onClick={() => {
+                              setEditingBatch(batch);
+                              setNewBatchName(batch.name);
+                              setNewBatchCultivar(batch.cultivar);
+                              setNewBatchRoom(batch.roomId || null);
+                              setShowNewBatchModal(true); // Reuse modal for editing
+                            }}
+                            className="text-xs font-bold text-zinc-400 hover:text-white transition-colors"
+                          >
+                            <Edit className="size-3 inline mr-1" /> Edit
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingBatch(batch);
+                              setEditWetWeight(batch.wetWeight !== null ? Number(batch.wetWeight) : '');
+                              setEditDryTarget(batch.dryTarget !== null ? Number(batch.dryTarget) : '');
+                              setEditingBatchTargets(true);
+                            }}
+                            className="text-xs font-bold text-zinc-400 hover:text-white transition-colors"
+                          >
+                            <Sliders className="size-3 inline mr-1" /> Targets
+                          </button>
+                          <button
+                            onClick={() => handleUpdateBatchStatus(batch.id, !batch.isActive)}
+                            className={`text-xs font-bold ${batch.isActive ? 'text-red-500 hover:text-red-400' : 'text-emerald-500 hover:text-emerald-400'} transition-colors`}
+                          >
+                            {batch.isActive ? 'Deactivate' : 'Activate'}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteBatch(batch.id)}
+                            className="text-xs font-bold text-red-500 hover:text-red-400 transition-colors"
+                          >
+                            <Trash2 className="size-3 inline mr-1" /> Delete
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
                 )}
+              </div>
+            </SectionPanel>
 
-                {/* List of all batches */}
-                <div className="mt-6">
-                  <h4 className="text-xs font-bold uppercase text-zinc-500 mb-3">All Batches</h4>
-                  {batches.length === 0 ? (
-                    <p className="text-sm text-zinc-500">No batches created yet.</p>
-                  ) : (
-                    <ul className="space-y-2">
-                      {batches.map((batch) => (
-                        <li key={batch.id} className="flex items-center justify-between p-3 bg-zinc-900 rounded-xl border border-zinc-800">
-                          <div>
-                            <p className="font-bold text-white">{batch.name}</p>
-                            <p className="text-xs text-zinc-400">{batch.cultivar} • Room: {batch.roomId}</p>
-                            <p className="text-xs text-zinc-500">Started: {new Date(batch.startDate).toLocaleDateString()}</p>
-                          </div>
-                          <div>
-                            <span className={`text-xs font-bold px-2 py-1 rounded-full ${batch.isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-zinc-500/20 text-zinc-400'}`}>
-                              {batch.isActive ? 'Active' : 'Archived'}
-                            </span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+            {/* Plant Management */}
+            <SectionPanel 
+              title="Plant Management" 
+              subtitle="Add and manage individual plants within a selected batch."
+            >
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-zinc-400">Plants in Batch: {batches.find(b => b.id === selectedBatchId)?.name || 'N/A'}</h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!selectedBatchId) {
+                        alert('Please select a batch first to add plants.');
+                        return;
+                      }
+                      setEditingPlant(null);
+                      setNewPlantName('');
+                      setNewPlantWet('');
+                      setNewPlantDry('');
+                      setNewPlantStrain('');
+                      setNewPlantRoomId(batches.find(b => b.id === selectedBatchId)?.roomId || (rooms.length > 0 ? rooms[0].id : null));
+                      setNewPlantBatchId(selectedBatchId);
+                      setShowPlantModal(true);
+                    }}
+                    disabled={!selectedBatchId}
+                    className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-full transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    + Add Plant
+                  </button>
                 </div>
+                {!selectedBatchId ? (
+                  <p className="text-sm text-zinc-500">Select a batch to manage its plants.</p>
+                ) : plants.length === 0 ? (
+                  <p className="text-sm text-zinc-500">No plants in this batch yet.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {plants.map((plant) => (
+                      <li key={plant.id} className="flex items-center justify-between p-3 bg-zinc-900 rounded-xl border border-zinc-800">
+                        <div>
+                          <p className="font-bold text-white flex items-center gap-2">
+                            <TreePine className="size-4 text-emerald-400" />
+                            {plant.name}
+                          </p>
+                          <p className="text-xs text-zinc-400">
+                            {plant.strain} • Room: {rooms.find(r => r.id === plant.roomId)?.name || plant.roomId || 'N/A'}
+                          </p>
+                          {plant.wetWeight && plant.dryTarget && (
+                            <p className="text-xs text-zinc-500">Targets: {plant.wetWeight}lbs (Wet) / {plant.dryTarget}lbs (Dry)</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <button
+                            onClick={() => {
+                              setEditingPlant(plant);
+                              setNewPlantName(plant.name);
+                              setNewPlantWet(plant.wetWeight !== null ? Number(plant.wetWeight) : '');
+                              setNewPlantDry(plant.dryTarget !== null ? Number(plant.dryTarget) : '');
+                              setNewPlantStrain(plant.strain || '');
+                              setNewPlantRoomId(plant.roomId || null);
+                              setNewPlantBatchId(plant.batchId || null);
+                              setShowPlantModal(true);
+                            }}
+                            className="text-xs font-bold text-zinc-400 hover:text-white transition-colors"
+                          >
+                            <Edit className="size-3 inline mr-1" /> Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeletePlant(plant.id)}
+                            className="text-xs font-bold text-red-500 hover:text-red-400 transition-colors"
+                          >
+                            <Trash2 className="size-3 inline mr-1" /> Delete
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </SectionPanel>
           </div>
@@ -853,11 +1083,13 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* New Batch Modal */}
+      {/* New/Edit Batch Modal */}
       {showNewBatchModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
-            <h2 className="text-lg font-bold text-white mb-4">Create New Batch</h2>
+            <h2 className="text-lg font-bold text-white mb-4">
+              {editingBatch ? 'Edit Batch' : 'Create New Batch'}
+            </h2>
             <div className="space-y-3">
               <input
                 type="text"
@@ -874,14 +1106,16 @@ export default function SettingsPage() {
                 className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
               />
               <select
-                value={newBatchRoom}
-                onChange={(e) => setNewBatchRoom(e.target.value)}
+                value={newBatchRoom || ''}
+                onChange={(e) => setNewBatchRoom(e.target.value || null)}
                 className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
               >
-                <option value="tent_1">Tent 1</option>
-                <option value="tent_2">Tent 2</option>
-                <option value="room_a">Room A</option>
-                <option value="room_b">Room B</option>
+                <option value="">-- Select Room / Tent --</option>
+                {rooms.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
               </select>
               <div className="flex gap-3 pt-2">
                 <button
@@ -895,16 +1129,172 @@ export default function SettingsPage() {
                   type="button"
                   onClick={async () => {
                     if (!newBatchName || !newBatchCultivar) return;
-                    await createBatch({ name: newBatchName, cultivar: newBatchCultivar, roomId: newBatchRoom });
+                    if (editingBatch) {
+                      await updateBatch(editingBatch.id, {
+                        name: newBatchName,
+                        cultivar: newBatchCultivar,
+                        roomId: newBatchRoom,
+                      });
+                    } else {
+                      await createBatch({
+                        name: newBatchName,
+                        cultivar: newBatchCultivar,
+                        roomId: newBatchRoom || undefined,
+                      });
+                    }
                     setShowNewBatchModal(false);
                     setNewBatchName('');
                     setNewBatchCultivar('');
-                    setNewBatchRoom('tent_1');
-                    loadBatches();
+                    setNewBatchRoom(rooms.length > 0 ? rooms[0].id : null);
+                    setEditingBatch(null);
+                    loadBatchesAndRooms();
                   }}
                   className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500 transition-all"
                 >
-                  Create
+                  {editingBatch ? 'Update Batch' : 'Create Batch'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Batch Targets Modal */}
+      {editingBatchTargets && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+            <h2 className="text-lg font-bold text-white mb-4">Set Batch Weight Targets</h2>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 mb-1">
+                  Target Saturated Weight (lbs)
+                </label>
+                <input
+                  type="number"
+                  step="0.05"
+                  value={editWetWeight}
+                  onChange={(e) => setEditWetWeight(parseFloat(e.target.value))}
+                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 mb-1">
+                  Target Dry Weight (lbs)
+                </label>
+                <input
+                  type="number"
+                  step="0.05"
+                  value={editDryTarget}
+                  onChange={(e) => setEditDryTarget(parseFloat(e.target.value))}
+                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setEditingBatchTargets(false)}
+                  className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm font-bold text-zinc-300 hover:bg-zinc-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!editingBatch) return; // Use editingBatch instead of selectedBatchId
+                    await updateBatchTargets({
+                      batchId: editingBatch.id,
+                      wetWeight: editWetWeight !== '' ? Number(editWetWeight) : null,
+                      dryTarget: editDryTarget !== '' ? Number(editDryTarget) : null,
+                    });
+                    setEditingBatchTargets(false);
+                    setEditingBatch(null); // Clear editingBatch state
+                    loadBatchesAndRooms();
+                  }}
+                  className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500"
+                >
+                  Save Targets
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* New/Edit Plant Modal */}
+      {showPlantModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+            <h2 className="text-lg font-bold text-white mb-4">
+              {editingPlant ? 'Edit Plant Details' : 'Add New Plant'}
+            </h2>
+            <div className="space-y-3">
+              <input
+                type="text"
+                placeholder="Plant Name / Tag ID"
+                value={newPlantName}
+                onChange={(e) => setNewPlantName(e.target.value)}
+                className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+              />
+              <input
+                type="text"
+                placeholder="Strain (Optional)"
+                value={newPlantStrain}
+                onChange={(e) => setNewPlantStrain(e.target.value)}
+                className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+              />
+              <input
+                type="number"
+                step="0.05"
+                placeholder="Saturated Weight (lbs, optional)"
+                value={newPlantWet}
+                onChange={(e) => setNewPlantWet(parseFloat(e.target.value))}
+                className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+              />
+              <input
+                type="number"
+                step="0.05"
+                placeholder="Target Dry Weight (lbs, optional)"
+                value={newPlantDry}
+                onChange={(e) => setNewPlantDry(parseFloat(e.target.value))}
+                className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+              />
+              <select
+                value={newPlantRoomId || ''}
+                onChange={(e) => setNewPlantRoomId(e.target.value || null)}
+                className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+              >
+                <option value="">-- Assign Room (Optional) --</option>
+                {rooms.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={newPlantBatchId || ''}
+                onChange={(e) => setNewPlantBatchId(e.target.value || null)}
+                disabled={!!editingPlant} // Disable batch change if editing an existing plant
+                className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">-- Assign to Batch --</option>
+                {batches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} ({b.cultivar})
+                  </option>
+                ))}
+              </select>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPlantModal(false)}
+                  className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm font-bold text-zinc-300 hover:bg-zinc-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={editingPlant ? handleUpdatePlant : handleAddPlant}
+                  className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500 transition-all"
+                >
+                  {editingPlant ? 'Update Plant' : 'Add Plant'}
                 </button>
               </div>
             </div>
