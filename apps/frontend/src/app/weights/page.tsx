@@ -76,99 +76,41 @@ function DarkNumberField({ label, value, onChange }: DarkNumberFieldProps) {
 // --------------------------------------------
 // Plant & Tent Navigation Bar
 // --------------------------------------------
-interface PlantTentNavProps {
+interface RoomNavProps {
   rooms: { id: string; name: string }[];
-  plants: { id: string; name: string; strain?: string | null; roomId?: string | null }[];
   selectedRoomId: string | null;
-  selectedPlantId: string | null;
   onSelectRoom: (roomId: string | null) => void;
-  onSelectPlant: (plantId: string | null) => void;
 }
 
-function PlantTentNav({
-  rooms,
-  plants,
-  selectedRoomId,
-  selectedPlantId,
-  onSelectRoom,
-  onSelectPlant,
-}: PlantTentNavProps) {
-  const activeRoomPlants = plants.filter(
-    (plant) => !selectedRoomId || plant.roomId === selectedRoomId
-  );
-
+function RoomNav({ rooms, selectedRoomId, onSelectRoom }: RoomNavProps) {
   return (
-    <div className="flex flex-col gap-3 pb-2 border-b border-gray-200 dark:border-zinc-800">
-      {/* Top Level: Location / Room Selector */}
-      <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
-        <span className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider pr-1">
-          Location:
-        </span>
+    <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
+      <span className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider pr-1">
+        Location:
+      </span>
+      <button
+        onClick={() => onSelectRoom(null)}
+        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+          selectedRoomId === null
+            ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/20'
+            : 'bg-gray-100 dark:bg-zinc-900 text-gray-600 dark:text-zinc-400 border border-gray-200 dark:border-zinc-800 hover:text-gray-900 dark:hover:text-white'
+        }`}
+      >
+        All Rooms
+      </button>
+      {rooms.map((room) => (
         <button
-          onClick={() => {
-            onSelectRoom(null);
-            onSelectPlant(null);
-          }}
+          key={room.id}
+          onClick={() => onSelectRoom(room.id)}
           className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-            selectedRoomId === null
+            selectedRoomId === room.id
               ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/20'
               : 'bg-gray-100 dark:bg-zinc-900 text-gray-600 dark:text-zinc-400 border border-gray-200 dark:border-zinc-800 hover:text-gray-900 dark:hover:text-white'
           }`}
         >
-          All Rooms
+          {room.name}
         </button>
-        {rooms.map((room) => (
-          <button
-            key={room.id}
-            onClick={() => {
-              onSelectRoom(room.id);
-              onSelectPlant(null);
-            }}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-              selectedRoomId === room.id
-                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/20'
-                : 'bg-gray-100 dark:bg-zinc-900 text-gray-600 dark:text-zinc-400 border border-gray-200 dark:border-zinc-800 hover:text-gray-900 dark:hover:text-white'
-            }`}
-          >
-            {room.name}
-          </button>
-        ))}
-      </div>
-
-      {/* Bottom Level: Telemetry Context Toggle */}
-      <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
-        <span className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider pr-1">
-          Telemetry:
-        </span>
-        <button
-          onClick={() => onSelectPlant(null)}
-          className={`px-3 py-1 text-xs font-semibold rounded-full transition-all ${
-            selectedPlantId === null
-              ? 'bg-zinc-800 text-emerald-400 border border-emerald-500/30'
-              : 'bg-transparent text-gray-500 dark:text-zinc-400 border border-gray-200 dark:border-zinc-800 hover:text-gray-800 dark:hover:text-zinc-200'
-          }`}
-        >
-          Room Unified
-        </button>
-        {activeRoomPlants.map((plant) => (
-          <button
-            key={plant.id}
-            onClick={() => onSelectPlant(plant.id)}
-            className={`px-3 py-1 text-xs font-semibold rounded-full transition-all flex items-center gap-1.5 ${
-              selectedPlantId === plant.id
-                ? 'bg-zinc-800 text-emerald-400 border border-emerald-500/30'
-                : 'bg-transparent text-gray-500 dark:text-zinc-400 border border-gray-200 dark:border-zinc-800 hover:text-gray-800 dark:hover:text-zinc-200'
-            }`}
-          >
-            <span>{plant.name}</span>
-            {plant.strain && (
-              <span className="text-[10px] px-1.5 py-0.2 rounded border border-zinc-700 bg-zinc-900/60 opacity-80">
-                {plant.strain}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      ))}
     </div>
   );
 }
@@ -218,9 +160,9 @@ export default function WeightsPage() {
   const [diagnosticsLoading, setDiagnosticsLoading] = useState(false);
 
   // Inputs
-  const [containerGallons, setContainerGallons] = useState(5);
-  const [wetWeight, setWetWeight] = useState(18.4);
-  const [dryTarget, setDryTarget] = useState(13.2);
+  const [containerGallons, setContainerGallons] = useState(5); // Default, will be overwritten by selection
+  const [wetWeight, setWetWeight] = useState<number | ''>(18.4); // Default, will be overwritten by selection
+  const [dryTarget, setDryTarget] = useState<number | ''>(13.2); // Default, will be overwritten by selection
   const [currentWeight, setCurrentWeight] = useState(14.2);
   const [weightUnit, setWeightUnit] = useState<'lbs' | 'g'>('lbs');
   const [isSaving, setIsSaving] = useState(false);
@@ -319,6 +261,27 @@ export default function WeightsPage() {
     loadData();
   }, [loadData]);
 
+  // Effect to synchronize wetWeight and dryTarget based on selected plant or batch
+  useEffect(() => {
+    if (selectedPlantId) {
+      const plant = plants.find((p) => p.id === selectedPlantId);
+      if (plant) {
+        setWetWeight(plant.wetWeight !== null ? Number(plant.wetWeight) : '');
+        setDryTarget(plant.dryTarget !== null ? Number(plant.dryTarget) : '');
+      }
+    } else if (selectedBatchId) {
+      const batch = batches.find((b) => b.id === selectedBatchId);
+      if (batch) {
+        setWetWeight(batch.wetWeight !== null ? Number(batch.wetWeight) : '');
+        setDryTarget(batch.dryTarget !== null ? Number(batch.dryTarget) : '');
+      }
+    } else {
+      // Reset to defaults or empty if nothing is selected
+      setWetWeight(18.4); // Or '' if you prefer empty
+      setDryTarget(13.2); // Or ''
+    }
+  }, [selectedPlantId, selectedBatchId, plants, batches]);
+
   const loadPlants = useCallback(async () => {
     if (!selectedBatchId) {
       setPlants([]);
@@ -339,12 +302,16 @@ export default function WeightsPage() {
 
   // Dry-back calculation
   const activeDryBack = useMemo(() => {
+    // Ensure wetWeight and dryTarget are numbers for calculation
+    const currentWetWeight = typeof wetWeight === 'number' ? wetWeight : 0;
+    const currentDryTarget = typeof dryTarget === 'number' ? dryTarget : 0;
+
     return calculateDryBack({
       id: 'active',
-      cultivar: 'Active room',
+      cultivar: 'Active room', // This cultivar is a placeholder for display.
       containerGallons,
-      wetWeight,
-      dryTarget,
+      wetWeight: currentWetWeight,
+      dryTarget: currentDryTarget,
       weight: currentWeight,
       loggedAt: new Date().toISOString(),
     });
@@ -363,16 +330,16 @@ export default function WeightsPage() {
     setIsSaving(true);
     try {
       await addDryBackLog({
-        cultivar: 'Batch',
+        cultivar: 'Batch', // Placeholder, the actual cultivar comes from the batch/plant config
         containerGallons,
-        wetWeight,
-        dryTarget,
+        wetWeight: typeof wetWeight === 'number' ? wetWeight : 0,
+        dryTarget: typeof dryTarget === 'number' ? dryTarget : 0,
         weight: currentWeight,
-        runoff_ec: 0,
+        runoff_ec: 0, // Assuming 0 for now as there's no input for it here
         unit: weightUnit,
         batchId: selectedBatchId || undefined,
-        ...(selectedPlantId ? { plantId: selectedPlantId } : {}),
-      } as any);
+        plantId: selectedPlantId || undefined, // Explicitly pass plantId
+      } as any); // Type assertion for now, consider refining DryBackLog type
       alert('Dry-back log saved!');
       await loadData();
     } catch (error) {
@@ -442,82 +409,123 @@ export default function WeightsPage() {
             </div>
           </div>
 
-          {/* Plant & Tent Navigation Bar */}
-          <PlantTentNav
-            rooms={rooms}
-            plants={plants}
-            selectedRoomId={selectedRoomId}
-            selectedPlantId={selectedPlantId}
-            onSelectRoom={setSelectedRoomId}
-            onSelectPlant={setSelectedPlantId}
-          />
+          {/* Unified Navigation: Location, Batch, Plant */}
+          <div className="flex flex-col gap-3 pb-2 border-b border-gray-200 dark:border-zinc-800">
+            {/* Top Level: Location / Room Selector */}
+            <RoomNav rooms={rooms} selectedRoomId={selectedRoomId} onSelectRoom={setSelectedRoomId} />
 
-          {/* Batch Selector & Plant Actions Toolbar */}
-          <div className="flex items-center justify-between gap-3 flex-wrap pt-2">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Batch:</span>
+            {/* Middle Level: Batch Selector & Actions */}
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
+              <span className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider pr-1">
+                Batch:
+              </span>
               <select
                 value={selectedBatchId || ''}
-                onChange={(e) => setSelectedBatchId(e.target.value || null)}
-                className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-xs font-semibold text-gray-900 dark:text-white outline-none focus:border-emerald-500"
+                onChange={(e) => {
+                  setSelectedBatchId(e.target.value || null);
+                  setSelectedPlantId(null); // Reset plant selection when batch changes
+                }}
+                className="bg-gray-100 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs font-bold text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white outline-none focus:border-emerald-500 transition-all"
               >
-                <option value="">-- Select Batch --</option>
-                {batches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name} ({b.cultivar})
-                  </option>
-                ))}
+                <option value="">All Batches</option>
+                {batches
+                  .filter((b) => !selectedRoomId || b.roomId === selectedRoomId)
+                  .map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name} ({b.cultivar})
+                    </option>
+                  ))}
               </select>
 
               <button
                 onClick={() => setShowNewBatchModal(true)}
                 className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-full transition-colors flex items-center gap-1"
               >
-                <Plus className="size-3" /> New Batch
-              </button>
-
-              <button
-                onClick={() => {
-                  const batch = batches.find((b) => b.id === selectedBatchId);
-                  if (batch) {
-                    setEditWetWeight(batch.wetWeight !== null ? Number(batch.wetWeight) : '');
-                    setEditDryTarget(batch.dryTarget !== null ? Number(batch.dryTarget) : '');
-                    setEditingBatchTargets(true);
-                  }
-                }}
-                className="text-xs font-bold text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200"
-              >
-                Edit Targets
+                <Plus className="size-3" /> New
               </button>
 
               {selectedBatchId && (
-                <>
-                  <span className="w-px h-4 bg-gray-300 dark:bg-zinc-800" />
-                  <span className="text-xs text-gray-500 dark:text-zinc-400">
-                    Day {getBatchDaysSinceStart(selectedBatchId)}
-                  </span>
-                  <span className="text-xs text-gray-500 dark:text-zinc-400">
-                    {getBatchLogCount(selectedBatchId)} logs
-                  </span>
-                  <span className="text-xs text-emerald-400 font-mono">
-                    Avg: {getBatchAverage(selectedBatchId).toFixed(1)}%
-                  </span>
-                </>
+                <button
+                  onClick={() => {
+                    const batch = batches.find((b) => b.id === selectedBatchId);
+                    if (batch) {
+                      setEditWetWeight(batch.wetWeight !== null ? Number(batch.wetWeight) : '');
+                      setEditDryTarget(batch.dryTarget !== null ? Number(batch.dryTarget) : '');
+                      setEditingBatchTargets(true);
+                    }
+                  }}
+                  className="text-xs font-bold text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200"
+                >
+                  Edit Targets
+                </button>
               )}
             </div>
 
-            <button
-              onClick={() => {
-                setEditingPlant(null);
-                setNewPlantName('');
-                setNewPlantWet('');
-                setNewPlantDry('');
-                setShowPlantModal(true);
-              }}
-              className="text-xs font-bold bg-zinc-800 hover:bg-zinc-700 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
-            >
-              <Plus className="size-3" /> Add Plant
-            </button>
+            {/* Bottom Level: Plant Selector for selected Batch */}
+            {(selectedBatchId || selectedRoomId) && plants.filter(p => (!selectedBatchId || p.batchId === selectedBatchId) && (!selectedRoomId || p.roomId === selectedRoomId)).length > 0 && (
+              <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
+                <span className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider pr-1">
+                  Plant:
+                </span>
+                <button
+                  onClick={() => setSelectedPlantId(null)}
+                  className={`px-3 py-1 text-xs font-semibold rounded-full transition-all ${
+                    selectedPlantId === null
+                      ? 'bg-zinc-800 text-emerald-400 border border-emerald-500/30'
+                      : 'bg-transparent text-gray-500 dark:text-zinc-400 border border-gray-200 dark:border-zinc-800 hover:text-gray-800 dark:hover:text-zinc-200'
+                  }`}
+                >
+                  All Plants
+                </button>
+                {plants
+                  .filter((plant) => (!selectedBatchId || plant.batchId === selectedBatchId) && (!selectedRoomId || plant.roomId === selectedRoomId))
+                  .map((plant) => (
+                    <button
+                      key={plant.id}
+                      onClick={() => setSelectedPlantId(plant.id)}
+                      className={`px-3 py-1 text-xs font-semibold rounded-full transition-all flex items-center gap-1.5 ${
+                        selectedPlantId === plant.id
+                          ? 'bg-zinc-800 text-emerald-400 border border-emerald-500/30'
+                          : 'bg-transparent text-gray-500 dark:text-zinc-400 border border-gray-200 dark:border-zinc-800 hover:text-gray-800 dark:hover:text-zinc-200'
+                      }`}
+                    >
+                      <span>{plant.name}</span>
+                      {plant.strain && (
+                        <span className="text-[10px] px-1.5 py-0.2 rounded border border-zinc-700 bg-zinc-900/60 opacity-80">
+                          {plant.strain}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                <button
+                  onClick={() => {
+                    setEditingPlant(null);
+                    setNewPlantName('');
+                    setNewPlantWet('');
+                    setNewPlantDry('');
+                    setShowPlantModal(true);
+                  }}
+                  disabled={!selectedBatchId}
+                  className="text-xs font-bold bg-zinc-800 hover:bg-zinc-700 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Plus className="size-3" /> Add Plant
+                </button>
+              </div>
+            )}
+            {/* Display batch stats only if a batch is selected */}
+            {selectedBatchId && (
+              <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-zinc-400 pt-2 border-t border-gray-200 dark:border-zinc-800 mt-2">
+                <span>
+                  Day {getBatchDaysSinceStart(selectedBatchId)}
+                </span>
+                <span>
+                  {getBatchLogCount(selectedBatchId)} logs
+                </span>
+                <span className="text-emerald-400 font-mono">
+                  Avg Dry-Back: {getBatchAverage(selectedBatchId).toFixed(1)}%
+                </span>
+              </div>
+            )}
           </div>
         </header>
 
@@ -563,30 +571,30 @@ export default function WeightsPage() {
             />
             <DarkNumberField
               label={`Target Saturated Weight (${weightUnit})`}
-              value={wetWeight}
+              value={typeof wetWeight === 'number' ? wetWeight : 0} // Ensure number for input
               onChange={setWetWeight}
             />
           </div>
 
           {/* Watering Window Banner */}
           <div className={`mt-5 rounded-xl p-4 border transition-all ${
-            activeDryBack.isClamped
+            activeDryBack.isClamped || wetWeight === '' || dryTarget === ''
               ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/50'
               : 'bg-gray-50 dark:bg-zinc-950/60 border-gray-200 dark:border-zinc-800'
           }`}>
             <div className={`flex items-center gap-2 text-xs font-bold tracking-wide uppercase ${
-              activeDryBack.isClamped ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400'
+              activeDryBack.isClamped || wetWeight === '' || dryTarget === '' ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400'
             }`}>
               <Activity className="size-3.5" />
               Watering Window
             </div>
             <p className={`mt-2 text-xs leading-relaxed ${
-              activeDryBack.isClamped
+              activeDryBack.isClamped || wetWeight === '' || dryTarget === ''
                 ? 'text-amber-800 dark:text-amber-300'
                 : 'text-gray-700 dark:text-zinc-300'
             }`}>
-              {activeDryBack.isClamped ? (
-                'Calculations suspended. Re‑verify inputs.'
+              {activeDryBack.isClamped || wetWeight === '' || dryTarget === '' ? (
+                'Calculations suspended. Re‑verify inputs or select a plant/batch with defined targets.'
               ) : (
                 <>
                   Current root media is <span className="font-bold text-gray-900 dark:text-white">{activeDryBack.dryBackPercent.toFixed(1)}%</span> through dry‑back cycle. Estimated irrigation trigger in{' '}
@@ -599,7 +607,7 @@ export default function WeightsPage() {
           </div>
 
           <button
-            disabled={isSaving || activeDryBack.isClamped}
+            disabled={isSaving || activeDryBack.isClamped || !selectedBatchId || wetWeight === '' || dryTarget === ''}
             onClick={handleSaveLog}
             className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] font-bold text-white text-xs px-4 py-3 shadow-lg shadow-emerald-950/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
           >
@@ -608,15 +616,15 @@ export default function WeightsPage() {
           
           <button
             onClick={async () => {
-              if (!selectedBatchId && !selectedPlantId) {
-                alert('Please select a batch or plant first.');
+              if (!selectedBatchId) {
+                alert('Please select a batch before logging irrigation.');
                 return;
               }
               setIsSaving(true);
               try {
                 await logIrrigation({
-                  batchId: selectedBatchId || undefined,
-                  plantId: selectedPlantId || undefined,
+                  batchId: selectedBatchId, // Explicitly use selectedBatchId
+                  plantId: selectedPlantId || undefined, // Explicitly use selectedPlantId
                   weight: currentWeight,
                   notes: 'Irrigation via button',
                 });
@@ -629,7 +637,7 @@ export default function WeightsPage() {
                 setIsSaving(false);
               }
             }}
-            disabled={isSaving || activeDryBack.isClamped}
+            disabled={isSaving || activeDryBack.isClamped || !selectedBatchId}
             className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 active:scale-[0.99] font-bold text-white text-xs px-4 py-3 shadow-lg shadow-cyan-950/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
           >
             {isSaving ? 'Logging...' : '💧 Irrigate Now'}
