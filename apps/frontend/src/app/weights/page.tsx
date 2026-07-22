@@ -53,8 +53,8 @@ import {
 // --------------------------------------------
 type DarkNumberFieldProps = {
   label: string;
-  value: number;
-  onChange: (value: number) => void;
+  value: number | ''; // Allow empty string for input
+  onChange: (value: number | '') => void; // Allow empty string for onChange
 };
 
 function DarkNumberField({ label, value, onChange }: DarkNumberFieldProps) {
@@ -67,7 +67,10 @@ function DarkNumberField({ label, value, onChange }: DarkNumberFieldProps) {
         step="0.05"
         type="number"
         value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
+        onChange={(e) => {
+          // Pass empty string if input is empty, otherwise parse to number
+          onChange(e.target.value === '' ? '' : Number(e.target.value));
+        }}
       />
     </label>
   );
@@ -571,7 +574,7 @@ export default function WeightsPage() {
             />
             <DarkNumberField
               label={`Target Saturated Weight (${weightUnit})`}
-              value={typeof wetWeight === 'number' ? wetWeight : 0} // Ensure number for input
+              value={wetWeight}
               onChange={setWetWeight}
             />
           </div>

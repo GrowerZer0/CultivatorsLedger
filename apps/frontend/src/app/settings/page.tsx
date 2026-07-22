@@ -159,9 +159,14 @@ export default function SettingsPage() {
   const loadBatchesAndRooms = useCallback(async () => {
     try {
       const fetchedBatches = await getBatches();
-      setBatches(fetchedBatches || []);
-      if (fetchedBatches.length > 0 && !selectedBatchId) {
-        setSelectedBatchId(fetchedBatches[0].id);
+      // Map over fetchedBatches to convert startDate Date properties into ISO strings
+      const formattedBatches = fetchedBatches.map(batch => ({
+        ...batch,
+        startDate: new Date(batch.startDate).toISOString(),
+      }));
+      setBatches(formattedBatches || []);
+      if (formattedBatches.length > 0 && !selectedBatchId) {
+        setSelectedBatchId(formattedBatches[0].id);
       }
 
       const fetchedRooms = await getRooms();
@@ -179,7 +184,13 @@ export default function SettingsPage() {
     if (selectedBatchId) {
       try {
         const fetchedPlants = await getPlantsForBatch(selectedBatchId);
-        setPlants(fetchedPlants || []);
+        // Map over fetchedPlants and cast Prisma Decimal properties to numbers
+        const formattedPlants = fetchedPlants.map(plant => ({
+          ...plant,
+          wetWeight: plant.wetWeight !== null ? Number(plant.wetWeight) : null,
+          dryTarget: plant.dryTarget !== null ? Number(plant.dryTarget) : null,
+        }));
+        setPlants(formattedPlants || []);
       } catch (err) {
         console.error("Failed to load plants for batch:", err);
       }
