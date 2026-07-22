@@ -37,13 +37,14 @@ import {
   regenerateApiKey,
   getBatches,
   createBatch,
-  updateBatch, // New action for updating batches
-  deleteBatch, // New action for deleting batches
-  getRooms,    // New action to get rooms
-  getPlantsForBatch, // New action for plants by batch
-  createPlant, // New action for creating plants
-  updatePlant, // New action for updating plants
-  deletePlant, // New action for deleting plants
+  updateBatch, 
+  deleteBatch, 
+  getRooms,   
+  getPlantsForBatch, 
+  createPlant, 
+  updatePlant, 
+  deletePlant, 
+  updateBatchTargets,
 } from "@/app/actions";
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { supabase } from '@/lib/supabase';
@@ -1245,7 +1246,7 @@ export default function SettingsPage() {
                 step="0.05"
                 placeholder="Saturated Weight (lbs, optional)"
                 value={newPlantWet}
-                onChange={(e) => setNewPlantWet(parseFloat(e.target.value))}
+                onChange={(e) => setNewPlantWet((e.target.value === '' ? '' : parseFloat(e.target.value)))}
                 className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
               />
               <input
@@ -1253,7 +1254,7 @@ export default function SettingsPage() {
                 step="0.05"
                 placeholder="Target Dry Weight (lbs, optional)"
                 value={newPlantDry}
-                onChange={(e) => setNewPlantDry(parseFloat(e.target.value))}
+                onChange={(e) => setNewPlantDry((e.target.value === '' ? '' : parseFloat(e.target.value)))}
                 className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
               />
               <select
