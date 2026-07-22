@@ -16,12 +16,13 @@ datasource db {
 // ============================================================
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String            @id @default(cuid())
+  email            String            @unique
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
   // Relations
+  rooms            Room[]
   climateLogs      ClimateLog[]
   dryBackLogs      DryBackLog[]
   batches          Batch[]
@@ -76,6 +77,7 @@ model ClimateLog {
   id               Int            @id @default(autoincrement())
   timestamp        DateTime       @default(now()) @db.Timestamptz(6)
   roomId           String         @map("room_id") @db.VarChar(50)
+  room             Room?          @relation(fields: [roomId], references: [id], onDelete: SetNull)
   zoneId           String         @default("Main") @map("zone_id") @db.VarChar(50)
   sensorMac        String?        @map("sensor_mac") @db.VarChar(17)
   airTempC         Decimal        @map("air_temp_c") @db.Decimal(4, 2)
@@ -112,7 +114,7 @@ model DryBackLog {
   plantId            String?  @map("plant_id")
   plant              Plant?   @relation(fields: [plantId], references: [id], onDelete: SetNull)
   source             String   @default("manual") // 'manual' or 'irrigation'
-  
+
   @@map("dry_back_logs")
 }
 
@@ -120,12 +122,13 @@ model Batch {
   id          String       @id @default(cuid())
   name        String       @db.VarChar(100)
   cultivar    String       @db.VarChar(100)
-  roomId      String       @map("room_id") @db.VarChar(50)
+  roomId      String?      @map("room_id") @db.VarChar(50)
+  room        Room?        @relation(fields: [roomId], references: [id], onDelete: SetNull)
   startDate   DateTime     @default(now()) @map("start_date")
   harvestDate DateTime?    @map("harvest_date")
   isActive    Boolean      @default(true) @map("is_active")
-  wetWeight   Decimal?     @map("wet_weight") @db.Decimal(5, 2)   // default 18.4 lbs
-  dryTarget   Decimal?     @map("dry_target") @db.Decimal(5, 2)   // default 13.2 lbs
+  wetWeight   Decimal?     @map("wet_weight") @db.Decimal(5, 2)
+  dryTarget   Decimal?     @map("dry_target") @db.Decimal(5, 2)
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
   dryBackLogs DryBackLog[]
@@ -149,9 +152,10 @@ model IrrigationEvent {
   user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   importId           Int?           @map("import_id")
   import             ImportHistory? @relation(fields: [importId], references: [id], onDelete: Cascade)
-  batchId          String?  @map("batch_id")
-  plantId          String?  @map("plant_id")
-  currentWeightLbs Decimal? @map("current_weight_lbs") @db.Decimal(5, 2)
+  batchId            String?        @map("batch_id")
+  plantId            String?        @map("plant_id")
+  plant              Plant?         @relation(fields: [plantId], references: [id], onDelete: SetNull)
+  currentWeightLbs   Decimal?       @map("current_weight_lbs") @db.Decimal(5, 2)
 
   @@index([roomId, timestamp])
   @@map("irrigation_events")
@@ -189,48 +193,69 @@ model SensorConfig {
 }
 
 model Plant {
-  id             String       @id @default(cuid())
-  name           String       // cultivar or plant identifier
-  strain         String?
-  batchId        String?      @map("batch_id")
-  batch          Batch?       @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  userId         String       @map("user_id")
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  startDate      DateTime     @default(now()) @map("start_date")
-  wetWeight      Decimal?     @map("wet_weight") @db.Decimal(5, 2)
-  dryTarget      Decimal?     @map("dry_target") @db.Decimal(5, 2)
-  currentWeight  Decimal?     @map("current_weight") @db.Decimal(5, 2)
-  notes          String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  dryBackLogs    DryBackLog[]
-  plantInsights  PlantInsight[]
+  id               String            @id @default(cuid())
+  name             String            // e.g. "Plant #1" or tag ID
+  strain           String?           // e.g. "Early Frost by Twenty20 Mendocino"
+  roomId           String?           @map("room_id")
+  room             Room?             @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  batchId          String?           @map("batch_id")
+  batch            Batch?            @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  userId           String            @map("user_id")
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startDate        DateTime          @default(now()) @map("start_date")
+  containerGallons Decimal?          @map("container_gallons") @db.Decimal(4, 2)
+  wetWeight        Decimal?          @map("wet_weight") @db.Decimal(5, 2)
+  dryTarget        Decimal?          @map("dry_target") @db.Decimal(5, 2)
+  currentWeight    Decimal?          @map("current_weight") @db.Decimal(5, 2)
+  notes            String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  dryBackLogs      DryBackLog[]
+  irrigationEvents IrrigationEvent[]
+  plantInsights    PlantInsight[]
 
   @@map("plants")
 }
 
 model PlantInsight {
-  id             String   @id @default(cuid())
-  plantId        String   @map("plant_id")
-  plant          Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
-  createdAt      DateTime @default(now()) @map("created_at")
-  date           DateTime @default(now()) @db.Date
-  lastBriefingAt DateTime @default(now())
-  
+  id                     String    @id @default(cuid())
+  plantId                String    @map("plant_id")
+  plant                  Plant     @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  createdAt              DateTime  @default(now()) @map("created_at")
+  date                   DateTime  @default(now()) @db.Date
+  lastBriefingAt         DateTime  @default(now())
+
   // Overnight Summary
-  overnightWeightLoss Decimal? @map("overnight_weight_loss") @db.Decimal(5, 2)
-  overnightVpdAvg     Decimal? @map("overnight_vpd_avg") @db.Decimal(4, 2)
-  overnightMoistureStart Decimal? @map("overnight_moisture_start") @db.Decimal(5, 2)
-  overnightMoistureEnd   Decimal? @map("overnight_moisture_end") @db.Decimal(5, 2)
-  
+  overnightWeightLoss    Decimal?  @map("overnight_weight_loss") @db.Decimal(5, 2)
+  overnightVpdAvg        Decimal?  @map("overnight_vpd_avg") @db.Decimal(4, 2)
+  overnightMoistureStart Decimal?  @map("overnight_moisture_start") @db.Decimal(5, 2)
+  overnightMoistureEnd   Decimal?  @map("overnight_moisture_end") @db.Decimal(5, 2)
+
   // Recommendation
-  recommendationType String @map("recommendation_type") // 'irrigate', 'wait', 'monitor', 'feed', 'flush'
-  recommendationText String @map("recommendation_text")
-  actionPlan         String? @map("action_plan")
-  
+  recommendationType     String    @map("recommendation_type") // 'irrigate', 'wait', 'monitor', 'feed', 'flush'
+  recommendationText     String    @map("recommendation_text")
+  actionPlan             String?   @map("action_plan")
+
   // Outcome (logged after action)
-  outcome          String? // 'completed', 'skipped', 'modified'
-  outcomeNotes     String? @map("outcome_notes")
-  
+  outcome                String?   // 'completed', 'skipped', 'modified'
+  outcomeNotes           String?   @map("outcome_notes")
+
   @@map("plant_insights")
+}
+
+model Room {
+  id        String   @id @default(cuid())
+  name      String   @db.VarChar(100) // e.g., "Main Tent", "Veg Room B"
+  type      String   @default("tent") // 'tent', 'room', 'greenhouse'
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  batches     Batch[]
+  plants      Plant[]
+  climateLogs ClimateLog[]
+
+  @@map("rooms")
 }

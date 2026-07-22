@@ -12,6 +12,9 @@ import {
   Settings,
   Sun,
   Moon,
+  Droplets,
+  Thermometer,
+  Gauge,
 } from 'lucide-react';
 import {
   LineChart,
@@ -46,7 +49,7 @@ import {
 } from '@/app/actions';
 
 // --------------------------------------------
-// DarkNumberField component (moved here for now)
+// DarkNumberField Component
 // --------------------------------------------
 type DarkNumberFieldProps = {
   label: string;
@@ -71,11 +74,114 @@ function DarkNumberField({ label, value, onChange }: DarkNumberFieldProps) {
 }
 
 // --------------------------------------------
+// Plant & Tent Navigation Bar
+// --------------------------------------------
+interface PlantTentNavProps {
+  rooms: { id: string; name: string }[];
+  plants: { id: string; name: string; strain?: string | null; roomId?: string | null }[];
+  selectedRoomId: string | null;
+  selectedPlantId: string | null;
+  onSelectRoom: (roomId: string | null) => void;
+  onSelectPlant: (plantId: string | null) => void;
+}
+
+function PlantTentNav({
+  rooms,
+  plants,
+  selectedRoomId,
+  selectedPlantId,
+  onSelectRoom,
+  onSelectPlant,
+}: PlantTentNavProps) {
+  const activeRoomPlants = plants.filter(
+    (plant) => !selectedRoomId || plant.roomId === selectedRoomId
+  );
+
+  return (
+    <div className="flex flex-col gap-3 pb-2 border-b border-gray-200 dark:border-zinc-800">
+      {/* Top Level: Location / Room Selector */}
+      <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
+        <span className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider pr-1">
+          Location:
+        </span>
+        <button
+          onClick={() => {
+            onSelectRoom(null);
+            onSelectPlant(null);
+          }}
+          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+            selectedRoomId === null
+              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/20'
+              : 'bg-gray-100 dark:bg-zinc-900 text-gray-600 dark:text-zinc-400 border border-gray-200 dark:border-zinc-800 hover:text-gray-900 dark:hover:text-white'
+          }`}
+        >
+          All Rooms
+        </button>
+        {rooms.map((room) => (
+          <button
+            key={room.id}
+            onClick={() => {
+              onSelectRoom(room.id);
+              onSelectPlant(null);
+            }}
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              selectedRoomId === room.id
+                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/20'
+                : 'bg-gray-100 dark:bg-zinc-900 text-gray-600 dark:text-zinc-400 border border-gray-200 dark:border-zinc-800 hover:text-gray-900 dark:hover:text-white'
+            }`}
+          >
+            {room.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Bottom Level: Telemetry Context Toggle */}
+      <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
+        <span className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider pr-1">
+          Telemetry:
+        </span>
+        <button
+          onClick={() => onSelectPlant(null)}
+          className={`px-3 py-1 text-xs font-semibold rounded-full transition-all ${
+            selectedPlantId === null
+              ? 'bg-zinc-800 text-emerald-400 border border-emerald-500/30'
+              : 'bg-transparent text-gray-500 dark:text-zinc-400 border border-gray-200 dark:border-zinc-800 hover:text-gray-800 dark:hover:text-zinc-200'
+          }`}
+        >
+          Room Unified
+        </button>
+        {activeRoomPlants.map((plant) => (
+          <button
+            key={plant.id}
+            onClick={() => onSelectPlant(plant.id)}
+            className={`px-3 py-1 text-xs font-semibold rounded-full transition-all flex items-center gap-1.5 ${
+              selectedPlantId === plant.id
+                ? 'bg-zinc-800 text-emerald-400 border border-emerald-500/30'
+                : 'bg-transparent text-gray-500 dark:text-zinc-400 border border-gray-200 dark:border-zinc-800 hover:text-gray-800 dark:hover:text-zinc-200'
+            }`}
+          >
+            <span>{plant.name}</span>
+            {plant.strain && (
+              <span className="text-[10px] px-1.5 py-0.2 rounded border border-zinc-700 bg-zinc-900/60 opacity-80">
+                {plant.strain}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// --------------------------------------------
 // Main Weights Page
 // --------------------------------------------
 export default function WeightsPage() {
-  // Theme and UI state
   const { theme, setTheme } = useTheme();
+
+  // Rooms & Locations state
+  const [rooms, setRooms] = useState<any[]>([]);
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
 
   // Batches state
   const [batches, setBatches] = useState<any[]>([]);
@@ -83,7 +189,7 @@ export default function WeightsPage() {
   const [showNewBatchModal, setShowNewBatchModal] = useState(false);
   const [newBatchName, setNewBatchName] = useState('');
   const [newBatchCultivar, setNewBatchCultivar] = useState('');
-  const [newBatchRoom, setNewBatchRoom] = useState('tent_1');
+  const [newBatchRoom, setNewBatchRoom] = useState('');
   const [editingBatchTargets, setEditingBatchTargets] = useState(false);
   const [editWetWeight, setEditWetWeight] = useState<number | ''>('');
   const [editDryTarget, setEditDryTarget] = useState<number | ''>('');
@@ -96,6 +202,9 @@ export default function WeightsPage() {
   const [newPlantWet, setNewPlantWet] = useState<number | ''>('');
   const [newPlantDry, setNewPlantDry] = useState<number | ''>('');
   const [editingPlant, setEditingPlant] = useState<any | null>(null);
+
+  // Environmental Telemetry Data
+  const [climateLogs, setClimateLogs] = useState<any[]>([]);
 
   // Dry‑back data
   const [dbDryBackLogs, setDbDryBackLogs] = useState<DryBackLog[]>([]);
@@ -116,10 +225,10 @@ export default function WeightsPage() {
   const [weightUnit, setWeightUnit] = useState<'lbs' | 'g'>('lbs');
   const [isSaving, setIsSaving] = useState(false);
 
-  // Helper: get batch stats (for display)
+  // Stats Helpers
   function getBatchAverage(batchId: string | null): number {
     if (!batchId) return 0;
-    const batch = batches.find(b => b.id === batchId);
+    const batch = batches.find((b) => b.id === batchId);
     if (!batch || !batch.dryBackLogs || batch.dryBackLogs.length === 0) return 0;
     const total = batch.dryBackLogs.reduce((sum: number, log: any) => sum + Number(log.dryBackPercent), 0);
     return total / batch.dryBackLogs.length;
@@ -127,77 +236,121 @@ export default function WeightsPage() {
 
   function getBatchLogCount(batchId: string | null): number {
     if (!batchId) return 0;
-    const batch = batches.find(b => b.id === batchId);
+    const batch = batches.find((b) => b.id === batchId);
     return batch?.dryBackLogs?.length || 0;
   }
 
   function getBatchDaysSinceStart(batchId: string | null): number {
     if (!batchId) return 0;
-    const batch = batches.find(b => b.id === batchId);
+    const batch = batches.find((b) => b.id === batchId);
     if (!batch?.startDate) return 0;
     return Math.floor((Date.now() - new Date(batch.startDate).getTime()) / (1000 * 60 * 60 * 24));
   }
 
-  // Load data
-const loadData = useCallback(async () => {
-  setLoading(true);
-  try {
-    const data = await getDashboardData(selectedBatchId || undefined);
-    setDbDryBackLogs(data.dryBackLogs || []);
+  // Active climate log tied to selected room
+  const activeRoomClimate = useMemo(() => {
+    if (!selectedRoomId) return climateLogs[0] || null;
+    return climateLogs.find((c) => c.roomId === selectedRoomId) || null;
+  }, [climateLogs, selectedRoomId]);
 
-    const fetchedBatches = await getBatches();
-    setBatches(fetchedBatches);
-    if (fetchedBatches.length > 0 && !selectedBatchId) {
-      const active = fetchedBatches.find(b => b.isActive) || fetchedBatches[0];
-      setSelectedBatchId(active.id);
+  // Load Data
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await getDashboardData(selectedBatchId || undefined);
+      setDbDryBackLogs((data.dryBackLogs as unknown as DryBackLog[]) || []);
+      
+      // FIX 1: Map environmentReadings to climateLogs
+      const mappedClimate = (data.environmentReadings || []).map((reading) => ({
+        airTempC: reading.temperature,
+        relativeHumidity: reading.humidity,
+        calculatedVpdKpa: reading.vpd,
+        recordedAt: reading.recordedAt,
+      }));
+      setClimateLogs(mappedClimate);
+
+      const fetchedBatches = await getBatches();
+      setBatches(fetchedBatches);
+      
+      // FIX 2: Extract unique rooms safely using roomId string as name fallback
+      const uniqueRooms = Array.from(
+        new Set(fetchedBatches.map((b: any) => b.roomId).filter(Boolean))
+      ).map((id) => ({
+        id: id as string,
+        name: (fetchedBatches.find((b: any) => b.roomId === id) as any)?.room?.name || (id as string),
+      }));
+      setRooms(uniqueRooms);
+
+      if (fetchedBatches.length > 0 && !selectedBatchId) {
+        const active = fetchedBatches.find((b: any) => b.isActive) || fetchedBatches[0];
+        setSelectedBatchId(active.id);
+        if (active.roomId) setNewBatchRoom(active.roomId);
+      }
+
+      // Water use data
+      setWaterUseLoading(true);
+      const waterUse = await getWaterUseData(selectedBatchId || undefined, selectedPlantId || undefined);
+      setWaterUseData(waterUse);
+
+      // Trend insights
+      const insights = await getTrendInsights(selectedBatchId || undefined, selectedPlantId || undefined);
+      setTrendInsights(insights);
+      
+      setRecoveryLoading(true);
+      const recovery = await getRecoveryStatus(selectedBatchId || undefined, selectedPlantId || undefined);
+      setRecoveryStatus(recovery);
+      setRecoveryLoading(false);
+
+      setDiagnosticsLoading(true);
+      const diag = await getDiagnostics(selectedBatchId || undefined, selectedPlantId || undefined);
+      setDiagnostics(diag);
+      setDiagnosticsLoading(false);
+
+    } catch (err) {
+      console.error('Failed to load weights data:', err);
+    } finally {
+      setLoading(false);
+      setWaterUseLoading(false);
+      setRecoveryLoading(false);
     }
-
-    // Fetch water use data
-    setWaterUseLoading(true);
-    const waterUse = await getWaterUseData(selectedBatchId || undefined, selectedPlantId || undefined);
-    setWaterUseData(waterUse);
-
-    // Fetch trend insights
-    const insights = await getTrendInsights(selectedBatchId || undefined, selectedPlantId || undefined);
-    setTrendInsights(insights);
-    
-    setRecoveryLoading(true);
-    const recovery = await getRecoveryStatus(selectedBatchId || undefined, selectedPlantId || undefined);
-    setRecoveryStatus(recovery);
-    setRecoveryLoading(false);
-
-    setDiagnosticsLoading(true);
-    const diag = await getDiagnostics(selectedBatchId || undefined, selectedPlantId || undefined);
-    setDiagnostics(diag);
-    setDiagnosticsLoading(false);
-
-  } catch (err) {
-    console.error('Failed to load weights data:', err);
-  } finally {
-    setLoading(false);
-    setWaterUseLoading(false);
-    setRecoveryLoading(false);
-  }
-}, [selectedBatchId, selectedPlantId]);
+  }, [selectedBatchId, selectedPlantId]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  // Calculate active dry‑back from latest weight
+  const loadPlants = useCallback(async () => {
+    if (!selectedBatchId) {
+      setPlants([]);
+      setSelectedPlantId(null);
+      return;
+    }
+    try {
+      const data = await getPlantsForBatch(selectedBatchId);
+      setPlants(data);
+    } catch (err) {
+      console.error('Failed to load plants:', err);
+    }
+  }, [selectedBatchId]);
+
+  useEffect(() => {
+    loadPlants();
+  }, [loadPlants]);
+
+  // Dry-back calculation
   const activeDryBack = useMemo(() => {
     return calculateDryBack({
       id: 'active',
       cultivar: 'Active room',
       containerGallons,
       wetWeight,
-      dryTarget: dryTarget,
+      dryTarget,
       weight: currentWeight,
       loggedAt: new Date().toISOString(),
     });
   }, [containerGallons, wetWeight, dryTarget, currentWeight]);
 
-  // Chart data
+  // Chart dataset
   const dryBackChartData = dbDryBackLogs.map((log) => ({
     time: new Date(log.loggedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
     weight: log.weight,
@@ -205,7 +358,7 @@ const loadData = useCallback(async () => {
     source: log.source || 'manual',
   }));
 
-  // Save log
+  // FIX 3: Save log handlers with type assertion or mapped parameters
   async function handleSaveLog() {
     setIsSaving(true);
     try {
@@ -218,8 +371,8 @@ const loadData = useCallback(async () => {
         runoff_ec: 0,
         unit: weightUnit,
         batchId: selectedBatchId || undefined,
-        plantId: selectedPlantId || undefined,
-      });
+        ...(selectedPlantId ? { plantId: selectedPlantId } : {}),
+      } as any);
       alert('Dry-back log saved!');
       await loadData();
     } catch (error) {
@@ -229,59 +382,6 @@ const loadData = useCallback(async () => {
     }
   }
 
-  const saveBatchTargets = async () => {
-  if (!selectedBatchId) return;
-  try {
-    const result = await updateBatchTargets({
-      batchId: selectedBatchId,
-      wetWeight: editWetWeight !== '' ? editWetWeight : null,
-      dryTarget: editDryTarget !== '' ? editDryTarget : null,
-    });
-    if (result.success) {
-      await loadData(); // refresh batches
-      setEditingBatchTargets(false);
-    } else {
-      alert('Failed to update targets');
-    }
-  } catch (error) {
-    alert('Failed to update targets');
-  }
-};
-
-const loadPlants = useCallback(async () => {
-  if (!selectedBatchId) {
-    setPlants([]);
-    setSelectedPlantId(null);
-    return;
-  }
-  try {
-    const data = await getPlantsForBatch(selectedBatchId);
-    setPlants(data);
-    if (data.length > 0 && !selectedPlantId) {
-      setSelectedPlantId(data[0].id);
-    }
-  } catch (err) {
-    console.error('Failed to load plants:', err);
-  }
-}, [selectedBatchId]);
-
-useEffect(() => {
-  loadPlants();
-}, [loadPlants]);
-
-  // Export all batches
-  const handleExportAll = async () => {
-    const data = await exportAllBatches();
-    if (!data || data.length === 0) {
-      alert('No batch data to export.');
-      return;
-    }
-    // ... (same export logic as before – you can reuse from main page)
-    // For brevity, I'll leave it as a placeholder – you can copy from the main page.
-    alert('Export functionality: copy from main page');
-  };
-
-  // Loading state
   if (loading) {
     return (
       <AppShell>
@@ -295,97 +395,133 @@ useEffect(() => {
   return (
     <AppShell>
       <div className="min-h-screen bg-white dark:bg-[#0B0F19] text-gray-900 dark:text-zinc-100 p-4">
-        {/* Header with batch selector and actions */}
-        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 dark:border-zinc-800 pb-4 mb-6">
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Batch:</span>
-            <select
-              value={selectedBatchId || ''}
-              onChange={(e) => setSelectedBatchId(e.target.value || null)}
-              className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500"
-            >
-              <option value="">-- Select --</option>
-              {batches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name} ({b.cultivar})
-                </option>
-              ))}
-            </select>
+        
+        {/* Header Block: Title & Environmental Stats */}
+        <header className="space-y-4 mb-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 dark:border-zinc-800 pb-4">
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+                Weights & Telemetry
+              </h1>
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+                Monitor moisture levels, dry-back percentages, and unified environmental stats.
+              </p>
+            </div>
+
+            {/* Environmental Stat Bar */}
+            <div className="flex items-center gap-4 bg-gray-50 dark:bg-zinc-900/80 px-4 py-2 rounded-xl border border-gray-200 dark:border-zinc-800 text-xs">
+              <div className="flex items-center gap-1.5">
+                <Thermometer className="size-3.5 text-emerald-500" />
+                <div>
+                  <span className="text-gray-400 dark:text-zinc-500 block text-[10px]">Air Temp</span>
+                  <span className="font-semibold text-gray-900 dark:text-zinc-100">
+                    {activeRoomClimate?.airTempC ? `${activeRoomClimate.airTempC}°C` : '--'}
+                  </span>
+                </div>
+              </div>
+              <div className="h-6 w-px bg-gray-200 dark:bg-zinc-800" />
+              <div className="flex items-center gap-1.5">
+                <Droplets className="size-3.5 text-cyan-500" />
+                <div>
+                  <span className="text-gray-400 dark:text-zinc-500 block text-[10px]">RH</span>
+                  <span className="font-semibold text-gray-900 dark:text-zinc-100">
+                    {activeRoomClimate?.relativeHumidity ? `${activeRoomClimate.relativeHumidity}%` : '--'}
+                  </span>
+                </div>
+              </div>
+              <div className="h-6 w-px bg-gray-200 dark:bg-zinc-800" />
+              <div className="flex items-center gap-1.5">
+                <Gauge className="size-3.5 text-amber-500" />
+                <div>
+                  <span className="text-gray-400 dark:text-zinc-500 block text-[10px]">VPD</span>
+                  <span className="font-semibold text-gray-900 dark:text-zinc-100">
+                    {activeRoomClimate?.calculatedVpdKpa ? `${activeRoomClimate.calculatedVpdKpa} kPa` : '--'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Plant & Tent Navigation Bar */}
+          <PlantTentNav
+            rooms={rooms}
+            plants={plants}
+            selectedRoomId={selectedRoomId}
+            selectedPlantId={selectedPlantId}
+            onSelectRoom={setSelectedRoomId}
+            onSelectPlant={setSelectedPlantId}
+          />
+
+          {/* Batch Selector & Plant Actions Toolbar */}
+          <div className="flex items-center justify-between gap-3 flex-wrap pt-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Batch:</span>
+              <select
+                value={selectedBatchId || ''}
+                onChange={(e) => setSelectedBatchId(e.target.value || null)}
+                className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-xs font-semibold text-gray-900 dark:text-white outline-none focus:border-emerald-500"
+              >
+                <option value="">-- Select Batch --</option>
+                {batches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} ({b.cultivar})
+                  </option>
+                ))}
+              </select>
+
+              <button
+                onClick={() => setShowNewBatchModal(true)}
+                className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-full transition-colors flex items-center gap-1"
+              >
+                <Plus className="size-3" /> New Batch
+              </button>
+
+              <button
+                onClick={() => {
+                  const batch = batches.find((b) => b.id === selectedBatchId);
+                  if (batch) {
+                    setEditWetWeight(batch.wetWeight !== null ? Number(batch.wetWeight) : '');
+                    setEditDryTarget(batch.dryTarget !== null ? Number(batch.dryTarget) : '');
+                    setEditingBatchTargets(true);
+                  }
+                }}
+                className="text-xs font-bold text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200"
+              >
+                Edit Targets
+              </button>
+
+              {selectedBatchId && (
+                <>
+                  <span className="w-px h-4 bg-gray-300 dark:bg-zinc-800" />
+                  <span className="text-xs text-gray-500 dark:text-zinc-400">
+                    Day {getBatchDaysSinceStart(selectedBatchId)}
+                  </span>
+                  <span className="text-xs text-gray-500 dark:text-zinc-400">
+                    {getBatchLogCount(selectedBatchId)} logs
+                  </span>
+                  <span className="text-xs text-emerald-400 font-mono">
+                    Avg: {getBatchAverage(selectedBatchId).toFixed(1)}%
+                  </span>
+                </>
+              )}
+            </div>
+
             <button
-              onClick={() => setShowNewBatchModal(true)}
-              className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-full transition-colors"
+              onClick={() => {
+                setEditingPlant(null);
+                setNewPlantName('');
+                setNewPlantWet('');
+                setNewPlantDry('');
+                setShowPlantModal(true);
+              }}
+              className="text-xs font-bold bg-zinc-800 hover:bg-zinc-700 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
             >
-              + New
+              <Plus className="size-3" /> Add Plant
             </button>
-
-            <button
-  onClick={() => {
-    const batch = batches.find(b => b.id === selectedBatchId);
-    if (batch) {
-      setEditWetWeight(batch.wetWeight !== null ? Number(batch.wetWeight) : '');
-      setEditDryTarget(batch.dryTarget !== null ? Number(batch.dryTarget) : '');
-      setEditingBatchTargets(true);
-    }
-  }}
-  className="text-xs font-bold text-gray-500 dark:text-zinc-400 hover:text-gray-700 dark:hover:text-zinc-200"
->
-  Edit Targets
-</button>
-  {/* Plant Selector */}
-  {plants.length > 0 && (
-    <div className="flex items-center gap-2">
-      <span className="text-xs font-bold text-gray-500 dark:text-zinc-400">Plant:</span>
-      <select
-        value={selectedPlantId || ''}
-        onChange={(e) => setSelectedPlantId(e.target.value || null)}
-        className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500"
-      >
-        <option value="">-- Select --</option>
-        {plants.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.name}
-          </option>
-        ))}
-      </select>
-    </div>
-  )}
-<button
-  onClick={() => {
-    setEditingPlant(null);
-    setNewPlantName('');
-    setNewPlantWet('');
-    setNewPlantDry('');
-    setShowPlantModal(true);
-  }}
-  className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-full transition-colors"
->
-  + Add Plant
-</button>
-
-            {selectedBatchId && (
-              <>
-                <span className="w-px h-6 bg-gray-300 dark:bg-zinc-700" />
-                <span className="text-xs text-gray-500 dark:text-zinc-400">
-                  Day {getBatchDaysSinceStart(selectedBatchId)}
-                </span>
-                <span className="text-xs text-gray-500 dark:text-zinc-400">
-                  {getBatchLogCount(selectedBatchId)} logs
-                </span>
-                <span className="text-xs text-emerald-400 font-mono">
-                  Avg: {getBatchAverage(selectedBatchId).toFixed(1)}%
-                </span>
-                <Link
-                  href={`/batches/${selectedBatchId}`}
-                  className="text-xs font-bold text-emerald-400 hover:text-emerald-300 px-2 py-1 rounded border border-emerald-500/20 hover:bg-emerald-500/10"
-                >
-                  View
-                </Link>
-              </>
-            )}
           </div>
         </header>
 
-        {/* Dry‑Back Analytics */}
+        {/* Dry‑Back Analytics Panel */}
         <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xl">
           <div className="flex items-center justify-between mb-4 border-b border-gray-200 dark:border-zinc-800 pb-3">
             <div className="flex items-center gap-2">
@@ -432,7 +568,7 @@ useEffect(() => {
             />
           </div>
 
-          {/* Watering Window */}
+          {/* Watering Window Banner */}
           <div className={`mt-5 rounded-xl p-4 border transition-all ${
             activeDryBack.isClamped
               ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/50'
@@ -469,34 +605,35 @@ useEffect(() => {
           >
             {isSaving ? 'Saving...' : 'Log Dry-Back Reading'}
           </button>
+          
           <button
-  onClick={async () => {
-    if (!selectedBatchId && !selectedPlantId) {
-      alert('Please select a batch or plant first.');
-      return;
-    }
-    setIsSaving(true);
-    try {
-      await logIrrigation({
-        batchId: selectedBatchId || undefined,
-        plantId: selectedPlantId || undefined,
-        weight: currentWeight,
-        notes: 'Irrigation via button',
-      });
-      alert('Irrigation logged!');
-      await loadData();
-    } catch (err) {
-      console.error(err);
-      alert('Failed to log irrigation.');
-    } finally {
-      setIsSaving(false);
-    }
-  }}
-  disabled={isSaving || activeDryBack.isClamped}
-  className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 active:scale-[0.99] font-bold text-white text-xs px-4 py-3 shadow-lg shadow-cyan-950/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
->
-  {isSaving ? 'Logging...' : '💧 Irrigate Now'}
-</button>
+            onClick={async () => {
+              if (!selectedBatchId && !selectedPlantId) {
+                alert('Please select a batch or plant first.');
+                return;
+              }
+              setIsSaving(true);
+              try {
+                await logIrrigation({
+                  batchId: selectedBatchId || undefined,
+                  plantId: selectedPlantId || undefined,
+                  weight: currentWeight,
+                  notes: 'Irrigation via button',
+                });
+                alert('Irrigation logged!');
+                await loadData();
+              } catch (err) {
+                console.error(err);
+                alert('Failed to log irrigation.');
+              } finally {
+                setIsSaving(false);
+              }
+            }}
+            disabled={isSaving || activeDryBack.isClamped}
+            className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 active:scale-[0.99] font-bold text-white text-xs px-4 py-3 shadow-lg shadow-cyan-950/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer"
+          >
+            {isSaving ? 'Logging...' : '💧 Irrigate Now'}
+          </button>
         </div>
 
         {/* Water Use Stats */}
@@ -556,7 +693,7 @@ useEffect(() => {
               )}
             </div>
           </div>
-            )}
+        )}
 
         {/* Diagnostic Engine */}
         {diagnostics && !diagnostics.error && (
@@ -660,7 +797,7 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* New Batch Modal */}
+        {/* Create Batch Modal */}
         {showNewBatchModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
             <div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
@@ -685,10 +822,12 @@ useEffect(() => {
                   onChange={(e) => setNewBatchRoom(e.target.value)}
                   className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
                 >
-                  <option value="tent_1">Tent 1</option>
-                  <option value="tent_2">Tent 2</option>
-                  <option value="room_a">Room A</option>
-                  <option value="room_b">Room B</option>
+                  <option value="">-- Select Room / Tent --</option>
+                  {rooms.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name}
+                    </option>
+                  ))}
                 </select>
                 <div className="flex gap-3 pt-2">
                   <button
@@ -703,12 +842,11 @@ useEffect(() => {
                       await createBatch({
                         name: newBatchName,
                         cultivar: newBatchCultivar,
-                        roomId: newBatchRoom,
+                        roomId: newBatchRoom || undefined,
                       });
                       setShowNewBatchModal(false);
                       setNewBatchName('');
                       setNewBatchCultivar('');
-                      setNewBatchRoom('tent_1');
                       loadData();
                     }}
                     className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500"
@@ -754,15 +892,24 @@ useEffect(() => {
                 <div className="flex gap-3 pt-2">
                   <button
                     onClick={() => setEditingBatchTargets(false)}
-                    className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm font-bold text-zinc-300 hover:bg-zinc-800 transition-colors"
+                    className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm font-bold text-zinc-300 hover:bg-zinc-800"
                   >
                     Cancel
                   </button>
                   <button
-                    onClick={saveBatchTargets}
-                    className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500 transition-all"
+                    onClick={async () => {
+                      if (!selectedBatchId) return;
+                      await updateBatchTargets({
+                        batchId: selectedBatchId,
+                        wetWeight: editWetWeight !== '' ? Number(editWetWeight) : null,
+                        dryTarget: editDryTarget !== '' ? Number(editDryTarget) : null,
+                      });
+                      setEditingBatchTargets(false);
+                      loadData();
+                    }}
+                    className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500"
                   >
-                    Save
+                    Save Targets
                   </button>
                 </div>
               </div>
@@ -770,105 +917,76 @@ useEffect(() => {
           </div>
         )}
 
-        {/* Plant Management Modal */}
+        {/* Add/Edit Plant Modal */}
         {showPlantModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-            <div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-bold text-white">
-                  {editingPlant ? 'Edit Plant' : 'Add New Plant'}
-                </h2>
-                <button
-                  onClick={() => setShowPlantModal(false)}
-                  className="text-zinc-400 hover:text-white transition-colors"
-                >
-                  ✕
-                </button>
-              </div>
-
+            <div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
+              <h2 className="text-lg font-bold text-white mb-4">
+                {editingPlant ? 'Edit Plant' : 'Add New Plant'}
+              </h2>
               <div className="space-y-3">
-                <div>
-                  <label className="block text-xs font-bold text-zinc-400 mb-1">Plant Name (Cultivar)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g., Blueberry Muffin #2"
-                    value={newPlantName}
-                    onChange={(e) => setNewPlantName(e.target.value)}
-                    className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-zinc-400 mb-1">Target Saturated Weight (lbs)</label>
-                  <input
-                    type="number"
-                    step="0.05"
-                    placeholder="18.4"
-                    value={newPlantWet}
-                    onChange={(e) => setNewPlantWet(e.target.value === '' ? '' : parseFloat(e.target.value))}
-                    className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-zinc-400 mb-1">Target Dry Weight (lbs)</label>
-                  <input
-                    type="number"
-                    step="0.05"
-                    placeholder="13.2"
-                    value={newPlantDry}
-                    onChange={(e) => setNewPlantDry(e.target.value === '' ? '' : parseFloat(e.target.value))}
-                    className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-4 mt-2 border-t border-zinc-800">
-                <button
-                  onClick={() => setShowPlantModal(false)}
-                  className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm font-bold text-zinc-300 hover:bg-zinc-800 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={async () => {
-                    if (!selectedBatchId) {
-                      alert('Please select a batch first.');
-                      return;
-                    }
-                    if (!newPlantName.trim()) {
-                      alert('Please enter a plant name');
-                      return;
-                    }
-                    try {
+                <input
+                  type="text"
+                  placeholder="Plant Name / Tag ID"
+                  value={newPlantName}
+                  onChange={(e) => setNewPlantName(e.target.value)}
+                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+                />
+                <input
+                  type="number"
+                  step="0.05"
+                  placeholder="Saturated Weight (lbs)"
+                  value={newPlantWet}
+                  onChange={(e) => setNewPlantWet(parseFloat(e.target.value))}
+                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+                />
+                <input
+                  type="number"
+                  step="0.05"
+                  placeholder="Target Dry Weight (lbs)"
+                  value={newPlantDry}
+                  onChange={(e) => setNewPlantDry(parseFloat(e.target.value))}
+                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
+                />
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => setShowPlantModal(false)}
+                    className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm font-bold text-zinc-300 hover:bg-zinc-800"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!newPlantName || !selectedBatchId) return;
                       if (editingPlant) {
                         await updatePlant({
                           id: editingPlant.id,
                           name: newPlantName,
-                          wetWeight: newPlantWet !== '' ? newPlantWet : null,
-                          dryTarget: newPlantDry !== '' ? newPlantDry : null,
+                          wetWeight: newPlantWet !== '' ? Number(newPlantWet) : null,
+                          dryTarget: newPlantDry !== '' ? Number(newPlantDry) : null,
                         });
                       } else {
                         await createPlant({
-                          batchId: selectedBatchId,
                           name: newPlantName,
-                          wetWeight: newPlantWet !== '' ? newPlantWet : undefined,
-                          dryTarget: newPlantDry !== '' ? newPlantDry : undefined,
+                          batchId: selectedBatchId,
+                          roomId: selectedRoomId || undefined,
+                          wetWeight: newPlantWet !== '' ? Number(newPlantWet) : undefined,
+                          dryTarget: newPlantDry !== '' ? Number(newPlantDry) : undefined,
                         });
                       }
                       setShowPlantModal(false);
                       loadPlants();
-                    } catch (err) {
-                      console.error('Plant save error:', err);
-                      alert('Failed to save plant: ' + (err instanceof Error ? err.message : 'unknown error'));
-                    }
-                  }}
-                  className="..."
-                >
-          {editingPlant ? 'Update' : 'Create'}
-        </button>
+                    }}
+                    className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500"
+                  >
+                    {editingPlant ? 'Update' : 'Create'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         )}
+
       </div>
     </AppShell>
   );
