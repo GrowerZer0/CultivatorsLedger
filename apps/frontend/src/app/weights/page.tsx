@@ -216,9 +216,6 @@ export default function WeightsPage() {
       }));
       setClimateLogs(mappedClimate);
 
-      }));
-      setClimateLogs(mappedClimate);
-
       const fetchedBatches = await getBatches();
       setBatches(fetchedBatches);
       
