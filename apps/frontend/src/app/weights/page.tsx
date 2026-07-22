@@ -250,7 +250,7 @@ export default function WeightsPage() {
       console.error('Failed to load weights data:', err);
     } finally {
       setLoading(false);
-      setWaterUseLoading(false);
+      setLoadingWaterUseData(false);
       setRecoveryLoading(false);
     }
   }, [selectedBatchId, selectedPlantId]);
@@ -258,6 +258,44 @@ export default function WeightsPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Separate AI Insights Effect (Prevents Infinite Loop)
+  useEffect(() => {
+    if (!selectedPlantId && !selectedBatchId) return;
+
+    let isMounted = true;
+    async function fetchAiInsights() {
+      try {
+        setRecoveryLoading(true);
+        setDiagnosticsLoading(true);
+
+        const [insights, recovery, diag] = await Promise.all([
+          getTrendInsights(selectedBatchId || undefined, selectedPlantId || undefined),
+          getRecoveryStatus(selectedBatchId || undefined, selectedPlantId || undefined),
+          getDiagnostics(selectedBatchId || undefined, selectedPlantId || undefined),
+        ]);
+
+        if (isMounted) {
+          setTrendInsights(insights);
+          setRecoveryStatus(recovery);
+          setDiagnostics(diag);
+        }
+      } catch (err) {
+        console.error('Failed to fetch AI insights:', err);
+      } finally {
+        if (isMounted) {
+          setRecoveryLoading(false);
+          setDiagnosticsLoading(false);
+        }
+      }
+    }
+
+    fetchAiInsights();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedPlantId]);
 
   // Effect to synchronize wetWeight and dryTarget based on selected plant or batch
   useEffect(() => {
@@ -557,7 +595,7 @@ export default function WeightsPage() {
                 </>
               )}
             </p>
-            {loadingWaterUseData ? (
+            {waterUseLoading ? (
               <p className="text-sm text-gray-400 animate-pulse mt-2">Calculating...</p>
             ) : !waterUseData?.dailyWaterUse && !waterUseData?.hoursUntilIrrigation && (
               <p className="text-sm text-gray-500 mt-2">Log more data for transpiration rate and irrigation projections.</p>
