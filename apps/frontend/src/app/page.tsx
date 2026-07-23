@@ -63,7 +63,7 @@ export default function EnvironmentPage() {
   const [briefingLoading, setBriefingLoading] = useState(false);
   const [briefingError, setBriefingError] = useState<string | null>(null);
   const [lastBriefingTime, setLastBriefingTime] = useState<string>('Not yet generated');
-
+  
   // Manual entry fields (always visible)
   const [manualTemp, setManualTemp] = useState(72); // °F
   const [manualHumidity, setManualHumidity] = useState(55);
@@ -189,46 +189,47 @@ export default function EnvironmentPage() {
   }, [dbEnvironmentReadings, dbDryBackLogs]);
 
 
-  // --- AI BRIEFING ---
+// --- AI BRIEFING ---
   const loadBriefing = useCallback(async (force = false) => {
-    // 1. Guard against no data
-    if (dbEnvironmentReadings.length === 0 && dbDryBackLogs.length === 0) {
-      setBriefing('📊 Log some data first, then AI will provide a daily summary.');
-      setBriefingLoading(false);
-      setBriefingError(null);
-      setLastBriefingTime('Not applicable');
-      return;
-    }
-
-    // 2. Prevent repeat calls unless explicitly forced OR if not fetched initially
+    // Prevent execution if already fetched and not an explicit force request
     if (!force && hasFetchedBriefingInitially.current) return;
 
     setBriefingLoading(true);
     setBriefingError(null);
 
     try {
-      const result = await generateDailyBriefing();
+      // Pass force refresh flag to bypass server-side circuit breaker if requested by user
+      const result = await generateDailyBriefing(force);
       if (result.success) {
         setBriefing(result.summary || null);
-        setLastBriefingTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-        hasFetchedBriefingInitially.current = true; // Mark as successfully fetched initially
+        setLastBriefingTime(
+          new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        );
+        hasFetchedBriefingInitially.current = true;
       } else {
         setBriefingError(result.error || 'Failed to load briefing');
         setLastBriefingTime('Failed');
       }
     } catch (err) {
+      console.error("Failed to load briefing:", err);
       setBriefingError('Failed to load briefing');
       setLastBriefingTime('Failed');
     } finally {
       setBriefingLoading(false);
     }
-  }, [dbEnvironmentReadings.length, dbDryBackLogs.length]);
+  }, []);
 
+  // Trigger initial briefing fetch once dashboard data finishes loading
   useEffect(() => {
-    if (!hasFetchedBriefingInitially.current) { // Only call initially if not already fetched
-      loadBriefing();
+    if (!loading && !hasFetchedBriefingInitially.current) {
+      if (dbEnvironmentReadings.length === 0 && dbDryBackLogs.length === 0) {
+        setBriefing('📊 Log some data first, then AI will provide a daily summary.');
+        setLastBriefingTime('Not applicable');
+        return;
+      }
+      loadBriefing(false);
     }
-  }, [loadBriefing]); // Still need loadBriefing in dependency array as it's a useCallback
+  }, [loading, dbEnvironmentReadings.length, dbDryBackLogs.length, loadBriefing]);
 
   // --- ALERTS (based on VPD) ---
   const alerts = useMemo(() => {

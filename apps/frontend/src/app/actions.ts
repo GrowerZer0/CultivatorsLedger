@@ -9,8 +9,12 @@ import { supabase } from "@/lib/supabase";
 import { GoogleGenAI } from "@google/genai";
 
 // ==========================================
-// HELPERS
+// HELPERS & CACHE GLOBALS
 // ==========================================
+
+// In-memory cache to prevent infinite render loops from exhausting Gemini API quota
+let cachedBriefingResponse: { summary: string; timestamp: number } | null = null;
+const ONE_HOUR_MS = 60 * 60 * 1000;
 
 // Helper: compute VPD (kPa) from temp (°C) and RH (%)
 function computeVPD(tempC: number, rh: number): number {
@@ -358,8 +362,18 @@ export async function deletePlant(plantId: string) {
 // DAILY INSIGHTS & BRIEFINGS
 // ==========================================
 
-export async function generateDailyBriefing() {
+export async function generateDailyBriefing(forceRefresh: boolean = false) {
   try {
+    // 🛡️ CIRCUIT BREAKER: Check cached response unless explicit user forceRefresh
+    if (!forceRefresh && cachedBriefingResponse && (Date.now() - cachedBriefingResponse.timestamp < ONE_HOUR_MS)) {
+      return {
+        success: true,
+        summary: cachedBriefingResponse.summary,
+        insight: null,
+        cached: true,
+      };
+    }
+
     const userId = await getUserId();
     const now = new Date();
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
@@ -378,7 +392,7 @@ export async function generateDailyBriefing() {
               timestamp: { gte: twentyFourHoursAgo },
             },
             orderBy: { timestamp: "desc" },
-            take: 2, // Get the two most recent logs for dry-back trend
+            take: 2,
           },
           batch: true,
           room: true,
@@ -440,7 +454,6 @@ export async function generateDailyBriefing() {
         const weightRemainingToTarget = currentWeightNum - dryTargetNum;
         const percentRemaining = dryBackRange > 0 ? (weightRemainingToTarget / dryBackRange) * 100 : 0;
 
-
         let trend = "stable";
         if (dryBackDiff > 5) {
           trend = "drying faster than typical";
@@ -453,7 +466,7 @@ export async function generateDailyBriefing() {
           `${plant.name} (Batch: ${plant.batch?.name || 'N/A'}, Room: ${plant.room?.name || 'N/A'}): ${trend} (latest dry-back: ${Number(latestLog.dryBackPercent).toFixed(1)}%)`
         );
 
-        if (percentRemaining < 20) { // arbitrary threshold for "near target"
+        if (percentRemaining < 20) {
           nearTargetPlants.push(`${plant.name} (${plant.batch?.name || 'N/A'})`);
         }
 
@@ -473,16 +486,6 @@ export async function generateDailyBriefing() {
       ? `Temp: ${avgTempC.toFixed(1)}°C (${((avgTempC * 9) / 5 + 32).toFixed(1)}°F), RH: ${avgRh?.toFixed(0)}%, VPD: ${avgVpd?.toFixed(2)} kPa`
       : "Environment data limited for the last 24 hours.";
 
-    let facilityDryBackTrajectory = "Generally stable across the facility.";
-    if (fastDryBackPlants.length > activePlants.length / 2) {
-      facilityDryBackTrajectory = "Overall facility dry-back is trending faster than typical.";
-    } else if (slowDryBackPlants.length > activePlants.length / 2) {
-      facilityDryBackTrajectory = "Overall facility dry-back is trending slower than typical.";
-    } else if (fastDryBackPlants.length > 0 || slowDryBackPlants.length > 0) {
-      facilityDryBackTrajectory = "Mixed dry-back trends observed. Review outliers.";
-    }
-
-
     const prompt = `
       You are an AI cultivation assistant providing a daily briefing for a facility manager or head grower.
       Analyze the following data for the entire grow operation and provide a concise summary.
@@ -495,20 +498,26 @@ export async function generateDailyBriefing() {
 
       Structure your output into these three bulleted sections:
 
-      *   **Facility Snapshot**: Provide an overview of the total active plants, the general environmental status of the rooms, and the overall dry-back trajectory across the facility.
-      *   **Attention Needed / Outliers**: Highlight any specific plants or sub-zones that are exhibiting abnormal dry-back (too fast or too slow), or plants that are nearing their target dry weight.
-      *   **Today's Directive**: Offer clear, actionable irrigation and environmental recommendations for the upcoming shift, considering the overall facility health and any identified outliers.
+      * **Facility Snapshot**: Provide an overview of the total active plants, the general environmental status of the rooms, and the overall dry-back trajectory across the facility.
+      * **Attention Needed / Outliers**: Highlight any specific plants or sub-zones that are exhibiting abnormal dry-back (too fast or too slow), or plants that are nearing their target dry weight.
+      * **Today's Directive**: Offer clear, actionable irrigation and environmental recommendations for the upcoming shift, considering the overall facility health and any identified outliers.
     `;
 
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    // Use 1.5-flash for better instruction following
-    const result = await ai.models.generateContent({ model: 'gemini-1.5-flash', contents: [{ role: 'user', parts: [{ text: prompt }] }] });
+    const result = await ai.models.generateContent({ 
+      model: 'gemini-1.5-flash', 
+      contents: [{ role: 'user', parts: [{ text: prompt }] }] 
+    });
+    
     const summary = result.text?.trim() || "No detailed briefing could be generated.";
+
+    // Save to memory cache
+    cachedBriefingResponse = { summary, timestamp: Date.now() };
 
     return {
       success: true,
       summary,
-      insight: null, // This is a facility-wide briefing, not a single plant insight
+      insight: null,
       cached: false,
     };
   } catch (error) {
@@ -517,7 +526,6 @@ export async function generateDailyBriefing() {
   }
 }
 
-// Keeping generateDailyInsight for single plant analysis, as it might be used elsewhere or in future
 export async function generateDailyInsight(plantId: string) {
   const userId = await getUserId();
 
@@ -1044,17 +1052,13 @@ export async function getRecoveryStatus(batchId?: string, plantId?: string) {
       recommendation = "Reduce irrigation volume. Allow longer dryback between feeds.";
     } else {
       phase = 3;
-      status = "📈 Recovery phase";
-      recommendation = "Continue current irrigation plan. Monitor daily uptake.";
+      status = "📈 Recovering";
+      recommendation = "Plant dryback is within expected target range.";
     }
-  } else if (percentChange > -5 && percentChange < 5) {
-    phase = 4;
-    status = "✅ Stable growth";
-    recommendation = "Maintain current irrigation plan.";
   } else {
-    phase = 5;
-    status = "🔄 Moderate dryback";
-    recommendation = "Continue monitoring. Adjust irrigation if weight drops below target.";
+    phase = 3;
+    status = "🟢 Optimal dryback";
+    recommendation = "Maintain current irrigation schedule.";
   }
 
   return { phase, status, recommendation };
