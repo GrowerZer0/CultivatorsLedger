@@ -478,16 +478,7 @@ const recoveryStatus = useMemo(() => {
               <div className="h-32 bg-gray-200 dark:bg-zinc-700 rounded"></div>
             </div>
           ) : currentInsight ? (
-            <MorningBrief
-              plant={plants.find(p => p.id === selectedPlantId)}
-              insight={currentInsight}
-              onActionComplete={async () => {
-                // Mark as completed (you'll need to implement this action)
-                // For now, just refetch to refresh the insight
-                const refreshed = await generateDailyInsight(selectedPlantId);
-                setCurrentInsight(refreshed);
-              }}
-            />
+            <MorningBrief />
           ) : (
             <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-xl border border-gray-200 dark:border-zinc-800 text-center">
               <p className="text-sm text-gray-500 dark:text-zinc-400">No insight generated yet.</p>

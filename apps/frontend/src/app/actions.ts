@@ -501,9 +501,8 @@ export async function generateDailyBriefing() {
     `;
 
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" }); // Use 1.5-flash for better instruction following
-
-    const result = await model.generateContent(prompt);
+    // Use 1.5-flash for better instruction following
+    const result = await ai.models.generateContent({ model: 'gemini-1.5-flash', contents: [{ role: 'user', parts: [{ text: prompt }] }] });
     const response = result.response;
     const summary = response.text().trim() || "No detailed briefing could be generated.";
 
