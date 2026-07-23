@@ -44,7 +44,6 @@ import {
   createPlant, 
   updatePlant, 
   deletePlant, 
-  updateBatchTargets,
 } from "@/app/actions";
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { supabase } from '@/lib/supabase';
@@ -58,8 +57,6 @@ type Batch = {
   roomId?: string | null; 
   isActive: boolean;
   startDate: string;
-  wetWeight?: number | null;
-  dryTarget?: number | null;
   dryBackLogs?: any[];
 };
 type Plant = { 
@@ -89,7 +86,6 @@ export default function SettingsPage() {
   const [selectedRoom, setSelectedRoom] = useState('tent_1');
   const [selectedStrain, setSelectedStrain] = useState('Blueberry Muffin');
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
-  const [isSensorDriven, setIsSensorDriven] = useState(false);
   const [showNewBatchModal, setShowNewBatchModal] = useState(false);
   const [rooms, setRooms] = useState<Room[]>([]); // To populate room selectors
   const [newBatchName, setNewBatchName] = useState('');
@@ -97,9 +93,6 @@ export default function SettingsPage() {
   const [newBatchRoom, setNewBatchRoom] = useState<string | null>(null); // Use null for no specific room
   const [batches, setBatches] = useState<Batch[]>([]);
   const [editingBatch, setEditingBatch] = useState<Batch | null>(null);
-  const [editingBatchTargets, setEditingBatchTargets] = useState(false);
-  const [editWetWeight, setEditWetWeight] = useState<number | ''>('');
-  const [editDryTarget, setEditDryTarget] = useState<number | ''>('');
 
 
   // Plant management states
@@ -163,8 +156,6 @@ export default function SettingsPage() {
       const formattedBatches = fetchedBatches.map(batch => ({
         ...batch,
         startDate: new Date(batch.startDate).toISOString(),
-        wetWeight: batch.wetWeight !== null ? Number(batch.wetWeight) : null,
-        dryTarget: batch.dryTarget !== null ? Number(batch.dryTarget) : null,
       }));
       setBatches(formattedBatches || []);
       if (formattedBatches.length > 0 && !selectedBatchId) {
@@ -444,32 +435,6 @@ export default function SettingsPage() {
         {/* ======================================================= */}
         {activeTab === "hardware" && (
           <div className="space-y-6 animate-in fade-in duration-200">
-              {/* Sensor Mode Toggle */}
-              <div className="mt-6 pt-6 border-t border-slate-200 dark:border-zinc-800">
-                <h4 className="text-sm font-bold text-zinc-400 mb-2">Ingestion Mode</h4>
-                <div className="inline-flex rounded-xl bg-gray-50 dark:bg-zinc-950 p-1 border border-gray-200 dark:border-zinc-800">
-                  <button
-                    type="button"
-                    onClick={() => setIsSensorDriven(false)}
-                    className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${!isSensorDriven
-                      ? "bg-emerald-600 text-white shadow-md ring-1 ring-zinc-700/50"
-                      : "text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:text-zinc-300"
-                    }`}
-                  >
-                    <Keyboard className="size-3.5" /> Manual
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsSensorDriven(true)}
-                    className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${isSensorDriven
-                      ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/20 ring-1 ring-emerald-500/30"
-                      : "text-gray-400 dark:text-zinc-500 hover:text-gray-700 dark:text-zinc-300"
-                    }`}
-                  >
-                    <Cpu className="size-3.5" /> Hardware
-                  </button>
-                </div>
-              </div>
             <SectionPanel 
               title="Sensor Management" 
               subtitle="Register and manage devices that send telemetry data to your ingest endpoint."
@@ -721,9 +686,6 @@ export default function SettingsPage() {
                           </p>
                           <p className="text-xs text-zinc-400">{batch.cultivar} • Room: {rooms.find(r => r.id === batch.roomId)?.name || batch.roomId || 'N/A'}</p>
                           <p className="text-xs text-zinc-500">Started: {new Date(batch.startDate).toLocaleDateString()}</p>
-                          {batch.wetWeight && batch.dryTarget && (
-                            <p className="text-xs text-zinc-500">Targets: {batch.wetWeight}lbs (Wet) / {batch.dryTarget}lbs (Dry)</p>
-                          )}
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${batch.isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-zinc-500/20 text-zinc-400'}`}>
@@ -742,21 +704,10 @@ export default function SettingsPage() {
                             <Edit className="size-3 inline mr-1" /> Edit
                           </button>
                           <button
-                            onClick={() => {
-                              setEditingBatch(batch);
-                              setEditWetWeight(batch.wetWeight !== null ? Number(batch.wetWeight) : '');
-                              setEditDryTarget(batch.dryTarget !== null ? Number(batch.dryTarget) : '');
-                              setEditingBatchTargets(true);
-                            }}
-                            className="text-xs font-bold text-zinc-400 hover:text-white transition-colors"
-                          >
-                            <Sliders className="size-3 inline mr-1" /> Targets
-                          </button>
-                          <button
                             onClick={() => handleUpdateBatchStatus(batch.id, !batch.isActive)}
                             className={`text-xs font-bold ${batch.isActive ? 'text-red-500 hover:text-red-400' : 'text-emerald-500 hover:text-emerald-400'} transition-colors`}
                           >
-                            {batch.isActive ? 'Deactivate' : 'Activate'}
+                            {batch.isActive ? 'Archive Batch' : 'Reactivate Batch'}
                           </button>
                           <button
                             onClick={() => handleDeleteBatch(batch.id)}
@@ -1173,64 +1124,6 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Edit Batch Targets Modal */}
-      {editingBatchTargets && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-2xl">
-            <h2 className="text-lg font-bold text-white mb-4">Set Batch Weight Targets</h2>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-bold text-zinc-400 mb-1">
-                  Target Saturated Weight (lbs)
-                </label>
-                <input
-                  type="number"
-                  step="0.05"
-                  value={editWetWeight}
-                  onChange={(e) => setEditWetWeight(parseFloat(e.target.value))}
-                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-zinc-400 mb-1">
-                  Target Dry Weight (lbs)
-                </label>
-                <input
-                  type="number"
-                  step="0.05"
-                  value={editDryTarget}
-                  onChange={(e) => setEditDryTarget(parseFloat(e.target.value))}
-                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-white outline-none focus:border-emerald-500"
-                />
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => setEditingBatchTargets(false)}
-                  className="flex-1 rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-3 text-sm font-bold text-zinc-300 hover:bg-zinc-800"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={async () => {
-                    if (!editingBatch) return; // Use editingBatch instead of selectedBatchId
-                    await updateBatchTargets({
-                      batchId: editingBatch.id,
-                      wetWeight: editWetWeight !== '' ? Number(editWetWeight) : null,
-                      dryTarget: editDryTarget !== '' ? Number(editDryTarget) : null,
-                    });
-                    setEditingBatchTargets(false);
-                    setEditingBatch(null); // Clear editingBatch state
-                    loadBatchesAndRooms();
-                  }}
-                  className="flex-1 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-500"
-                >
-                  Save Targets
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* New/Edit Plant Modal */}
       {showPlantModal && (
