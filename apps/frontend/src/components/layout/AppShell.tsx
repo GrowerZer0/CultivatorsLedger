@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Leaf, Menu, X, Gauge, Weight, Droplets, Settings, LogOut } from "lucide-react";
+import { Leaf, Menu, X, Gauge, Weight, Droplets, Settings, LogOut, ThermometerSun, Droplet, Wind } from "lucide-react";
 import type { ReactNode } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import Link from "next/link";
@@ -12,16 +12,17 @@ import AIChatWidget from "@/components/AIChatWidget";
 
 type AppShellProps = {
   children: ReactNode;
+  unitSystem?: "imperial" | "metric"; // Defaults to imperial (°F)
 };
 
-export function AppShell({ children }: AppShellProps) {
+export function AppShell({ children, unitSystem = "imperial" }: AppShellProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { data } = useTelemetry();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    window.location.href = '/auth/login';
+    window.location.href = "/auth/login";
   };
 
   const tabs = [
@@ -30,11 +31,30 @@ export function AppShell({ children }: AppShellProps) {
     { name: "Nutrients", href: "/nutrients", icon: Droplets, color: "text-canopy dark:text-emerald-400" },
   ];
 
+// --- Telemetry Data Extraction ---
+  const env = data.latestEnvironment;
+  
+  // Format Temp (°F vs °C)
+  const tempFormatted = env?.temperatureF !== undefined && env?.temperatureF !== null
+    ? unitSystem === "imperial"
+      ? `${Math.round(Number(env.temperatureF))}°F`
+      : `${(((Number(env.temperatureF) - 32) * 5) / 9).toFixed(1)}°C`
+    : "--";
+
+  const rhFormatted = env?.humidity !== undefined && env?.humidity !== null
+    ? `${Math.round(Number(env.humidity))}%`
+    : "--";
+
+  const vpdFormatted = env?.vpd !== undefined && env?.vpd !== null
+    ? `${Number(env.vpd).toFixed(1)} kPa`
+    : "--";
+
   return (
     <main className="min-h-screen bg-[#f6f8f4] dark:bg-zinc-950 text-graphite dark:text-zinc-100 transition-colors duration-200">
       {/* Header */}
       <header className="border-b border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 transition-colors duration-200 sticky top-0 z-40">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+          
           {/* Brand Logo (left) */}
           <Link href="/" className="flex items-center gap-3 group">
             <div className="grid size-10 place-items-center rounded-md bg-canopy text-white">
@@ -49,6 +69,24 @@ export function AppShell({ children }: AppShellProps) {
               </h1>
             </div>
           </Link>
+
+          {/* Telemetry Header Pill (center) */}
+          <div className="flex items-center gap-2 sm:gap-4 rounded-full border border-[#d9e2dc] dark:border-zinc-800 bg-mist/60 dark:bg-zinc-800/60 px-3 py-1.5 text-xs font-medium">
+            <div className="flex items-center gap-1 text-zinc-700 dark:text-zinc-300" title="Air Temperature">
+              <ThermometerSun className="size-3.5 text-orange-500" />
+              <span>{tempFormatted}</span>
+            </div>
+            <span className="text-zinc-300 dark:text-zinc-700">|</span>
+            <div className="flex items-center gap-1 text-zinc-700 dark:text-zinc-300" title="Relative Humidity">
+              <Droplet className="size-3.5 text-blue-500" />
+              <span>{rhFormatted}</span>
+            </div>
+            <span className="text-zinc-300 dark:text-zinc-700">|</span>
+            <div className="flex items-center gap-1 text-zinc-700 dark:text-zinc-300" title="Vapor Pressure Deficit">
+              <Wind className="size-3.5 text-emerald-500" />
+              <span>{vpdFormatted}</span>
+            </div>
+          </div>
 
           {/* Hamburger (right) */}
           <button
