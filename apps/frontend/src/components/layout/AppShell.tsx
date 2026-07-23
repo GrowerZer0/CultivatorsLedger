@@ -5,17 +5,73 @@ import { Leaf, Menu, X, Gauge, Weight, Droplets, Settings, LogOut, ThermometerSu
 import type { ReactNode } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useTelemetry } from "@/lib/telemetry-context";
 import AIChatWidget from "@/components/AIChatWidget";
+
+  // Rooms & Locations state
+  const [rooms, setRooms] = useState<any[]>([]);
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+
+  // Batches state
+  const [batches, setBatches] = useState<any[]>([]); // Using any[] temporarily, should be Batch[]
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
+
+  // Plants State
+  const [plants, setPlants] = useState<Plant[]>([]); // Use the defined Plant type
+  const [selectedPlantId, setSelectedPlantId] = useState<string | null>(null);
+
+  const [containerGallons, setContainerGallons] = useState(5); // Default, will be overwritten by selection
+
+
+// Define Plant type more accurately for local use
+type Plant = {
+  id: string;
+  name: string;
+  strain?: string | null;
+  batchId?: string | null;
+  roomId?: string | null;
+  wetWeight?: number | null;
+  dryTarget?: number | null;
+  stage?: string | null; // Assuming stage exists for unit logic
+  containerGallons?: number | null; // Assuming containerGallons also exists on Plant
+};
 
 type AppShellProps = {
   children: ReactNode;
   unitSystem?: "imperial" | "metric"; // Defaults to imperial (°F)
 };
 
+function getBatchDaysSinceStart(batch: any): number {
+  if (!batch?.startDate) return 0;
+  const start = new Date(batch.startDate).getTime();
+  const now = new Date().getTime();
+  const diffDays = Math.floor((now - start) / (1000 * 60 * 60 * 24));
+  return Math.max(1, diffDays + 1);
+}
+
+function getBatchLogCount(batch: any): number {
+  if (!batch?.dryBackLogs) return 0;
+  return batch.dryBackLogs.length;
+}
+
+function getBatchAverage(batch: any): string {
+  if (!batch?.dryBackLogs || batch.dryBackLogs.length === 0) return "0.0%";
+
+  const total = batch.dryBackLogs.reduce((acc: number, log: any) => {
+    const val = typeof log.dryBackPercent === "number" 
+      ? log.dryBackPercent 
+      : parseFloat(log.dryBackPercent) || 0;
+    return acc + val;
+  }, 0);
+
+  const avg = total / batch.dryBackLogs.length;
+  return `${Number(avg).toFixed(1)}%`;
+}
+
 export function AppShell({ children, unitSystem = "imperial" }: AppShellProps) {
+  const router = useRouter(); 
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { data } = useTelemetry();
@@ -49,6 +105,48 @@ export function AppShell({ children, unitSystem = "imperial" }: AppShellProps) {
     ? `${Number(env.vpd).toFixed(1)} kPa`
     : "--";
 
+              // --------------------------------------------
+          // Plant & Tent Navigation Bar
+          // --------------------------------------------
+          interface RoomNavProps {
+            rooms: { id: string; name: string }[];
+            selectedRoomId: string | null;
+            onSelectRoom: (roomId: string | null) => void;
+          }
+          
+          function RoomNav({ rooms, selectedRoomId, onSelectRoom }: RoomNavProps) {
+            return (
+              <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
+                <span className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider pr-1">
+                  Location:
+                </span>
+                <button
+                  onClick={() => onSelectRoom(null)}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                    selectedRoomId === null
+                      ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/20'
+                      : 'bg-gray-100 dark:bg-zinc-900 text-gray-600 dark:text-zinc-400 border border-gray-200 dark:border-zinc-800 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  All Rooms
+                </button>
+                {rooms.map((room) => (
+                  <button
+                    key={room.id}
+                    onClick={() => onSelectRoom(room.id)}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                      selectedRoomId === room.id
+                        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/20'
+                        : 'bg-gray-100 dark:bg-zinc-900 text-gray-600 dark:text-zinc-400 border border-gray-200 dark:border-zinc-800 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    {room.name}
+                  </button>
+                ))}
+              </div>
+            );
+          }
+
   return (
     <main className="min-h-screen bg-[#f6f8f4] dark:bg-zinc-950 text-graphite dark:text-zinc-100 transition-colors duration-200">
       {/* Header */}
@@ -69,6 +167,89 @@ export function AppShell({ children, unitSystem = "imperial" }: AppShellProps) {
               </h1>
             </div>
           </Link>
+
+                    {/* Unified Navigation: Location, Batch, Plant */}
+                    <div className="flex flex-col gap-3 pb-2 border-b border-gray-200 dark:border-zinc-800">
+                      {/* Top Level: Location / Room Selector */}
+                      <RoomNav rooms={rooms} selectedRoomId={selectedRoomId} onSelectRoom={setSelectedRoomId} />
+          
+                      {/* Middle Level: Batch Selector */}
+                      <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
+                        <span className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider pr-1">
+                          Batch:
+                        </span>
+                        <select
+                          value={selectedBatchId || ''}
+                          onChange={(e) => {
+                            setSelectedBatchId(e.target.value || null);
+                            setSelectedPlantId(null); // Reset plant selection when batch changes
+                            setContainerGallons(plants.find((p) => p.batchId === e.target.value)?.containerGallons || 5); // Update container gallons
+                          }}
+                          className="bg-gray-100 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs font-bold text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white outline-none focus:border-emerald-500 transition-all"
+                        >
+                          <option value="">All Batches</option>
+                          {batches
+                            .filter((b) => !selectedRoomId || b.roomId === selectedRoomId)
+                            .map((b) => (
+                              <option key={b.id} value={b.id}>
+                                {b.name} ({b.cultivar})
+                              </option>
+                            ))}
+                        </select>
+                        <button
+                          onClick={() => router.push('/settings')}
+                          className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-full transition-colors flex items-center gap-1"
+                        >
+                          Manage Facility
+                        </button>
+                      </div>
+          
+                      {/* Bottom Level: Plant Selector for selected Batch */}
+                      {selectedBatchId && plants.filter(p => (!selectedBatchId || p.batchId === selectedBatchId) && (!selectedRoomId || p.roomId === selectedRoomId)).length > 0 && (
+                        <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
+                          <span className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider pr-1">
+                            Plant:
+                          </span>
+                          {plants
+                            .filter((plant) => (!selectedBatchId || plant.batchId === selectedBatchId) && (!selectedRoomId || plant.roomId === selectedRoomId))
+                            .map((plant) => (
+                              <button
+                                key={plant.id}
+                                onClick={() => {
+                                  setSelectedPlantId(plant.id);
+                                  setContainerGallons(plant.containerGallons || 5); // Update container gallons on plant selection
+                                }}
+                                className={`px-3 py-1 text-xs font-semibold rounded-full transition-all flex items-center gap-1.5 ${
+                                  selectedPlantId === plant.id
+                                    ? 'bg-zinc-800 text-emerald-400 border border-emerald-500/30'
+                                    : 'bg-transparent text-gray-500 dark:text-zinc-400 border border-gray-200 dark:border-zinc-800 hover:text-gray-800 dark:hover:text-zinc-200'
+                                }`}
+                              >
+                                <span>{plant.name}</span>
+                                {plant.strain && (
+                                  <span className="text-[10px] px-1.5 py-0.2 rounded border border-zinc-700 bg-zinc-900/60 opacity-80">
+                                    {plant.strain}
+                                  </span>
+                                )}
+                              </button>
+                            ))}
+                        </div>
+                      )}
+                      {/* Display batch stats only if a batch is selected */}
+                      {selectedBatchId && (
+                        <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-zinc-400 pt-2 border-t border-gray-200 dark:border-zinc-800 mt-2">
+                          <span>
+                            Day {getBatchDaysSinceStart(selectedBatchId)}
+                          </span>
+                          <span>
+                            {getBatchLogCount(selectedBatchId)} logs
+                          </span>
+                          <span className="text-emerald-400 font-mono">
+                            Avg Dry-Back: {getBatchAverage(selectedBatchId)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
 
           {/* Telemetry Header Pill (center) */}
           <div className="flex items-center gap-2 sm:gap-4 rounded-full border border-[#d9e2dc] dark:border-zinc-800 bg-mist/60 dark:bg-zinc-800/60 px-3 py-1.5 text-xs font-medium">
