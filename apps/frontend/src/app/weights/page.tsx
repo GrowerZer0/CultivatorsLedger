@@ -79,6 +79,8 @@ function DarkNumberField({ label, value, onChange }: DarkNumberFieldProps) {
   );
 }
 
+export const dynamic = 'force-dynamic';
+
 // --------------------------------------------
 // Main Weights Page
 // --------------------------------------------

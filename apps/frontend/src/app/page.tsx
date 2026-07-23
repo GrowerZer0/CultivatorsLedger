@@ -48,6 +48,8 @@ import {
 import {useTelemetry} from '@/lib/telemetry-context';
 import { MorningBrief } from '@/components/MorningBrief';
 
+export const dynamic = 'force-dynamic';
+
 export default function EnvironmentPage() {
   const { theme, setTheme } = useTheme();
   const { setData } = useTelemetry();

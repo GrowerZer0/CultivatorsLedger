@@ -13,6 +13,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+export const dynamic = 'force-dynamic';
+
 export default function BatchPage() {
   const params = useParams<{ id: string }>();
   const [batch, setBatch] = useState<any>(null);
