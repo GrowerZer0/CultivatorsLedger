@@ -62,10 +62,7 @@ export default function EnvironmentPage() {
   const [briefing, setBriefing] = useState<string | null>(null);
   const [briefingLoading, setBriefingLoading] = useState(false);
   const [briefingError, setBriefingError] = useState<string | null>(null);
-  const [currentInsight, setCurrentInsight] = useState<any>(null);
-  const [insightLoading, setInsightLoading] = useState(false);
-  const [selectedPlantId, setSelectedPlantId] = useState<string | null>(null);
-  const [plants, setPlants] = useState<Plant[]>([]);
+  const [lastBriefingTime, setLastBriefingTime] = useState<string>('Not yet generated');
 
   // Manual entry fields (always visible)
   const [manualTemp, setManualTemp] = useState(72); // °F
@@ -117,51 +114,52 @@ export default function EnvironmentPage() {
   };
 
     const hasLoaded = useRef(false);
+    const hasFetchedBriefingInitially = useRef(false); // New ref for initial load of briefing
 
   // --- DATA FETCH ---
-const loadData = useCallback(async (skipLoading = false) => {
-  try {
-    if (!skipLoading) setLoading(true);
-    const data = await getDashboardData();
-    setDbEnvironmentReadings(data.environmentReadings || []);
-    setDbDryBackLogs(data.dryBackLogs || []);
-    setLatestIrrigation(data.latestIrrigation || null);
+  const loadData = useCallback(async (skipLoading = false) => {
+    try {
+      if (!skipLoading) setLoading(true);
+      const data = await getDashboardData();
+      setDbEnvironmentReadings(data.environmentReadings || []);
+      setDbDryBackLogs(data.dryBackLogs || []);
+      setLatestIrrigation(data.latestIrrigation || null);
 
-    // Build activeDryBack from the latest log (if any)
-    let activeDryBack = undefined;
-    if (data.dryBackLogs && data.dryBackLogs.length > 0) {
-      const latest = data.dryBackLogs[data.dryBackLogs.length - 1];
-      // Use default container size and targets – these can be overridden later
-      const wet = 18.4;
-      const dry = 13.2;
-      const calc = calculateDryBack({
-        id: 'active',
-        cultivar: 'Environment',
-        containerGallons: 5,
-        wetWeight: wet,
-        dryTarget: dry,
-        weight: Number(latest.weight),
-        loggedAt: new Date().toISOString(),
+      // Build activeDryBack from the latest log (if any)
+      let activeDryBack = undefined;
+      if (data.dryBackLogs && data.dryBackLogs.length > 0) {
+        const latest = data.dryBackLogs[data.dryBackLogs.length - 1];
+        // Use default container size and targets – these can be overridden later
+        const wet = 18.4;
+        const dry = 13.2;
+        const calc = calculateDryBack({
+          id: 'active',
+          cultivar: 'Environment',
+          containerGallons: 5,
+          wetWeight: wet,
+          dryTarget: dry,
+          weight: Number(latest.weight),
+          loggedAt: new Date().toISOString(),
+        });
+        activeDryBack = {
+          dryBackPercent: calc.dryBackPercent,
+          estimatedHoursUntilWater: calc.estimatedHoursUntilWater,
+          poundsUntilIrrigation: calc.poundsUntilIrrigation,
+        };
+      }
+
+      // Push data to the global telemetry context
+      setData({
+        latestEnvironment: data.environmentReadings?.[data.environmentReadings.length - 1],
+        activeDryBack,
+        latestRunoffEc: data.latestIrrigation?.ec,
       });
-      activeDryBack = {
-        dryBackPercent: calc.dryBackPercent,
-        estimatedHoursUntilWater: calc.estimatedHoursUntilWater,
-        poundsUntilIrrigation: calc.poundsUntilIrrigation,
-      };
+    } catch (err) {
+      console.error('Error loading environment data:', err);
+    } finally {
+      if (!skipLoading) setLoading(false);
     }
-
-    // Push data to the global telemetry context
-    setData({
-      latestEnvironment: data.environmentReadings?.[data.environmentReadings.length - 1],
-      activeDryBack,
-      latestRunoffEc: data.latestIrrigation?.ec,
-    });
-  } catch (err) {
-    console.error('Error loading environment data:', err);
-  } finally {
-    if (!skipLoading) setLoading(false);
-  }
-}, [setData]);
+  }, [setData]);
 
   useEffect(() => {
     if (hasLoaded.current) return;
@@ -190,58 +188,47 @@ const loadData = useCallback(async (skipLoading = false) => {
     }
   }, [dbEnvironmentReadings, dbDryBackLogs]);
 
-    useEffect(() => {
-  if (!selectedPlantId) return;
-  const fetchInsight = async () => {
-    setInsightLoading(true);
-    try {
-      const insight = await generateDailyInsight(selectedPlantId);
-      setCurrentInsight(insight);
-    } catch (err) {
-      console.error('Failed to load daily insight:', err);
-    } finally {
-      setInsightLoading(false);
-    }
-  };
-  fetchInsight();
-}, [selectedPlantId]);
-
-const hasFetchedBriefing = useRef(false);
 
   // --- AI BRIEFING ---
-const loadBriefing = useCallback(async (force = false) => {
-  // 1. Guard against no data
-  if (dbEnvironmentReadings.length === 0 && dbDryBackLogs.length === 0) {
-    setBriefing('📊 Log some data first, then AI will provide a daily summary.');
-    setBriefingLoading(false);
-    setBriefingError(null);
-    return;
-  }
-
-  // 2. Prevent repeat calls unless explicitly forced (e.g., via a manual refresh button)
-  if (hasFetchedBriefing.current && !force) return;
-
-  setBriefingLoading(true);
-  setBriefingError(null);
-  
-  try {
-    const result = await generateDailyBriefing();
-    if (result.success) {
-      setBriefing(result.summary || null);
-      hasFetchedBriefing.current = true; // Mark as successfully fetched
-    } else {
-      setBriefingError(result.error || 'Failed to load briefing');
+  const loadBriefing = useCallback(async (force = false) => {
+    // 1. Guard against no data
+    if (dbEnvironmentReadings.length === 0 && dbDryBackLogs.length === 0) {
+      setBriefing('📊 Log some data first, then AI will provide a daily summary.');
+      setBriefingLoading(false);
+      setBriefingError(null);
+      setLastBriefingTime('Not applicable');
+      return;
     }
-  } catch (err) {
-    setBriefingError('Failed to load briefing');
-  } finally {
-    setBriefingLoading(false);
-  }
-}, [dbEnvironmentReadings.length, dbDryBackLogs.length]); 
 
-useEffect(() => {
-  loadBriefing();
-}, [loadBriefing]);
+    // 2. Prevent repeat calls unless explicitly forced OR if not fetched initially
+    if (!force && hasFetchedBriefingInitially.current) return;
+
+    setBriefingLoading(true);
+    setBriefingError(null);
+
+    try {
+      const result = await generateDailyBriefing();
+      if (result.success) {
+        setBriefing(result.summary || null);
+        setLastBriefingTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        hasFetchedBriefingInitially.current = true; // Mark as successfully fetched initially
+      } else {
+        setBriefingError(result.error || 'Failed to load briefing');
+        setLastBriefingTime('Failed');
+      }
+    } catch (err) {
+      setBriefingError('Failed to load briefing');
+      setLastBriefingTime('Failed');
+    } finally {
+      setBriefingLoading(false);
+    }
+  }, [dbEnvironmentReadings.length, dbDryBackLogs.length]);
+
+  useEffect(() => {
+    if (!hasFetchedBriefingInitially.current) { // Only call initially if not already fetched
+      loadBriefing();
+    }
+  }, [loadBriefing]); // Still need loadBriefing in dependency array as it's a useCallback
 
   // --- ALERTS (based on VPD) ---
   const alerts = useMemo(() => {
@@ -446,55 +433,15 @@ const recoveryStatus = useMemo(() => {
   return (
     <AppShell>
       <div className="min-h-screen bg-white dark:bg-[#0B0F19] text-gray-900 dark:text-zinc-100 p-4">
-       
        {/* Daily AI Briefing */}
-        <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl mb-6">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-300">🤖 Daily AI Briefing</h3>
-            <button
-              onClick={() => loadBriefing(true)}
-              disabled={briefingLoading}
-              className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 transition-colors disabled:opacity-50"
-            >
-              {briefingLoading ? 'Refreshing...' : '↻ Refresh'}
-            </button>
-          </div>
-            {briefingLoading ? (
-              <p className="text-sm text-gray-500 dark:text-zinc-400 animate-pulse">Generating briefing...</p>
-            ) : briefingError ? (
-              <p className="text-sm text-red-500 dark:text-red-400">{briefingError}</p>
-            ) : briefing ? (
-              <p className="text-sm text-gray-800 dark:text-zinc-200 leading-relaxed">{briefing}</p>
-            ) : (
-              <p className="text-sm text-gray-400 dark:text-zinc-500">No briefing available. Click refresh to generate.</p>
-            )}
-          </div>
-
-        {/* Daily Insight Card */}
-        {selectedPlantId && (
         <div className="mb-6">
-          {insightLoading ? (
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-xl border border-gray-200 dark:border-zinc-800 animate-pulse">
-              <div className="h-32 bg-gray-200 dark:bg-zinc-700 rounded"></div>
-            </div>
-          ) : currentInsight ? (
-            <MorningBrief />
-          ) : (
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-xl border border-gray-200 dark:border-zinc-800 text-center">
-              <p className="text-sm text-gray-500 dark:text-zinc-400">No insight generated yet.</p>
-              <button
-                onClick={async () => {
-                  const insight = await generateDailyInsight(selectedPlantId);
-                  setCurrentInsight(insight);
-                }}
-                className="mt-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
-              >
-                Generate Today's Insight
-              </button>
-            </div>
-          )}
+            <MorningBrief
+              summary={briefing}
+              lastBriefingTime={lastBriefingTime}
+              isRefreshing={briefingLoading}
+              onRefresh={() => loadBriefing(true)}
+            />
         </div>
-        )}
 
 
         {/* Manual Entry Form */}
