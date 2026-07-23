@@ -1,10 +1,11 @@
 "use client";
+
+export const dynamic = 'force-dynamic'; 
+
 import { useState, useEffect, Suspense } from "react";
 import { getBatches, getBatchesForComparison } from "@/app/actions";
 import { AppShell } from "@/components/layout/AppShell";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
-
-export const dynamic = 'force-dynamic'; 
 
 export default function BatchComparePage() {
   const [batches, setBatches] = useState<any[]>([]);
