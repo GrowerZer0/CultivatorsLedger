@@ -503,7 +503,7 @@ export async function generateDailyBriefing() {
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     // Use 1.5-flash for better instruction following
     const result = await ai.models.generateContent({ model: 'gemini-1.5-flash', contents: [{ role: 'user', parts: [{ text: prompt }] }] });
-    const summary = result.text.trim() || "No detailed briefing could be generated.";
+    const summary = result.text?.trim() || "No detailed briefing could be generated.";
 
     return {
       success: true,
