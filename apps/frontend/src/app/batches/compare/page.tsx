@@ -7,7 +7,7 @@ import { getBatches, getBatchesForComparison } from "@/app/actions";
 import { AppShell } from "@/components/layout/AppShell";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
-export default function BatchComparePage() {
+function BatchCompareContent() {
   const [batches, setBatches] = useState<any[]>([]);
   const [batchA, setBatchA] = useState<string>('');
   const [batchB, setBatchB] = useState<string>('');
@@ -34,7 +34,6 @@ export default function BatchComparePage() {
   }, [batchA, batchB]);
 
   return (
-    <Suspense fallback={<div>Loading comparison...</div>}>
     <AppShell>
       <div className="max-w-4xl mx-auto p-4">
         <h1 className="text-2xl font-bold text-white mb-4">Batch Comparison</h1>
@@ -76,6 +75,13 @@ export default function BatchComparePage() {
         )}
       </div>
     </AppShell>
-  </Suspense>
+  );
+}
+
+export default function BatchComparePage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-zinc-400">Loading comparison...</div>}>
+      <BatchCompareContent />
+    </Suspense>
   );
 }
