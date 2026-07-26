@@ -437,6 +437,9 @@ const recoveryStatus = useMemo(() => {
   return (
     <AppShell>
       <div className="min-h-screen bg-white dark:bg-[#0B0F19] text-gray-900 dark:text-zinc-100 p-4">
+        {/* Daily Plant Check-In Hero Card */}
+        <DailyCheckIn />
+
        {/* Daily AI Briefing */}
         <div className="mb-6">
             <MorningBrief
