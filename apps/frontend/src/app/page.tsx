@@ -47,6 +47,7 @@ import {
 } from '@/app/actions';
 import {useTelemetry} from '@/lib/telemetry-context';
 import { MorningBrief } from '@/components/MorningBrief';
+import { DailyCheckIn } from '@/components/dashboard/DailyCheckIn';
 
 export const dynamic = 'force-dynamic';
 
