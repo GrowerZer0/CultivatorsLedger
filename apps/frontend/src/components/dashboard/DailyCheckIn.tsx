@@ -51,6 +51,12 @@ export function DailyCheckIn() {
       return;
     }
 
+    if (typeof weight === 'number' && weight <= 0) {
+      setMessage('Weight must be a positive number.');
+      showToast('Weight must be a positive number.', 'error');
+      return;
+    }
+
     startTransition(async () => {
       let photoUrl: string | undefined;
       // In a real app, you'd upload photoFile to storage (e.g., Supabase Storage)
@@ -95,7 +101,7 @@ export function DailyCheckIn() {
   };
 
   return (
-    <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 shadow-xl max-w-md mx-auto">
+    <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-6 shadow-xl">
       <h2 className="text-xl font-bold text-cyan-400 mb-6 text-center">Daily Plant Check-In</h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
