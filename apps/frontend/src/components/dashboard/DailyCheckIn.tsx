@@ -15,6 +15,7 @@ import {
   Loader2,
   Wind,
   Layers,
+  Sparkles,
 } from "lucide-react";
 import { CSVImportModal } from "@/components/CSVImportModal";
 
@@ -49,9 +50,7 @@ const TRAINING_EVENTS: TrainingEvent[] = [
 function calculateVPD(tempF: number, rh: number): number | null {
   if (isNaN(tempF) || isNaN(rh) || rh < 0 || rh > 100) return null;
   const tempC = (tempF - 32) * (5 / 9);
-  // Saturated vapor pressure (VPsat) in kPa
   const vpsat = 0.61078 * Math.exp((17.27 * tempC) / (tempC + 237.3));
-  // Actual vapor pressure (VPact)
   const vpact = vpsat * (rh / 100);
   const vpd = vpsat - vpact;
   return Math.max(0, parseFloat(vpd.toFixed(2)));
@@ -85,6 +84,7 @@ export function DailyCheckIn({
   // 2. Room Telemetry State
   const [temp, setTemp] = useState<string>("");
   const [rh, setRh] = useState<string>("");
+  const [isCsvSynced, setIsCsvSynced] = useState<boolean>(false);
 
   // Calculate live VPD
   const vpdValue = useMemo(() => {
@@ -93,7 +93,7 @@ export function DailyCheckIn({
     return calculateVPD(t, r);
   }, [temp, rh]);
 
-  // Filter plants for selected room (or show all if no roomId specified)
+  // Filter plants for selected room
   const roomPlants = useMemo(() => {
     return plants.filter(
       (p) => !p.roomId || p.roomId === selectedRoomId || selectedRoomId === ""
@@ -143,11 +143,19 @@ export function DailyCheckIn({
   const handleCsvSuccess = (parsedData: any[]) => {
     if (parsedData.length > 0) {
       const latest = parsedData[parsedData.length - 1];
+      let imported = false;
+
       if (latest.temp || latest.temperature) {
         setTemp(latest.temp || latest.temperature);
+        imported = true;
       }
       if (latest.rh || latest.humidity) {
         setRh(latest.rh || latest.humidity);
+        imported = true;
+      }
+
+      if (imported) {
+        setIsCsvSynced(true);
       }
     }
   };
@@ -156,7 +164,6 @@ export function DailyCheckIn({
     e.preventDefault();
     setFeedback(null);
 
-    // Validate active plants
     if (roomPlants.length === 0) {
       setFeedback({
         type: "error",
@@ -165,7 +172,6 @@ export function DailyCheckIn({
       return;
     }
 
-    // Ensure at least one plant has a recorded weight
     const hasValidWeights = roomPlants.some((plant) => {
       const st = getPlantState(plant.id);
       return typeof st.weight === "number" && st.weight > 0;
@@ -184,7 +190,6 @@ export function DailyCheckIn({
         const parsedTemp = temp ? parseFloat(temp) : undefined;
         const parsedRh = rh ? parseFloat(rh) : undefined;
 
-        // Submit entries for plants with entered weights
         for (const plant of roomPlants) {
           const st = getPlantState(plant.id);
           if (typeof st.weight === "number" && st.weight > 0) {
@@ -222,10 +227,10 @@ export function DailyCheckIn({
           message: "Batch check-in logged successfully! Redirecting...",
         });
 
-        // Reset form fields
         setPlantStates({});
         setTemp("");
         setRh("");
+        setIsCsvSynced(false);
 
         router.push("/dashboard");
         router.refresh();
@@ -292,8 +297,28 @@ export function DailyCheckIn({
             </select>
           </div>
 
-          {/* Section 2: Room Environmental Telemetry & Live VPD */}
-          <div className="bg-mist/20 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-700/60 rounded-xl p-4">
+          {/* Section 2: Room Environmental Telemetry & Live VPD (With CSV Visual Feedback) */}
+          <div
+            className={`border rounded-xl p-4 transition-all ${
+              isCsvSynced
+                ? "bg-emerald-500/5 border-emerald-500/40 dark:border-emerald-500/50 shadow-sm"
+                : "bg-mist/20 dark:bg-zinc-800/50 border-zinc-200/80 dark:border-zinc-700/60"
+            }`}
+          >
+            {/* CSV Sync Badge */}
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                Room Telemetry
+              </span>
+
+              {isCsvSynced && (
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold border border-emerald-500/20 animate-fade-in">
+                  <Sparkles className="size-3" />
+                  CSV Synced
+                </span>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
               <div>
                 <label className="text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
@@ -305,7 +330,10 @@ export function DailyCheckIn({
                   step="0.1"
                   placeholder="75.5"
                   value={temp}
-                  onChange={(e) => setTemp(e.target.value)}
+                  onChange={(e) => {
+                    setTemp(e.target.value);
+                    setIsCsvSynced(false);
+                  }}
                   className="w-full p-2 bg-white dark:bg-zinc-900 text-graphite dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-canopy dark:focus:ring-emerald-500 outline-none text-sm font-semibold"
                 />
               </div>
@@ -320,7 +348,10 @@ export function DailyCheckIn({
                   step="0.1"
                   placeholder="60.0"
                   value={rh}
-                  onChange={(e) => setRh(e.target.value)}
+                  onChange={(e) => {
+                    setRh(e.target.value);
+                    setIsCsvSynced(false);
+                  }}
                   className="w-full p-2 bg-white dark:bg-zinc-900 text-graphite dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-canopy dark:focus:ring-emerald-500 outline-none text-sm font-semibold"
                 />
               </div>
@@ -361,7 +392,6 @@ export function DailyCheckIn({
                     key={plant.id}
                     className="border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 bg-white dark:bg-zinc-900/80 shadow-sm space-y-3 transition-all hover:border-canopy/40 dark:hover:border-emerald-500/40"
                   >
-                    {/* Plant Header */}
                     <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2">
                       <span className="text-sm font-bold text-graphite dark:text-zinc-100">
                         {plant.name}
@@ -372,7 +402,6 @@ export function DailyCheckIn({
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {/* Weight */}
                       <div>
                         <label className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1 flex items-center gap-1">
                           <Scale className="size-3.5 text-canopy dark:text-emerald-400" />
@@ -395,7 +424,6 @@ export function DailyCheckIn({
                         />
                       </div>
 
-                      {/* Watered / Fed Toggles */}
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <span className="block text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
@@ -439,7 +467,6 @@ export function DailyCheckIn({
                       </div>
                     </div>
 
-                    {/* Training Event Pills */}
                     <div>
                       <span className="block text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
                         Training Event
@@ -466,7 +493,6 @@ export function DailyCheckIn({
                       </div>
                     </div>
 
-                    {/* Notes, Voice, Photo */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
                       <div className="sm:col-span-2">
                         <input
@@ -530,7 +556,6 @@ export function DailyCheckIn({
             )}
           </div>
 
-          {/* Feedback Alert */}
           {feedback && (
             <p
               className={`text-center text-xs font-bold ${
@@ -543,7 +568,6 @@ export function DailyCheckIn({
             </p>
           )}
 
-          {/* Batch Submit Button */}
           <button
             type="submit"
             disabled={isPending || roomPlants.length === 0}
@@ -557,7 +581,7 @@ export function DailyCheckIn({
             ) : (
               <>
                 <Check className="size-5" />
-                <span>Submit</span>
+                <span>Submit Batch Check-In</span>
               </>
             )}
           </button>
