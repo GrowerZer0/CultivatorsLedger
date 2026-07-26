@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getBatches, getBatchesForComparison } from "@/app/actions";
+import { getBatches, getBatchesForComparison } from "@/app/actions/batch-mgmt";
 import { AppShell } from "@/components/layout/AppShell";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 

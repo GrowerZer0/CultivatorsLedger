@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
-import { getBatch } from "@/app/actions";
+import { getBatch } from "@/app/actions/batch-mgmt";
 import {
   LineChart,
   Line,
@@ -12,8 +12,6 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-
-export const dynamic = 'force-dynamic';
 
 export default function BatchPage() {
   const params = useParams<{ id: string }>();

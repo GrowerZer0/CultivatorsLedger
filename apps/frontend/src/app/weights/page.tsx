@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation'; // Import useRouter
 import {
   Activity,
@@ -25,18 +24,33 @@ import {
   calculateDryBack,
   type DryBackLog,
 } from '@/lib/cultivation';
+
+// Batch Actions
+import {
+  getBatches,
+} from "@/app/actions/batch-mgmt";
+
+// Plant Actions
+import {
+  getPlantsForBatch, 
+} from "@/app/actions/plant-mgmt";
+
+// Room / Facility Actions
+import {
+  getRooms,
+} from "@/app/actions/facility-mgmt";
+
+// Logging
 import {
   getDashboardData,
-  addDryBackLog,
-  getBatches,
-  getRooms, // Need to import getRooms for RoomNav
-  getPlantsForBatch,
-  logIrrigation,
-  getWaterUseData,
   getTrendInsights,
   getRecoveryStatus,
   getDiagnostics,
-} from '@/app/actions';
+  getWaterUseData,
+  addDryBackLog,
+  logIrrigation
+} from "@/app/actions/loggingreadings";
+
 
 // Define Plant type more accurately for local use
 type Plant = {
@@ -78,8 +92,6 @@ function DarkNumberField({ label, value, onChange }: DarkNumberFieldProps) {
     </label>
   );
 }
-
-export const dynamic = 'force-dynamic';
 
 // --------------------------------------------
 // Main Weights Page

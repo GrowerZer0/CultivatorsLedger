@@ -1,15 +1,16 @@
 "use client";
 
 import React, { useState } from "react";
+// Plant Actions
+import {
+  createPlant, 
+  deletePlant, 
+} from "@/app/actions/plant-mgmt";
+// Room / Facility Actions
 import {
   createRoom,
   deleteRoom,
-  createBatch,
-  deleteBatch,
-  createPlant,
-  updatePlant,
-  deletePlant,
-} from "@/app/actions";
+} from "@/app/actions/facility-mgmt";
 
 interface RoomData {
   id: string;

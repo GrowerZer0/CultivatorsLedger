@@ -10,7 +10,6 @@ import {
   Moon,
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
-import { useTheme } from 'next-themes';
 import {
   calculateReservoirDelta,
   commercialFeedSchedules,
@@ -44,13 +43,10 @@ function DarkNumberField({ label, value, onChange }: DarkNumberFieldProps) {
   );
 }
 
-export const dynamic = 'force-dynamic';
-
 // --------------------------------------------
 // Main Nutrients Page
 // --------------------------------------------
 export default function NutrientsPage() {
-  const { theme, setTheme } = useTheme();
 
   // State for feeding calculator
   const [customBlueprints, setCustomBlueprints] = useState<any[]>([]);

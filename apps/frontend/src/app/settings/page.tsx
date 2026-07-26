@@ -1,7 +1,6 @@
 // src/app/settings/page.tsx
 "use client";
 
-import Link from 'next/link';
 import { useState, useEffect, useCallback } from "react";
 import {  
   FlaskConical, 
@@ -10,41 +9,52 @@ import {
   X,
   Save,
   Trash2,
-  Settings,
-  Sun,
-  Moon,
-  Keyboard,
   Cpu,
-  ChevronRight,
   Bell,
-  Building, // New icon for rooms
-  TreePine, // New icon for plants
-  Edit,     // New icon for editing
+  Building, 
+  TreePine, 
+  Edit,     
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { SectionPanel } from "@/components/layout/SectionPanel";
 import { commercialFeedSchedules } from "@/lib/cultivation";
+// Placeholders (profiles & blueprints) remaining in main actions.ts
 import { 
   getCustomBlueprints, 
   saveOrUpdateBlueprint, 
   deleteCustomBlueprint, 
   getUserProfile, 
   updateUserProfile,
+} from "@/app/actions";
+// Batch Actions
+import {
+  getBatches,
+  createBatch,
+  updateBatch, 
+  deleteBatch, 
+} from "@/app/actions/batch-mgmt";
+
+// Plant Actions
+import {
+  getPlantsForBatch, 
+  createPlant, 
+  updatePlant, 
+  deletePlant, 
+} from "@/app/actions/plant-mgmt";
+
+// Room / Facility Actions
+import {
+  getRooms,
+} from "@/app/actions/facility-mgmt";
+
+// Sensor Actions
+import {
   getSensors,
   createSensor,
   toggleSensor,
   deleteSensor,
   regenerateApiKey,
-  getBatches,
-  createBatch,
-  updateBatch, 
-  deleteBatch, 
-  getRooms,   
-  getPlantsForBatch, 
-  createPlant, 
-  updatePlant, 
-  deletePlant, 
-} from "@/app/actions";
+} from "@/app/actions/sensorconfig";
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { supabase } from '@/lib/supabase';
 
@@ -69,12 +79,9 @@ type Plant = {
   dryTarget?: number | null;
 };
 
-export const dynamic = 'force-dynamic';
-
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("hardware");
   const [loading, setLoading] = useState(true);
-  const [savingHardware, setSavingHardware] = useState(false);
   const [customSchedules, setCustomSchedules] = useState<any[]>([]);
   const [editingSchedule, setEditingSchedule] = useState<any | null>(null);
   const [activeFeedLine, setActiveFeedLine] = useState("fox-farm-soil-veg");
@@ -242,30 +249,6 @@ export default function SettingsPage() {
       ],
       isCustom: true
     });
-  }
-
-  function getBatchAverage(batchId: string | null): number {
-    if (!batchId) return 0;
-    const batch = batches.find(b => b.id === batchId);
-    if (!batch || !batch.dryBackLogs || batch.dryBackLogs.length === 0) return 0;
-    const total = batch.dryBackLogs.reduce((sum: number, log: { dryBackPercent: number | string }) => {
-      return sum + Number(log.dryBackPercent);
-    }, 0);
-    return total / batch.dryBackLogs.length;
-  }
-
-  function getBatchLogCount(batchId: string | null): number {
-    if (!batchId) return 0;
-    const batch = batches.find(b => b.id === batchId);
-    return batch?.dryBackLogs?.length || 0;
-  }
-
-  function getBatchDaysSinceStart(batchId: string | null): number {
-    if (!batchId) return 0;
-    const batch = batches.find(b => b.id === batchId);
-    if (!batch?.startDate) return 0;
-    const days = Math.floor((Date.now() - new Date(batch.startDate).getTime()) / (1000 * 60 * 60 * 24));
-    return days;
   }
 
   async function handleUpdateBatchStatus(batchId: string, isActive: boolean) {
