@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState, useTransition, useMemo } from "react";
 import { recordDailyCheckInLog, DailyCheckInFormData } from "@/app/actions/check-in";
 import { useRouter } from "next/navigation";
 import {
@@ -13,17 +13,26 @@ import {
   Droplet,
   Check,
   Loader2,
+  Wind,
+  Layers,
 } from "lucide-react";
 import { CSVImportModal } from "@/components/CSVImportModal";
 
 type TrainingEvent = DailyCheckInFormData["trainingEvent"];
 
-interface PlantOption {
+export interface PlantOption {
+  id: string;
+  name: string;
+  roomId?: string;
+}
+
+export interface RoomOption {
   id: string;
   name: string;
 }
 
 interface DailyCheckInProps {
+  rooms?: RoomOption[];
   plants?: PlantOption[];
 }
 
@@ -36,27 +45,91 @@ const TRAINING_EVENTS: TrainingEvent[] = [
   "Harvest",
 ];
 
-export function DailyCheckIn({ plants = [] }: DailyCheckInProps) {
+// Helper: Calculate Vapor Pressure Deficit (VPD) in kPa
+function calculateVPD(tempF: number, rh: number): number | null {
+  if (isNaN(tempF) || isNaN(rh) || rh < 0 || rh > 100) return null;
+  const tempC = (tempF - 32) * (5 / 9);
+  // Saturated vapor pressure (VPsat) in kPa
+  const vpsat = 0.61078 * Math.exp((17.27 * tempC) / (tempC + 237.3));
+  // Actual vapor pressure (VPact)
+  const vpact = vpsat * (rh / 100);
+  const vpd = vpsat - vpact;
+  return Math.max(0, parseFloat(vpd.toFixed(2)));
+}
+
+interface PlantEntryState {
+  weight: number | "";
+  watered: boolean;
+  fed: boolean;
+  trainingEvent: TrainingEvent;
+  notes: string;
+  photo: File | null;
+  audioBlob: Blob | null;
+  isRecording: boolean;
+}
+
+export function DailyCheckIn({
+  rooms = [
+    { id: "room-1", name: "Flower Tent 1" },
+    { id: "room-2", name: "Veg Room" },
+  ],
+  plants = [],
+}: DailyCheckInProps) {
   const router = useRouter();
 
-  // Existing Form State
-  const [selectedPlantId, setSelectedPlantId] = useState<string>(
-    plants[0]?.id || ""
+  // 1. Room State
+  const [selectedRoomId, setSelectedRoomId] = useState<string>(
+    rooms[0]?.id || ""
   );
-  const [weight, setWeight] = useState<number | "">("");
-  const [watered, setWatered] = useState<boolean>(false);
-  const [fed, setFed] = useState<boolean>(false);
-  const [trainingEvent, setTrainingEvent] = useState<TrainingEvent>("None");
-  const [notes, setNotes] = useState<string>("");
 
-  // New Environment Inputs
+  // 2. Room Telemetry State
   const [temp, setTemp] = useState<string>("");
   const [rh, setRh] = useState<string>("");
 
-  // New Media Inputs
-  const [photo, setPhoto] = useState<File | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  // Calculate live VPD
+  const vpdValue = useMemo(() => {
+    const t = parseFloat(temp);
+    const r = parseFloat(rh);
+    return calculateVPD(t, r);
+  }, [temp, rh]);
+
+  // Filter plants for selected room (or show all if no roomId specified)
+  const roomPlants = useMemo(() => {
+    return plants.filter(
+      (p) => !p.roomId || p.roomId === selectedRoomId || selectedRoomId === ""
+    );
+  }, [plants, selectedRoomId]);
+
+  // 3. Dynamic Card State per Plant
+  const [plantStates, setPlantStates] = useState<Record<string, PlantEntryState>>({});
+
+  const getPlantState = (plantId: string): PlantEntryState => {
+    return (
+      plantStates[plantId] || {
+        weight: "",
+        watered: false,
+        fed: false,
+        trainingEvent: "None",
+        notes: "",
+        photo: null,
+        audioBlob: null,
+        isRecording: false,
+      }
+    );
+  };
+
+  const updatePlantState = (
+    plantId: string,
+    updates: Partial<PlantEntryState>
+  ) => {
+    setPlantStates((prev) => ({
+      ...prev,
+      [plantId]: {
+        ...getPlantState(plantId),
+        ...updates,
+      },
+    }));
+  };
 
   // UI & Action States
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
@@ -66,13 +139,7 @@ export function DailyCheckIn({ plants = [] }: DailyCheckInProps) {
     message: string;
   } | null>(null);
 
-  // Toggle voice recording
-  const toggleRecording = () => {
-    // MediaRecorder logic hooks in here
-    setIsRecording(!isRecording);
-  };
-
-  // CSV autofill handler
+  // CSV Autofill Handler for Telemetry
   const handleCsvSuccess = (parsedData: any[]) => {
     if (parsedData.length > 0) {
       const latest = parsedData[parsedData.length - 1];
@@ -89,84 +156,99 @@ export function DailyCheckIn({ plants = [] }: DailyCheckInProps) {
     e.preventDefault();
     setFeedback(null);
 
-    if (!selectedPlantId || weight === "") {
+    // Validate active plants
+    if (roomPlants.length === 0) {
       setFeedback({
         type: "error",
-        message: "Please select a plant and enter a weight.",
+        message: "No active plants available in the selected room.",
       });
       return;
     }
 
-    if (Number(weight) <= 0) {
+    // Ensure at least one plant has a recorded weight
+    const hasValidWeights = roomPlants.some((plant) => {
+      const st = getPlantState(plant.id);
+      return typeof st.weight === "number" && st.weight > 0;
+    });
+
+    if (!hasValidWeights) {
       setFeedback({
         type: "error",
-        message: "Weight must be greater than zero.",
+        message: "Please enter a valid weight (> 0) for at least one plant.",
       });
       return;
     }
 
     startTransition(async () => {
-      const payload: DailyCheckInFormData & {
-        temp?: number;
-        rh?: number;
-        photo?: File | null;
-        audioBlob?: Blob | null;
-      } = {
-        plantId: selectedPlantId,
-        weight: Number(weight),
-        watered,
-        fed,
-        trainingEvent,
-        notes: notes.trim() || undefined,
-        temp: temp ? parseFloat(temp) : undefined,
-        rh: rh ? parseFloat(rh) : undefined,
-        photo,
-        audioBlob,
-      };
+      try {
+        const parsedTemp = temp ? parseFloat(temp) : undefined;
+        const parsedRh = rh ? parseFloat(rh) : undefined;
 
-      const result = await recordDailyCheckInLog(payload);
+        // Submit entries for plants with entered weights
+        for (const plant of roomPlants) {
+          const st = getPlantState(plant.id);
+          if (typeof st.weight === "number" && st.weight > 0) {
+            const payload: DailyCheckInFormData & {
+              roomId?: string;
+              temp?: number;
+              rh?: number;
+              vpd?: number | null;
+              photo?: File | null;
+              audioBlob?: Blob | null;
+            } = {
+              plantId: plant.id,
+              roomId: selectedRoomId,
+              weight: st.weight,
+              watered: st.watered,
+              fed: st.fed,
+              trainingEvent: st.trainingEvent,
+              notes: st.notes.trim() || undefined,
+              temp: parsedTemp,
+              rh: parsedRh,
+              vpd: vpdValue,
+              photo: st.photo,
+              audioBlob: st.audioBlob,
+            };
 
-      if (!result.success) {
+            const result = await recordDailyCheckInLog(payload);
+            if (!result.success) {
+              throw new Error(result.error || `Failed log for ${plant.name}`);
+            }
+          }
+        }
+
+        setFeedback({
+          type: "success",
+          message: "Batch check-in logged successfully! Redirecting...",
+        });
+
+        // Reset form fields
+        setPlantStates({});
+        setTemp("");
+        setRh("");
+
+        router.push("/dashboard");
+        router.refresh();
+      } catch (err: any) {
         setFeedback({
           type: "error",
-          message: result.error || "Failed to submit check-in.",
+          message: err.message || "Failed to submit check-in logs.",
         });
-        return;
       }
-
-      setFeedback({
-        type: "success",
-        message: "Check-in logged successfully! Redirecting...",
-      });
-
-      // Reset form fields
-      setWeight("");
-      setTemp("");
-      setRh("");
-      setPhoto(null);
-      setAudioBlob(null);
-      setWatered(false);
-      setFed(false);
-      setTrainingEvent("None");
-      setNotes("");
-
-      // Navigate to operational dashboard
-      router.push("/dashboard");
-      router.refresh();
     });
   };
 
   return (
     <>
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xl max-w-lg mx-auto">
-        {/* Header with CSV Import Option */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-100 dark:border-zinc-800 pb-4 mb-6">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xl max-w-2xl mx-auto space-y-6">
+        {/* Card Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-100 dark:border-zinc-800 pb-4">
           <div>
             <h2 className="text-xl font-bold text-canopy dark:text-emerald-400">
-              Daily Plant Check-In
+              Daily Operations Log
             </h2>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Log metrics, environment, weight, and voice notes
+              Record room telemetry and plant batch factors
             </p>
           </div>
 
@@ -180,268 +262,302 @@ export function DailyCheckIn({ plants = [] }: DailyCheckInProps) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Plant Selector */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Section 1: Room Selector */}
           <div>
             <label
-              htmlFor="plant-selector"
-              className="block text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider mb-1"
+              htmlFor="room-selector"
+              className="text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider mb-1 flex items-center gap-1.5"
             >
-              Plant / Batch
+              <Layers className="size-4 text-canopy dark:text-emerald-400" />
+              Room
             </label>
             <select
-              id="plant-selector"
-              value={selectedPlantId}
-              onChange={(e) => setSelectedPlantId(e.target.value)}
+              id="room-selector"
+              value={selectedRoomId}
+              onChange={(e) => setSelectedRoomId(e.target.value)}
               className="w-full p-2.5 bg-mist/30 dark:bg-zinc-800 text-graphite dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-canopy dark:focus:ring-emerald-500 outline-none text-sm font-semibold"
-              required
             >
-              {plants.length === 0 ? (
+              {rooms.length === 0 ? (
                 <option value="" disabled>
-                  No active plants available
+                  No rooms defined
                 </option>
               ) : (
-                plants.map((plant) => (
-                  <option key={plant.id} value={plant.id}>
-                    {plant.name}
+                rooms.map((room) => (
+                  <option key={room.id} value={room.id}>
+                    {room.name}
                   </option>
                 ))
               )}
             </select>
           </div>
 
-          {/* Manual Temp & RH Fields */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                <ThermometerSun className="size-4 text-clay dark:text-orange-400" />
-                Temp (°F)
-              </label>
-              <input
-                type="number"
-                step="0.1"
-                placeholder="75.5"
-                value={temp}
-                onChange={(e) => setTemp(e.target.value)}
-                className="w-full p-2.5 bg-mist/30 dark:bg-zinc-800 text-graphite dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-canopy dark:focus:ring-emerald-500 outline-none text-sm font-semibold"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                <Droplet className="size-4 text-blue-500" />
-                RH (%)
-              </label>
-              <input
-                type="number"
-                step="0.1"
-                placeholder="60.0"
-                value={rh}
-                onChange={(e) => setRh(e.target.value)}
-                className="w-full p-2.5 bg-mist/30 dark:bg-zinc-800 text-graphite dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-canopy dark:focus:ring-emerald-500 outline-none text-sm font-semibold"
-              />
-            </div>
-          </div>
-
-          {/* Weight Input */}
-          <div>
-            <label
-              htmlFor="weight"
-              className="text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider mb-1 flex items-center gap-1.5"
-            >
-              <Scale className="size-4 text-canopy dark:text-emerald-400" />
-              Current Weight (lbs)
-            </label>
-            <input
-              type="number"
-              id="weight"
-              step="0.1"
-              value={weight}
-              onChange={(e) =>
-                setWeight(e.target.value === "" ? "" : Number(e.target.value))
-              }
-              className="w-full p-2.5 bg-mist/30 dark:bg-zinc-800 text-graphite dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-canopy dark:focus:ring-emerald-500 outline-none text-sm font-semibold"
-              placeholder="e.g. 14.2"
-              autoFocus
-              required
-            />
-          </div>
-
-          {/* Watered & Fed Toggles */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <span className="block text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider mb-1">
-                Watered?
-              </span>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setWatered(true)}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors ${
-                    watered
-                      ? "bg-canopy dark:bg-emerald-600 text-white"
-                      : "bg-mist dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                  }`}
-                >
-                  Yes
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setWatered(false)}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors ${
-                    !watered
-                      ? "bg-zinc-200 dark:bg-zinc-700 text-graphite dark:text-zinc-200"
-                      : "bg-mist dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                  }`}
-                >
-                  No
-                </button>
+          {/* Section 2: Room Environmental Telemetry & Live VPD */}
+          <div className="bg-mist/20 dark:bg-zinc-800/50 border border-zinc-200/80 dark:border-zinc-700/60 rounded-xl p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+              <div>
+                <label className="text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                  <ThermometerSun className="size-4 text-clay dark:text-orange-400" />
+                  Temp (°F)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  placeholder="75.5"
+                  value={temp}
+                  onChange={(e) => setTemp(e.target.value)}
+                  className="w-full p-2 bg-white dark:bg-zinc-900 text-graphite dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-canopy dark:focus:ring-emerald-500 outline-none text-sm font-semibold"
+                />
               </div>
-            </div>
 
-            <div>
-              <span className="block text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider mb-1">
-                Fed?
-              </span>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setFed(true)}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors ${
-                    fed
-                      ? "bg-canopy dark:bg-emerald-600 text-white"
-                      : "bg-mist dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                  }`}
-                >
-                  Yes
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFed(false)}
-                  className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors ${
-                    !fed
-                      ? "bg-zinc-200 dark:bg-zinc-700 text-graphite dark:text-zinc-200"
-                      : "bg-mist dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                  }`}
-                >
-                  No
-                </button>
+              <div>
+                <label className="text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                  <Droplet className="size-4 text-blue-500" />
+                  RH (%)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  placeholder="60.0"
+                  value={rh}
+                  onChange={(e) => setRh(e.target.value)}
+                  className="w-full p-2 bg-white dark:bg-zinc-900 text-graphite dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-canopy dark:focus:ring-emerald-500 outline-none text-sm font-semibold"
+                />
+              </div>
+
+              {/* VPD Metric Display */}
+              <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700/80">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
+                  <Wind className="size-3 text-canopy dark:text-emerald-400" />
+                  VPD Display
+                </span>
+                <span className="text-lg font-black text-canopy dark:text-emerald-400 mt-0.5">
+                  {vpdValue !== null ? `${vpdValue} kPa` : "--"}
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Training Event */}
-          <div>
-            <span className="block text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider mb-1">
-              Training Event
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {TRAINING_EVENTS.map((event) => (
-                <button
-                  key={event}
-                  type="button"
-                  onClick={() => setTrainingEvent(event)}
-                  className={`py-1.5 px-3 rounded-full text-xs font-bold transition-colors ${
-                    trainingEvent === event
-                      ? "bg-canopy dark:bg-emerald-600 text-white"
-                      : "bg-mist dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                  }`}
-                >
-                  {event}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Voice Note & Photo Fields */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                <Mic className="size-4 text-clay dark:text-orange-400" />
-                Voice Observation
-              </label>
-              <button
-                type="button"
-                onClick={toggleRecording}
-                className={`w-full flex items-center justify-center gap-2 rounded-xl py-2 px-3 border text-xs font-bold transition-all ${
-                  isRecording
-                    ? "bg-red-500/10 border-red-500 text-red-500 animate-pulse"
-                    : "border-zinc-200 dark:border-zinc-700 bg-mist/30 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-canopy dark:hover:border-emerald-500"
-                }`}
-              >
-                {isRecording ? (
-                  <>
-                    <MicOff className="size-4" />
-                    <span>Recording...</span>
-                  </>
-                ) : (
-                  <>
-                    <Mic className="size-4" />
-                    <span>{audioBlob ? "Record Again" : "Voice Note"}</span>
-                  </>
-                )}
-              </button>
+          {/* Section 3: Plant Cards Batch List */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider">
+                Plants in Room ({roomPlants.length})
+              </h3>
+              <span className="text-xs text-zinc-400">
+                Enter plant specific factors
+              </span>
             </div>
 
-            <div>
-              <label className="text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                <Camera className="size-4 text-canopy dark:text-emerald-400" />
-                Diagnostic Photo
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setPhoto(e.target.files?.[0] || null)}
-                className="block w-full text-xs text-zinc-500 dark:text-zinc-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-mist file:text-canopy dark:file:bg-zinc-800 dark:file:text-emerald-400 hover:file:bg-canopy/10"
-              />
-            </div>
-          </div>
+            {roomPlants.length === 0 ? (
+              <p className="text-xs text-zinc-400 italic text-center py-6 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
+                No active plants found for this room.
+              </p>
+            ) : (
+              roomPlants.map((plant) => {
+                const st = getPlantState(plant.id);
+                return (
+                  <div
+                    key={plant.id}
+                    className="border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 bg-white dark:bg-zinc-900/80 shadow-sm space-y-3 transition-all hover:border-canopy/40 dark:hover:border-emerald-500/40"
+                  >
+                    {/* Plant Header */}
+                    <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2">
+                      <span className="text-sm font-bold text-graphite dark:text-zinc-100">
+                        {plant.name}
+                      </span>
+                      <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">
+                        ID: {plant.id.slice(0, 8)}
+                      </span>
+                    </div>
 
-          {/* Notes */}
-          <div>
-            <label
-              htmlFor="notes"
-              className="block text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider mb-1"
-            >
-              Notes
-            </label>
-            <input
-              type="text"
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="w-full p-2.5 bg-mist/30 dark:bg-zinc-800 text-graphite dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-canopy dark:focus:ring-emerald-500 outline-none text-sm font-semibold"
-              placeholder="Quick single-line observation..."
-              maxLength={100}
-            />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Weight */}
+                      <div>
+                        <label className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                          <Scale className="size-3.5 text-canopy dark:text-emerald-400" />
+                          Weight (lbs)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          placeholder="e.g. 14.2"
+                          value={st.weight}
+                          onChange={(e) =>
+                            updatePlantState(plant.id, {
+                              weight:
+                                e.target.value === ""
+                                  ? ""
+                                  : Number(e.target.value),
+                            })
+                          }
+                          className="w-full p-2 bg-mist/30 dark:bg-zinc-800 text-graphite dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-semibold outline-none focus:ring-2 focus:ring-canopy dark:focus:ring-emerald-500"
+                        />
+                      </div>
+
+                      {/* Watered / Fed Toggles */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <span className="block text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
+                            Watered
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updatePlantState(plant.id, {
+                                watered: !st.watered,
+                              })
+                            }
+                            className={`w-full py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                              st.watered
+                                ? "bg-canopy dark:bg-emerald-600 text-white"
+                                : "bg-mist dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"
+                            }`}
+                          >
+                            {st.watered ? "Yes" : "No"}
+                          </button>
+                        </div>
+
+                        <div>
+                          <span className="block text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
+                            Fed
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updatePlantState(plant.id, { fed: !st.fed })
+                            }
+                            className={`w-full py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                              st.fed
+                                ? "bg-canopy dark:bg-emerald-600 text-white"
+                                : "bg-mist dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"
+                            }`}
+                          >
+                            {st.fed ? "Yes" : "No"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Training Event Pills */}
+                    <div>
+                      <span className="block text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
+                        Training Event
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {TRAINING_EVENTS.map((event) => (
+                          <button
+                            key={event}
+                            type="button"
+                            onClick={() =>
+                              updatePlantState(plant.id, {
+                                trainingEvent: event,
+                              })
+                            }
+                            className={`py-1 px-2.5 rounded-full text-[10px] font-bold transition-colors ${
+                              st.trainingEvent === event
+                                ? "bg-canopy dark:bg-emerald-600 text-white"
+                                : "bg-mist dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                            }`}
+                          >
+                            {event}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Notes, Voice, Photo */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                      <div className="sm:col-span-2">
+                        <input
+                          type="text"
+                          placeholder="Plant notes / observations..."
+                          maxLength={100}
+                          value={st.notes}
+                          onChange={(e) =>
+                            updatePlantState(plant.id, { notes: e.target.value })
+                          }
+                          className="w-full p-2 bg-mist/30 dark:bg-zinc-800 text-graphite dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs outline-none"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updatePlantState(plant.id, {
+                              isRecording: !st.isRecording,
+                            })
+                          }
+                          className={`p-2 rounded-lg border transition-all ${
+                            st.isRecording
+                              ? "bg-red-500/10 border-red-500 text-red-500 animate-pulse"
+                              : "border-zinc-200 dark:border-zinc-700 bg-mist/30 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
+                          }`}
+                          title="Record voice note"
+                        >
+                          {st.isRecording ? (
+                            <MicOff className="size-3.5" />
+                          ) : (
+                            <Mic className="size-3.5" />
+                          )}
+                        </button>
+
+                        <label
+                          className="flex-1 flex items-center justify-center p-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-mist/30 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 cursor-pointer hover:border-canopy dark:hover:border-emerald-500"
+                          title="Attach photo"
+                        >
+                          <Camera className="size-3.5 mr-1" />
+                          <span className="text-[10px] font-bold truncate max-w-[60px]">
+                            {st.photo ? st.photo.name : "Photo"}
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) =>
+                              updatePlantState(plant.id, {
+                                photo: e.target.files?.[0] || null,
+                              })
+                            }
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
 
           {/* Feedback Alert */}
           {feedback && (
             <p
-              className={`text-center text-sm font-semibold ${
-                feedback.type === "success" ? "text-emerald-500" : "text-rose-500"
+              className={`text-center text-xs font-bold ${
+                feedback.type === "success"
+                  ? "text-emerald-500"
+                  : "text-rose-500"
               }`}
             >
               {feedback.message}
             </p>
           )}
 
-          {/* Submit Action */}
+          {/* Batch Submit Button */}
           <button
             type="submit"
-            disabled={isPending || plants.length === 0}
+            disabled={isPending || roomPlants.length === 0}
             className="w-full flex items-center justify-center gap-2 rounded-xl bg-canopy dark:bg-emerald-600 py-3 text-sm font-bold text-white shadow-md hover:bg-canopy/90 dark:hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             {isPending ? (
               <>
                 <Loader2 className="size-5 animate-spin" />
-                <span>Recording Check-In...</span>
+                <span>Saving Batch Check-In...</span>
               </>
             ) : (
               <>
                 <Check className="size-5" />
-                <span>Finish Check-In</span>
+                <span>Submit Batch Check-In</span>
               </>
             )}
           </button>
