@@ -557,7 +557,7 @@ export function DailyCheckIn({
             ) : (
               <>
                 <Check className="size-5" />
-                <span>Submit Batch Check-In</span>
+                <span>Submit</span>
               </>
             )}
           </button>
