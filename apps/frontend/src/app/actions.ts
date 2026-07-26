@@ -8,6 +8,17 @@ import { randomBytes, createHash } from "crypto";
 import { supabase } from "@/lib/supabase";
 import { GoogleGenAI } from "@google/genai";
 
+// Define the payload structure for the server action
+export interface DailyCheckInFormData {
+  plantId: string;
+  weight: number;
+  photoUrl?: string;
+  watered: boolean;
+  fed: boolean;
+  trainingEvent: 'None' | 'Top' | 'Defoliate' | 'LST' | 'Flip' | 'Harvest';
+  notes?: string;
+}
+
 // ==========================================
 // HELPERS & CACHE GLOBALS
 // ==========================================
@@ -1230,4 +1241,32 @@ export async function saveOrUpdateBlueprint(blueprint: any) {
 
 export async function deleteCustomBlueprint(id: string) {
   return { success: false };
+}
+
+export async function recordDailyCheckInLog(formData: DailyCheckInFormData) {
+  'use server';
+  try {
+    // Placeholder for actual database interaction (e.g., Supabase insert)
+    console.log('--- Daily Check-In Data Received ---');
+    console.log(`Plant ID: ${formData.plantId}`);
+    console.log(`Weight: ${formData.weight}g`);
+    console.log(`Watered: ${formData.watered}`);
+    console.log(`Fed: ${formData.fed}`);
+    console.log(`Training Event: ${formData.trainingEvent}`);
+    if (formData.photoUrl) console.log(`Photo URL: ${formData.photoUrl}`);
+    if (formData.notes) console.log(`Notes: ${formData.notes}`);
+    console.log('------------------------------------');
+
+    // Simulate database delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // In a real application, you would interact with your database here.
+    // e.g., await supabase.from('daily_logs').insert([formData]);
+
+    revalidatePath('/dashboard'); // Assuming the check-in data affects the dashboard
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error recording daily check-in:', error);
+    return { error: error.message || 'Failed to record check-in.' };
+  }
 }
