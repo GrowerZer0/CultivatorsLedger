@@ -53,7 +53,6 @@ import { MorningBrief } from '@/components/MorningBrief';
 import { DailyCheckIn } from '@/components/dashboard/DailyCheckIn';
 
 export default function DashboardPage() {
-  const { theme, setTheme } = useTheme();
   const { setData } = useTelemetry();
 
   // --- STATE ---
