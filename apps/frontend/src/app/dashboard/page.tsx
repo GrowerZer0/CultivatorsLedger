@@ -1,4 +1,3 @@
-// apps/frontend/src/app/dashboard/page.tsx
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -10,7 +9,6 @@ import {
   Weight,
   AlertTriangle,
   Layers,
-  Mic,
   Sprout,
   FlaskConical,
   AlertCircle,
@@ -32,6 +30,7 @@ import {
   type DryBackLog,
   calculateDryBack,
 } from '@/lib/cultivation';
+import Link from 'next/link';
 
 // Modular Server Actions
 import {
@@ -63,14 +62,6 @@ export default function DashboardPage() {
   const [briefingAttention, setBriefingAttention] = useState<string[]>([]);
   const [briefingActions, setBriefingActions] = useState<string[]>([]);
 
-  // Manual entry fields (always visible)
-  const [manualTemp, setManualTemp] = useState(72); // °F
-  const [manualHumidity, setManualHumidity] = useState(55);
-  const [manualWeight, setManualWeight] = useState<number | ''>('');
-  const [notes, setNotes] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-
   // CSV Import state
   const [showMappingModal, setShowMappingModal] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -84,33 +75,6 @@ export default function DashboardPage() {
     roomIdCol: '',
     zoneIdCol: '',
   });
-
-  // --- VOICE TO TEXT ---
-  const startListening = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert('Voice recognition is not supported in this browser. Please use Chrome or Safari.');
-      return;
-    }
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'en-US';
-    recognition.interimResults = true;
-    recognition.continuous = false;
-
-    recognition.onstart = () => setIsListening(true);
-    recognition.onend = () => setIsListening(false);
-    recognition.onerror = (event: any) => {
-      console.error('Speech recognition error:', event.error);
-      setIsListening(false);
-    };
-    recognition.onresult = (event: any) => {
-      const transcript = Array.from(event.results)
-        .map((result: any) => result[0].transcript)
-        .join('');
-      setNotes(transcript);
-    };
-    recognition.start();
-  };
 
   const hasLoaded = useRef(false);
   const hasFetchedBriefingInitially = useRef(false);
@@ -175,19 +139,6 @@ export default function DashboardPage() {
     }, 10000);
     return () => clearInterval(interval);
   }, [loadData]);
-
-  // --- SMART DEFAULTS: load last logged values ---
-  useEffect(() => {
-    if (dbEnvironmentReadings.length > 0) {
-      const last = dbEnvironmentReadings[dbEnvironmentReadings.length - 1];
-      setManualTemp(Math.round(last.temperatureF));
-      setManualHumidity(Math.round(last.humidity));
-    }
-    if (dbDryBackLogs.length > 0) {
-      const lastDry = dbDryBackLogs[dbDryBackLogs.length - 1];
-      setManualWeight(Number(lastDry.weight));
-    }
-  }, [dbEnvironmentReadings, dbDryBackLogs]);
 
   // --- AI BRIEFING ---
   const loadBriefing = useCallback(async (force = false) => {
@@ -347,32 +298,6 @@ export default function DashboardPage() {
     return { icon, color, recommendation, details };
   }, [dbEnvironmentReadings, latestIrrigation, dryBackData]);
 
-  // --- MANUAL ENTRY HANDLER ---
-  const handleManualSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      const tempC = ((Number(manualTemp) - 32) * 5) / 9;
-      const weightValue = manualWeight === '' ? undefined : Number(manualWeight);
-      await addManualClimateAndWeight({
-        temperature: tempC,
-        humidity: Number(manualHumidity),
-        weight: weightValue,
-        notes: notes || undefined,
-        wetWeight: 18.4,
-        dryTarget: 13.2,
-      });
-      setNotes('');
-      await loadData();
-      alert('Manual reading saved!');
-    } catch (error) {
-      console.error(error);
-      alert('Failed to save. Check console.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   // --- CSV IMPORT handler ---
   const handleCsvFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -443,75 +368,11 @@ return (
           />
         </div>
 
-        {/* Manual Entry Form */}
+        {/* Nav to Check-In Page */}
         <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl">
-          <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-300 mb-3">Log Manual Reading</h3>
-          <form onSubmit={handleManualSubmit} className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
-            <div>
-              <label className="block text-xs font-bold text-gray-500 dark:text-zinc-400 mb-1">Temp (°F)</label>
-              <input
-                type="number"
-                step="0.1"
-                value={manualTemp}
-                onChange={(e) => setManualTemp(parseFloat(e.target.value) || 0)}
-                className="w-full rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 min-h-[48px]"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-500 dark:text-zinc-400 mb-1">Humidity (%)</label>
-              <input
-                type="number"
-                step="0.1"
-                min="0"
-                max="100"
-                value={manualHumidity}
-                onChange={(e) => setManualHumidity(parseFloat(e.target.value) || 0)}
-                className="w-full rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 min-h-[48px]"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-500 dark:text-zinc-400 mb-1">Weight (lbs, optional)</label>
-              <input
-                type="number"
-                step="0.05"
-                value={manualWeight}
-                onChange={(e) => setManualWeight(e.target.value === '' ? '' : parseFloat(e.target.value))}
-                className="w-full rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 min-h-[48px]"
-              />
-            </div>
-            <div>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] font-bold text-white text-sm px-4 py-2 shadow-lg shadow-emerald-950/30 disabled:opacity-50 transition-all cursor-pointer min-h-[48px]"
-              >
-                {isSubmitting ? 'Saving...' : 'Save Reading'}
-              </button>
-            </div>
-          </form>
-          <div className="mt-4 flex items-center gap-2">
-            <input
-              type="text"
-              placeholder="Notes (optional)"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="flex-1 rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-950 px-4 py-3 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 min-h-[48px]"
-            />
-            <button
-              type="button"
-              onClick={startListening}
-              disabled={isListening}
-              className={`p-3 rounded-xl border min-h-[48px] min-w-[48px] flex items-center justify-center transition-all ${
-                isListening
-                  ? 'bg-red-500/20 border-red-500 text-red-500 animate-pulse'
-                  : 'border-gray-300 dark:border-zinc-700 hover:border-emerald-500 text-gray-700 dark:text-zinc-300'
-              }`}
-            >
-              <Mic size={20} />
-            </button>
-          </div>
+          <Link href="/" className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-950/30 transition-all">
+            Log a Reading
+          </Link>
         </div>
 
         {/* Import / Export controls */}
@@ -556,9 +417,9 @@ return (
           </div>
         )}
 
-        {/* Today’s Summary */}
+        {/* Today's Summary */}
         <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl">
-          <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-300 mb-3">📋 Today’s Summary</h3>
+          <h3 className="text-sm font-bold text-gray-700 dark:text-zinc-300 mb-3">📋 Today's Summary</h3>
           {dbEnvironmentReadings.length > 0 && dbDryBackLogs.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -583,7 +444,7 @@ return (
           )}
         </div>
 
-        {/* Two‑column metrics: Room Climate + Dry‑Back */}
+        {/* Two-column metrics: Room Climate + Dry-Back */}
         <div className="grid gap-4 md:grid-cols-2">
           {/* Room Climate Card */}
           <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl flex items-center gap-5">
@@ -650,7 +511,7 @@ return (
             </div>
           </div>
 
-          {/* Dry‑Back Card */}
+          {/* Dry-Back Card */}
           <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl flex items-center gap-5">
             <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-inner shrink-0">
               <Weight className="size-7" />
