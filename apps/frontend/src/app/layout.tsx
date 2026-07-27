@@ -14,8 +14,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="antialiased min-h-screen bg-[#f6f8f4] text-graphite dark:bg-zinc-950 dark:text-zinc-100 transition-colors duration-200">
+    <html lang="en" suppressHydrationWarning className="overflow-x-hidden bg-[#f6f8f4] dark:bg-zinc-950">
+      <body className="antialiased min-h-screen max-w-full overflow-x-hidden bg-[#f6f8f4] text-graphite dark:bg-zinc-950 dark:text-zinc-100 transition-colors duration-200">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <TelemetryProvider>
             {children}

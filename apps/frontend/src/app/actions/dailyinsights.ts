@@ -10,7 +10,7 @@ import { GoogleGenAI } from "@google/genai";
 // ==========================================
 
 // In-memory cache to prevent infinite render loops from exhausting Gemini API quota
-let cachedBriefingResponse: { summary: string; timestamp: number } | null = null;
+let cachedBriefingResponse: { data: { snapshot: string; attention: string[]; actions: string[] }; timestamp: number } | null = null;
 const ONE_HOUR_MS = 60 * 60 * 1000;
 
 // Helper: compute VPD (kPa) from temp (°C) and RH (%)
@@ -27,33 +27,20 @@ function computeVPD(tempC: number, rh: number): number {
 
 export async function generateDailyBriefing(forceRefresh: boolean = false) {
   try {
-    // 🛡️ CIRCUIT BREAKER: Check cached response unless explicit user forceRefresh
     if (!forceRefresh && cachedBriefingResponse && (Date.now() - cachedBriefingResponse.timestamp < ONE_HOUR_MS)) {
-      return {
-        success: true,
-        summary: cachedBriefingResponse.summary,
-        insight: null,
-        cached: true,
-      };
+      return { success: true as const, ...cachedBriefingResponse.data, cached: true };
     }
 
     const userId = await getUserId();
     const now = new Date();
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-    const [activePlants, climateLogs, rooms] = await Promise.all([
+    const [activePlants, climateLogs, rooms, irrigationEvents] = await Promise.all([
       db.plant.findMany({
-        where: {
-          userId,
-          batch: {
-            isActive: true,
-          },
-        },
+        where: { userId, batch: { isActive: true } },
         include: {
           dryBackLogs: {
-            where: {
-              timestamp: { gte: twentyFourHoursAgo },
-            },
+            where: { timestamp: { gte: twentyFourHoursAgo } },
             orderBy: { timestamp: "desc" },
             take: 2,
           },
@@ -62,130 +49,129 @@ export async function generateDailyBriefing(forceRefresh: boolean = false) {
         },
       }),
       db.climateLog.findMany({
-        where: {
-          userId,
-          timestamp: { gte: twentyFourHoursAgo },
-        },
+        where: { userId, timestamp: { gte: twentyFourHoursAgo } },
         orderBy: { timestamp: "desc" },
       }),
-      db.room.findMany({
-        where: { userId },
+      db.room.findMany({ where: { userId } }),
+      db.irrigationEvent.findMany({
+        where: { userId, timestamp: { gte: twentyFourHoursAgo } },
+        orderBy: { timestamp: "desc" },
       }),
     ]);
 
     if (!activePlants.length) {
       return {
-        success: true,
-        summary: "No active plants found. Please set up your plants to get a daily briefing.",
-        insight: null,
+        success: true as const,
+        snapshot: "No active plants found. Please set up your plants to get a daily briefing.",
+        attention: [],
+        actions: [],
         cached: false,
       };
     }
 
-    // --- Facility Snapshot Data ---
     const totalActivePlants = activePlants.length;
 
-    let totalTempC = 0;
-    let totalRh = 0;
-    let totalVpd = 0;
+    let totalTempC = 0, totalRh = 0, totalVpd = 0;
     climateLogs.forEach((log) => {
       totalTempC += Number(log.airTempC);
       totalRh += Number(log.relativeHumidity);
-      totalVpd += Number(
-        log.calculatedVpdKpa || computeVPD(Number(log.airTempC), Number(log.relativeHumidity))
-      );
+      totalVpd += Number(log.calculatedVpdKpa || computeVPD(Number(log.airTempC), Number(log.relativeHumidity)));
     });
-
     const avgTempC = climateLogs.length ? totalTempC / climateLogs.length : null;
     const avgRh = climateLogs.length ? totalRh / climateLogs.length : null;
     const avgVpd = climateLogs.length ? totalVpd / climateLogs.length : null;
 
-    const plantDryBackTrends: string[] = [];
-    let fastDryBackPlants: string[] = [];
-    let slowDryBackPlants: string[] = [];
-    let nearTargetPlants: string[] = [];
+    // roomId -> name lookup, since IrrigationEvent stores roomId as a plain string, not a relation
+    const roomNameById = new Map(rooms.map((r) => [r.id, r.name]));
 
+    const plantDryBackTrends: string[] = [];
     activePlants.forEach((plant) => {
+      const roomName = plant.room?.name || "N/A";
+      const batchName = plant.batch?.name || "N/A";
+
       if (plant.dryBackLogs.length >= 2) {
         const [latestLog, previousLog] = plant.dryBackLogs;
         const dryBackDiff = Number(latestLog.dryBackPercent) - Number(previousLog.dryBackPercent);
-        const wetWeightNum = plant.wetWeight ? Number(plant.wetWeight) : 0;
-        const dryTargetNum = plant.dryTarget ? Number(plant.dryTarget) : 0;
-        const currentWeightNum = Number(latestLog.currentWeightLbs);
+        const trend = dryBackDiff > 5 ? "drying faster than typical"
+          : dryBackDiff < -5 ? "drying slower than typical"
+          : "stable";
 
-        const dryBackRange = wetWeightNum - dryTargetNum;
-        const weightRemainingToTarget = currentWeightNum - dryTargetNum;
-        const percentRemaining = dryBackRange > 0 ? (weightRemainingToTarget / dryBackRange) * 100 : 0;
+        // Explicit null-check, not `||` — a real 0.00 runoff EC must not be treated as "no reading"
+        const ecNote = latestLog.runoffEc !== null && latestLog.runoffEc !== undefined
+          ? `, runoff EC ${Number(latestLog.runoffEc).toFixed(2)}`
+          : "";
 
-        let trend = "stable";
-        if (dryBackDiff > 5) {
-          trend = "drying faster than typical";
-          fastDryBackPlants.push(`${plant.name} (${plant.batch?.name || 'N/A'} in ${plant.room?.name || 'N/A'})`);
-        } else if (dryBackDiff < -5) {
-          trend = "drying slower than typical";
-          slowDryBackPlants.push(`${plant.name} (${plant.batch?.name || 'N/A'} in ${plant.room?.name || 'N/A'})`);
-        }
         plantDryBackTrends.push(
-          `${plant.name} (Batch: ${plant.batch?.name || 'N/A'}, Room: ${plant.room?.name || 'N/A'}): ${trend} (latest dry-back: ${Number(latestLog.dryBackPercent).toFixed(1)}%)`
+          `${plant.name} (Batch: ${batchName}, Room: ${roomName}): ${trend} (latest dry-back: ${Number(latestLog.dryBackPercent).toFixed(1)}%${ecNote})`
         );
-
-        if (percentRemaining < 20) {
-          nearTargetPlants.push(`${plant.name} (${plant.batch?.name || 'N/A'})`);
-        }
-
       } else if (plant.dryBackLogs.length === 1) {
         plantDryBackTrends.push(
-          `${plant.name} (Batch: ${plant.batch?.name || 'N/A'}, Room: ${plant.room?.name || 'N/A'}): Insufficient data for trend (latest dry-back: ${Number(plant.dryBackLogs[0].dryBackPercent).toFixed(1)}%)`
+          `${plant.name} (Batch: ${batchName}, Room: ${roomName}): Insufficient data for trend (latest dry-back: ${Number(plant.dryBackLogs[0].dryBackPercent).toFixed(1)}%)`
         );
       } else {
         plantDryBackTrends.push(
-          `${plant.name} (Batch: ${plant.batch?.name || 'N/A'}, Room: ${plant.room?.name || 'N/A'}): No dry-back logs in the last 24 hours.`
+          `${plant.name} (Batch: ${batchName}, Room: ${roomName}): No dry-back logs in the last 24 hours.`
         );
       }
     });
 
-    // Fallback for limited climate data
+    const irrigationSummary = irrigationEvents.length
+      ? irrigationEvents.map((ev) => {
+          const roomName = roomNameById.get(ev.roomId) || ev.roomId;
+          const ec = ev.ecLevel !== null && ev.ecLevel !== undefined ? Number(ev.ecLevel).toFixed(1) : "N/A";
+          const moisture = Number(ev.moisturePercentage).toFixed(0);
+          return `${roomName} (zone ${ev.zoneId}): EC ${ec}, moisture ${moisture}% (${new Date(ev.timestamp).toLocaleTimeString()})`;
+        }).join("\n        ")
+      : "No irrigation events logged in the last 24 hours.";
+
     const envSummary = avgTempC !== null
       ? `Temp: ${avgTempC.toFixed(1)}°C (${((avgTempC * 9) / 5 + 32).toFixed(1)}°F), RH: ${avgRh?.toFixed(0)}%, VPD: ${avgVpd?.toFixed(2)} kPa`
       : "Environment data limited for the last 24 hours.";
 
     const prompt = `
-      You are an AI cultivation assistant providing a daily briefing for a facility manager or head grower.
-      Analyze the following data for the entire grow operation and provide a concise summary.
+      You are an AI cultivation assistant. Analyze this facility's full telemetry and respond with ONLY valid JSON, no markdown fences, no preamble.
 
-      Data for review:
-      - Total Active Plants: ${totalActivePlants}
-      - Facility-wide Environmental Average (last 24h): ${envSummary}
-      - Individual Plant Dry-back Trends:
-        ${plantDryBackTrends.join("\n        ")}
+      DATA:
+      - Active Plants: ${totalActivePlants}
+      - Environment (24h avg): ${envSummary}
+      - Dry-back Trends: ${plantDryBackTrends.join("\n        ")}
+      - Irrigation Events (24h): ${irrigationSummary}
 
-      Structure your output into these three bulleted sections:
-
-      * **Facility Snapshot**: Provide an overview of the total active plants, the general environmental status of the rooms, and the overall dry-back trajectory across the facility.
-      * **Attention Needed / Outliers**: Highlight any specific plants or sub-zones that are exhibiting abnormal dry-back (too fast or too slow), or plants that are nearing their target dry weight.
-      * **Today's Directive**: Offer clear, actionable irrigation and environmental recommendations for the upcoming shift, considering the overall facility health and any identified outliers.
+      Return JSON matching this exact shape:
+      {
+        "snapshot": "one paragraph, current facility state only",
+        "attention": ["specific plant/room callouts with abnormal readings, empty array if none"],
+        "actions": ["imperative, specific action items the grower should take today, e.g. 'Irrigate Room 2', 'Flush Batch 4, runoff EC elevated'. If nothing needed, a single item: 'No action required — hold current schedule.'"]
+      }
     `;
 
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    const result = await ai.models.generateContent({ 
-      model: 'gemini-1.5-flash', 
-      contents: [{ role: 'user', parts: [{ text: prompt }] }] 
+    const result = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
     });
-    
-    const summary = result.text?.trim() || "No detailed briefing could be generated.";
 
-    // Save to memory cache
-    cachedBriefingResponse = { summary, timestamp: Date.now() };
+    const rawText = result.text?.trim() || "";
+    let parsed: { snapshot: string; attention: string[]; actions: string[] };
+    try {
+      const cleaned = rawText.replace(/```json|```/g, "").trim();
+      parsed = JSON.parse(cleaned);
+    } catch {
+      parsed = { snapshot: rawText || "No detailed briefing could be generated.", attention: [], actions: [] };
+    }
 
-    return {
-      success: true,
-      summary,
-      insight: null,
-      cached: false,
+    const data = {
+      snapshot: parsed.snapshot,
+      attention: parsed.attention || [],
+      actions: parsed.actions || [],
     };
+
+    cachedBriefingResponse = { data, timestamp: Date.now() };
+
+    return { success: true as const, ...data, cached: false };
   } catch (error) {
-    console.error("AI briefing error:", error);
-    return { success: false, error: "Failed to generate briefing or rate limit exceeded." };
+    console.error("AI briefing error:", error instanceof Error ? error.message : error);
+    return { success: false as const, error: error instanceof Error ? error.message : "Failed to generate briefing." };
   }
 }
 

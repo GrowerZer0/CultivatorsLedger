@@ -1,7 +1,6 @@
 // apps/frontend/src/app/dashboard/page.tsx
 'use client';
 
-import type { Plant } from '@prisma/client';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Plus,
@@ -11,11 +10,7 @@ import {
   Weight,
   AlertTriangle,
   Layers,
-  Settings,
-  Sun,
-  Moon,
   Mic,
-  Send,
   Sprout,
   FlaskConical,
   AlertCircle,
@@ -32,8 +27,6 @@ import {
   ReferenceArea,
 } from 'recharts';
 import { AppShell } from '@/components/layout/AppShell';
-import { useTheme } from 'next-themes';
-import Link from 'next/link';
 import {
   type EnvironmentReading,
   type DryBackLog,
@@ -66,6 +59,9 @@ export default function DashboardPage() {
   const [briefingLoading, setBriefingLoading] = useState(false);
   const [briefingError, setBriefingError] = useState<string | null>(null);
   const [lastBriefingTime, setLastBriefingTime] = useState<string>('Not yet generated');
+  const [briefingSnapshot, setBriefingSnapshot] = useState<string | null>(null);
+  const [briefingAttention, setBriefingAttention] = useState<string[]>([]);
+  const [briefingActions, setBriefingActions] = useState<string[]>([]);
 
   // Manual entry fields (always visible)
   const [manualTemp, setManualTemp] = useState(72); // °F
@@ -203,7 +199,9 @@ export default function DashboardPage() {
     try {
       const result = await generateDailyBriefing(force);
       if (result.success) {
-        setBriefing(result.summary || null);
+        setBriefingSnapshot(result.snapshot || null);
+        setBriefingAttention(result.attention || []);
+        setBriefingActions(result.actions || []);        
         setLastBriefingTime(
           new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         );
@@ -436,7 +434,9 @@ return (
         {/* Daily AI Briefing */}
         <div>
           <MorningBrief
-            summary={briefing}
+            snapshot={briefingSnapshot}
+            attention={briefingAttention}
+            actions={briefingActions}
             lastBriefingTime={lastBriefingTime}
             isRefreshing={briefingLoading}
             onRefresh={() => loadBriefing(true)}

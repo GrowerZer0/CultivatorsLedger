@@ -18,6 +18,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { CSVImportModal } from "@/components/CSVImportModal";
+import { addManualClimateAndWeight } from "@/app/actions/loggingreadings";
 
 type TrainingEvent = DailyCheckInFormData["trainingEvent"];
 
@@ -140,108 +141,107 @@ export function DailyCheckIn({
   } | null>(null);
 
   // CSV Autofill Handler for Telemetry
-  const handleCsvSuccess = (parsedData: any[]) => {
-    if (parsedData.length > 0) {
-      const latest = parsedData[parsedData.length - 1];
-      let imported = false;
+const handleCsvSuccess = (parsedData: any[]) => {
+  if (parsedData.length > 0) {
+    const latest = parsedData[parsedData.length - 1];
+    let imported = false;
 
-      if (latest.temp || latest.temperature) {
-        setTemp(latest.temp || latest.temperature);
-        imported = true;
-      }
-      if (latest.rh || latest.humidity) {
-        setRh(latest.rh || latest.humidity);
-        imported = true;
-      }
+    const tempVal = latest.temp ?? latest.temperature;
+    const rhVal = latest.rh ?? latest.humidity;
 
-      if (imported) {
-        setIsCsvSynced(true);
-      }
+    if (tempVal !== undefined && tempVal !== null && tempVal !== "") {
+      setTemp(String(tempVal));
+      imported = true;
     }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setFeedback(null);
-
-    if (roomPlants.length === 0) {
-      setFeedback({
-        type: "error",
-        message: "No active plants available in the selected room.",
-      });
-      return;
+    if (rhVal !== undefined && rhVal !== null && rhVal !== "") {
+      setRh(String(rhVal));
+      imported = true;
     }
 
-    const hasValidWeights = roomPlants.some((plant) => {
-      const st = getPlantState(plant.id);
-      return typeof st.weight === "number" && st.weight > 0;
+    if (imported) setIsCsvSynced(true);
+  }
+};
+
+const handleSubmit = (e: React.FormEvent) => {
+  e.preventDefault();
+  setFeedback(null);
+
+  if (roomPlants.length === 0) {
+    setFeedback({
+      type: "error",
+      message: "No active plants available in the selected room.",
     });
+    return;
+  }
 
-    if (!hasValidWeights) {
-      setFeedback({
-        type: "error",
-        message: "Please enter a valid weight (> 0) for at least one plant.",
-      });
-      return;
-    }
+  const hasValidWeights = roomPlants.some((plant) => {
+    const st = getPlantState(plant.id);
+    return typeof st.weight === "number" && st.weight > 0;
+  });
 
-    startTransition(async () => {
-      try {
-        const parsedTemp = temp ? parseFloat(temp) : undefined;
-        const parsedRh = rh ? parseFloat(rh) : undefined;
+  if (!hasValidWeights) {
+    setFeedback({
+      type: "error",
+      message: "Please enter a valid weight (> 0) for at least one plant.",
+    });
+    return;
+  }
 
-        for (const plant of roomPlants) {
-          const st = getPlantState(plant.id);
-          if (typeof st.weight === "number" && st.weight > 0) {
-            const payload: DailyCheckInFormData & {
-              roomId?: string;
-              temp?: number;
-              rh?: number;
-              vpd?: number | null;
-              photo?: File | null;
-              audioBlob?: Blob | null;
-            } = {
-              plantId: plant.id,
-              roomId: selectedRoomId,
-              weight: st.weight,
-              watered: st.watered,
-              fed: st.fed,
-              trainingEvent: st.trainingEvent,
-              notes: st.notes.trim() || undefined,
-              temp: parsedTemp,
-              rh: parsedRh,
-              vpd: vpdValue,
-              photo: st.photo,
-              audioBlob: st.audioBlob,
-            };
+  startTransition(async () => {
+    try {
+      // 1. Save room-level climate telemetry, if entered
+      const tempF = parseFloat(temp);
+      const rhVal = parseFloat(rh);
+      if (!isNaN(tempF) && !isNaN(rhVal)) {
+        const tempC = ((tempF - 32) * 5) / 9;
+        await addManualClimateAndWeight({
+          temperature: tempC,
+          humidity: rhVal,
+          wetWeight: 18.4,
+          dryTarget: 13.2,
+        });
+      }
 
-            const result = await recordDailyCheckInLog(payload);
-            if (!result.success) {
-              throw new Error(result.error || `Failed log for ${plant.name}`);
-            }
+      // 2. Save each plant's check-in log
+      for (const plant of roomPlants) {
+        const st = getPlantState(plant.id);
+        if (typeof st.weight === "number" && st.weight > 0) {
+          const payload: DailyCheckInFormData = {
+            plantId: plant.id,
+            weight: st.weight,
+            watered: st.watered,
+            fed: st.fed,
+            trainingEvent: st.trainingEvent,
+            notes: st.notes.trim() || undefined,
+          };
+
+          const result = await recordDailyCheckInLog(payload);
+          if (!result.success) {
+            throw new Error(result.error || `Failed log for ${plant.name}`);
           }
         }
-
-        setFeedback({
-          type: "success",
-          message: "Batch check-in logged successfully! Redirecting...",
-        });
-
-        setPlantStates({});
-        setTemp("");
-        setRh("");
-        setIsCsvSynced(false);
-
-        router.push("/dashboard");
-        router.refresh();
-      } catch (err: any) {
-        setFeedback({
-          type: "error",
-          message: err.message || "Failed to submit check-in logs.",
-        });
       }
-    });
-  };
+
+      setFeedback({
+        type: "success",
+        message: "Batch check-in logged successfully! Redirecting...",
+      });
+
+      setPlantStates({});
+      setTemp("");
+      setRh("");
+      setIsCsvSynced(false);
+
+      router.push("/dashboard");
+      router.refresh();
+    } catch (err: any) {
+      setFeedback({
+        type: "error",
+        message: err.message || "Failed to submit check-in logs.",
+      });
+    }
+  });
+};
 
   return (
     <>

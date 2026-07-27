@@ -3,7 +3,7 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getUserId } from "@/lib/session";
-import { Prisma } from "@prisma/client";
+
 
 export interface DailyCheckInFormData {
   plantId: string;
@@ -59,8 +59,8 @@ export async function recordDailyCheckInLog(data: DailyCheckInFormData) {
     const compiledNotes =
       noteParts.length > 0 ? noteParts.join(" | ") : "Daily Check-In";
 
-    // 4. Execute atomic database operations inside a single transaction
-    const result = await db.$transaction(async (tx: Prisma.TransactionClient) => {
+    // 4. Execute atomic database operations
+    const result = await db.$transaction(async (tx) => {
       const dryBackLog = await tx.dryBackLog.create({
         data: {
           timestamp: new Date(),
