@@ -31,8 +31,6 @@ import {
   addManualClimateAndWeight,
 } from '@/app/actions/loggingreadings';
 import { generateDailyBriefing } from '@/app/actions/dailyinsights';
-import { exportAllBatches } from '@/app/actions/batch-mgmt';
-
 import { useTelemetry } from '@/lib/telemetry-context';
 import { MorningBrief } from '@/components/MorningBrief';
 import { DailyCheckIn } from '@/components/dashboard/DailyCheckIn';
@@ -206,16 +204,6 @@ export default function DashboardPage() {
     e.target.value = '';
   };
 
-  // --- EXPORT ALL ---
-  const handleExportAll = async () => {
-    const data = await exportAllBatches();
-    if (!data || data.length === 0) {
-      alert('No batch data to export.');
-      return;
-    }
-    alert('Export functionality preserved.');
-  };
-
   // --- LOADING ---
   if (loading) {
     return (
@@ -259,12 +247,6 @@ return (
             <Upload size={16} /> Import CSV
           </button>
           <input id="csv-upload" type="file" accept=".csv" className="hidden" onChange={handleCsvFileSelect} />
-          <button
-            onClick={handleExportAll}
-            className="inline-flex items-center gap-2 rounded-xl border border-gray-300 dark:border-zinc-700 hover:border-zinc-500 px-4 py-2 text-xs font-bold text-gray-700 dark:text-zinc-300 transition-all cursor-pointer"
-          >
-            <Download size={16} /> Export All
-          </button>
         </div>
 
         {/* VPD Chart */}

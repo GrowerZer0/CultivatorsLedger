@@ -13,7 +13,8 @@ import {
   Bell,
   Building, 
   TreePine, 
-  Edit,     
+  Edit,  
+  Download   
 } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { SectionPanel } from "@/components/layout/SectionPanel";
@@ -57,6 +58,7 @@ import {
 } from "@/app/actions/sensorconfig";
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { supabase } from '@/lib/supabase';
+import { exportAllBatches } from '@/app/actions/batch-mgmt';
 
 type UserProfile = any;
 type Room = { id: string; name: string };
@@ -236,6 +238,16 @@ export default function SettingsPage() {
         isCustom: cs.is_custom
       }))
   ];
+
+    // --- EXPORT ALL ---
+    const handleExportAll = async () => {
+      const data = await exportAllBatches();
+      if (!data || data.length === 0) {
+        alert('No batch data to export.');
+        return;
+      }
+      alert('Export functionality preserved.');
+    };
 
   function handleInitCreate() {
     setEditingSchedule({
@@ -852,6 +864,14 @@ export default function SettingsPage() {
     Logout
   </button>
 </div>
+  <div>
+              <button
+            onClick={handleExportAll}
+            className="inline-flex items-center gap-2 rounded-xl border border-gray-300 dark:border-zinc-700 hover:border-zinc-500 px-4 py-2 text-xs font-bold text-gray-700 dark:text-zinc-300 transition-all cursor-pointer"
+          >
+            <Download size={16} /> Export All
+          </button>
+  </div>
             </SectionPanel>
           </div>
         )}
