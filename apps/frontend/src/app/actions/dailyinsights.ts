@@ -72,14 +72,28 @@ export async function generateDailyBriefing(forceRefresh: boolean = false) {
     const totalActivePlants = activePlants.length;
 
     let totalTempC = 0, totalRh = 0, totalVpd = 0;
+    let inRangeVpdCount = 0;
+    let currentVpdStreak = 0;
+    let isCountingCurrentVpdStreak = true;
     climateLogs.forEach((log) => {
       totalTempC += Number(log.airTempC);
       totalRh += Number(log.relativeHumidity);
-      totalVpd += Number(log.calculatedVpdKpa || computeVPD(Number(log.airTempC), Number(log.relativeHumidity)));
+      const vpd = log.calculatedVpdKpa !== null && log.calculatedVpdKpa !== undefined
+        ? Number(log.calculatedVpdKpa)
+        : computeVPD(Number(log.airTempC), Number(log.relativeHumidity));
+      const isVpdInRange = vpd >= 0.8 && vpd <= 1.2;
+      totalVpd += vpd;
+      if (isVpdInRange) inRangeVpdCount++;
+      if (isCountingCurrentVpdStreak && isVpdInRange) {
+        currentVpdStreak++;
+      } else {
+        isCountingCurrentVpdStreak = false;
+      }
     });
     const avgTempC = climateLogs.length ? totalTempC / climateLogs.length : null;
     const avgRh = climateLogs.length ? totalRh / climateLogs.length : null;
     const avgVpd = climateLogs.length ? totalVpd / climateLogs.length : null;
+    const vpdScore = climateLogs.length ? (inRangeVpdCount / climateLogs.length) * 100 : null;
 
     // roomId -> name lookup, since IrrigationEvent stores roomId as a plain string, not a relation
     const roomNameById = new Map(rooms.map((r) => [r.id, r.name]));
@@ -91,7 +105,13 @@ export async function generateDailyBriefing(forceRefresh: boolean = false) {
 
       if (plant.dryBackLogs.length >= 2) {
         const [latestLog, previousLog] = plant.dryBackLogs;
-        const dryBackDiff = Number(latestLog.dryBackPercent) - Number(previousLog.dryBackPercent);
+        const latestDryBackPercent = Number(latestLog.dryBackPercent);
+        const dryBackSeverity = latestDryBackPercent > 80
+          ? "needs irrigation"
+          : latestDryBackPercent >= 60
+            ? "monitor"
+            : "fine";
+        const dryBackDiff = latestDryBackPercent - Number(previousLog.dryBackPercent);
         const trend = dryBackDiff > 5 ? "drying faster than typical"
           : dryBackDiff < -5 ? "drying slower than typical"
           : "stable";
@@ -102,11 +122,17 @@ export async function generateDailyBriefing(forceRefresh: boolean = false) {
           : "";
 
         plantDryBackTrends.push(
-          `${plant.name} (Batch: ${batchName}, Room: ${roomName}): ${trend} (latest dry-back: ${Number(latestLog.dryBackPercent).toFixed(1)}%${ecNote})`
+          `${plant.name} (Batch: ${batchName}, Room: ${roomName}): ${trend} (latest dry-back: ${latestDryBackPercent.toFixed(1)}%, severity: ${dryBackSeverity}${ecNote})`
         );
       } else if (plant.dryBackLogs.length === 1) {
+        const latestDryBackPercent = Number(plant.dryBackLogs[0].dryBackPercent);
+        const dryBackSeverity = latestDryBackPercent > 80
+          ? "needs irrigation"
+          : latestDryBackPercent >= 60
+            ? "monitor"
+            : "fine";
         plantDryBackTrends.push(
-          `${plant.name} (Batch: ${batchName}, Room: ${roomName}): Insufficient data for trend (latest dry-back: ${Number(plant.dryBackLogs[0].dryBackPercent).toFixed(1)}%)`
+          `${plant.name} (Batch: ${batchName}, Room: ${roomName}): Insufficient data for trend (latest dry-back: ${latestDryBackPercent.toFixed(1)}%, severity: ${dryBackSeverity})`
         );
       } else {
         plantDryBackTrends.push(
@@ -119,8 +145,18 @@ export async function generateDailyBriefing(forceRefresh: boolean = false) {
       ? irrigationEvents.map((ev) => {
           const roomName = roomNameById.get(ev.roomId) || ev.roomId;
           const ec = ev.ecLevel !== null && ev.ecLevel !== undefined ? Number(ev.ecLevel).toFixed(1) : "N/A";
-          const moisture = Number(ev.moisturePercentage).toFixed(0);
-          return `${roomName} (zone ${ev.zoneId}): EC ${ec}, moisture ${moisture}% (${new Date(ev.timestamp).toLocaleTimeString()})`;
+          const moistureValue = Number(ev.moisturePercentage);
+          const moisture = moistureValue.toFixed(0);
+          const flags: string[] = [];
+          if (ev.ecLevel !== null && ev.ecLevel !== undefined) {
+            const ecValue = Number(ev.ecLevel);
+            if (ecValue > 2.0) flags.push("EC high: dilute/flush");
+            if (ecValue < 0.8) flags.push("EC low: increase feed");
+          }
+          if (moistureValue > 80) flags.push("moisture wet: reduce frequency");
+          if (moistureValue < 40) flags.push("moisture dry: increase frequency");
+          const flagText = flags.length ? `; flags: ${flags.join(", ")}` : "; status: in range";
+          return `${roomName} (zone ${ev.zoneId}): EC ${ec}, moisture ${moisture}%${flagText} (${new Date(ev.timestamp).toLocaleTimeString()})`;
         }).join("\n        ")
       : "No irrigation events logged in the last 24 hours.";
 
@@ -128,14 +164,26 @@ export async function generateDailyBriefing(forceRefresh: boolean = false) {
       ? `Temp: ${avgTempC.toFixed(1)}°C (${((avgTempC * 9) / 5 + 32).toFixed(1)}°F), RH: ${avgRh?.toFixed(0)}%, VPD: ${avgVpd?.toFixed(2)} kPa`
       : "Environment data limited for the last 24 hours.";
 
+    const vpdHealthSummary = vpdScore !== null
+      ? `VPD score: ${vpdScore.toFixed(0)}% of ${climateLogs.length} climate readings in target range 0.8-1.2 kPa; current in-range streak: ${currentVpdStreak} consecutive reading${currentVpdStreak === 1 ? "" : "s"} from most recent.`
+      : "VPD score: no climate readings in the last 24 hours.";
+
+    const facilityHealthSummary = [
+      vpdHealthSummary,
+      `Dry-back severity thresholds: >80% needs irrigation, 60-80% monitor, <60% fine. Plant statuses: ${plantDryBackTrends.join(" | ")}`,
+      `Room-level irrigation health thresholds: EC >2.0 high/dilute or flush, EC <0.8 low/increase feed, moisture >80% wet/reduce frequency, moisture <40% dry/increase frequency. Events: ${irrigationSummary}`,
+    ].join("\n        ");
+
     const prompt = `
       You are an AI cultivation assistant. Analyze this facility's full telemetry and respond with ONLY valid JSON, no markdown fences, no preamble.
+      Use the facility health summary to populate attention and actions — this replaces what used to be separate dashboard cards for VPD score, dry-back severity, and room-level EC/moisture status. Do not omit rooms or plants flagged here.
 
       DATA:
       - Active Plants: ${totalActivePlants}
       - Environment (24h avg): ${envSummary}
       - Dry-back Trends: ${plantDryBackTrends.join("\n        ")}
       - Irrigation Events (24h): ${irrigationSummary}
+      - Facility Health Summary: ${facilityHealthSummary}
 
       Return JSON matching this exact shape:
       {
