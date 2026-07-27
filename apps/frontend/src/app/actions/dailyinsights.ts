@@ -170,8 +170,8 @@ export async function generateDailyBriefing(forceRefresh: boolean = false) {
 
     const facilityHealthSummary = [
       vpdHealthSummary,
-      `Dry-back severity thresholds: >80% needs irrigation, 60-80% monitor, <60% fine. Plant statuses: ${plantDryBackTrends.join(" | ")}`,
-      `Room-level irrigation health thresholds: EC >2.0 high/dilute or flush, EC <0.8 low/increase feed, moisture >80% wet/reduce frequency, moisture <40% dry/increase frequency. Events: ${irrigationSummary}`,
+      `Dry-back severity thresholds: >80% needs irrigation, 60-80% monitor, <60% fine.`,
+      `Room-level irrigation health thresholds: EC >2.0 high/dilute or flush, EC <0.8 low/increase feed, moisture >80% wet/reduce frequency, moisture <40% dry/increase frequency.`,
     ].join("\n        ");
 
     const prompt = `
