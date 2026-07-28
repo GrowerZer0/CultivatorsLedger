@@ -62,9 +62,7 @@ export default function DashboardPage() {
   
 
   // AI Briefing state
-  const [briefing, setBriefing] = useState<string | null>(null);
   const [briefingLoading, setBriefingLoading] = useState(false);
-  const [briefingError, setBriefingError] = useState<string | null>(null);
   const [lastBriefingTime, setLastBriefingTime] = useState<string>('Not yet generated');
   const [briefingSnapshot, setBriefingSnapshot] = useState<string | null>(null);
   const [briefingAttention, setBriefingAttention] = useState<string[]>([]);
@@ -135,14 +133,37 @@ export default function DashboardPage() {
   }, [loadData]);
 
   // --- AI BRIEFING ---
-  const loadBriefing = useCallback(async (force = false) => {
-    // ... (unchanged)
-  }, []);
+const loadBriefing = useCallback(async (force = false) => {
+  if (!force && hasFetchedBriefingInitially.current) return;
 
-  // Trigger initial briefing fetch once dashboard data finishes loading
-  useEffect(() => {
-    // ... (unchanged)
-  }, [loading, dbEnvironmentReadings.length, dbDryBackLogs.length, loadBriefing]);
+  setBriefingLoading(true);
+
+  try {
+    const result = await generateDailyBriefing(force);
+    if (result.success) {
+      setBriefingSnapshot(result.snapshot || null);
+      setBriefingAttention(result.attention || []);
+      setBriefingActions(result.actions || []);
+      setLastBriefingTime(
+        new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      );
+      hasFetchedBriefingInitially.current = true;
+    } else {
+      setLastBriefingTime('Failed');
+    }
+  } catch (err) {
+    console.error('Failed to load briefing:', err);
+    setLastBriefingTime('Failed');
+  } finally {
+    setBriefingLoading(false);
+  }
+}, []);
+
+useEffect(() => {
+  if (!loading && !hasFetchedBriefingInitially.current) {
+    loadBriefing(false);
+  }
+}, [loading, loadBriefing]);
 
   // --- COMPUTED VALUES (must be before any early return) ---
   const dryBackChartData = dbDryBackLogs.map((log) => ({
