@@ -61,55 +61,13 @@ export function AppShell({ children, unitSystem = "imperial" }: AppShellProps) {
     ? `${Number(env.vpd).toFixed(1)} kPa`
     : "--";
 
-  // --------------------------------------------
-  // Plant & Tent Navigation Bar
-  // --------------------------------------------
-  interface RoomNavProps {
-    rooms: { id: string; name: string }[];
-    selectedRoomId: string | null;
-    onSelectRoom: (roomId: string | null) => void;
-  }
-  
-  function RoomNav({ rooms, selectedRoomId, onSelectRoom }: RoomNavProps) {
-    return (
-      <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
-        <span className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider pr-1">
-          Location:
-        </span>
-        <button
-          onClick={() => onSelectRoom(null)}
-          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-            selectedRoomId === null
-              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/20'
-              : 'bg-gray-100 dark:bg-zinc-900 text-gray-600 dark:text-zinc-400 border border-gray-200 dark:border-zinc-800 hover:text-gray-900 dark:hover:text-white'
-          }`}
-        >
-          All Rooms
-        </button>
-        {rooms.map((room) => (
-          <button
-            key={room.id}
-            onClick={() => onSelectRoom(room.id)}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-              selectedRoomId === room.id
-                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/20'
-                : 'bg-gray-100 dark:bg-zinc-900 text-gray-600 dark:text-zinc-400 border border-gray-200 dark:border-zinc-800 hover:text-gray-900 dark:hover:text-white'
-            }`}
-          >
-            {room.name}
-          </button>
-        ))}
-      </div>
-    );
-  }
-
   return (
     <main className="min-h-screen bg-[#f6f8f4] dark:bg-zinc-950 text-graphite dark:text-zinc-100 transition-colors duration-200">
       {/* Header */}
       <header className="border-b border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 transition-colors duration-200 sticky top-0 z-40">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           {/* Brand Logo (left) */}
-          <Link href="/" className="flex items-center gap-3 group">
+          <Link href="/dashboard" className="flex items-center gap-3 group">
             <div className="grid size-10 place-items-center rounded-md bg-canopy text-white">
               <Leaf aria-hidden="true" className="size-5" />
             </div>
