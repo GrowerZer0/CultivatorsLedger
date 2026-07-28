@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
-  Upload,
   Layers,
 } from 'lucide-react';
 import {
@@ -21,7 +20,6 @@ import {
   type DryBackLog,
   calculateDryBack,
 } from '@/lib/cultivation';
-import Link from 'next/link';
 
 // Modular Server Actions
 import {
@@ -180,13 +178,6 @@ return (
             isRefreshing={briefingLoading}
             onRefresh={() => loadBriefing(true)}
           />
-        </div>
-
-        {/* Nav to Check-In Page */}
-        <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl">
-          <Link href="/" className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-950/30 transition-all">
-            Log a Reading
-          </Link>
         </div>
 
         {/* VPD Chart */}

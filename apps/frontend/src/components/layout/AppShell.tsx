@@ -165,88 +165,12 @@ export function AppShell({ children, unitSystem = "imperial" }: AppShellProps) {
             </div>
           </Link>
 
-          {/* Unified Navigation: Location, Batch, Plant */}
-          <div className="flex flex-col gap-3 pb-2 border-b border-gray-200 dark:border-zinc-800">
-            {/* Top Level: Location / Room Selector */}
-            <RoomNav rooms={rooms} selectedRoomId={selectedRoomId} onSelectRoom={setSelectedRoomId} />
-
-            {/* Middle Level: Batch Selector */}
-            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
-              <span className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider pr-1">
-                Batch:
-              </span>
-              <select
-                value={selectedBatchId || ''}
-                onChange={(e) => {
-                  setSelectedBatchId(e.target.value || null);
-                  setSelectedPlantId(null); // Reset plant selection when batch changes
-                  setContainerGallons(plants.find((p) => p.batchId === e.target.value)?.containerGallons || 5); // Update container gallons
-                }}
-                className="bg-gray-100 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg px-3 py-1.5 text-xs font-bold text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white outline-none focus:border-emerald-500 transition-all"
-              >
-                <option value="">All Batches</option>
-                {batches
-                  .filter((b) => !selectedRoomId || b.roomId === selectedRoomId)
-                  .map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name} ({b.cultivar})
-                    </option>
-                  ))}
-              </select>
-              <button
-                onClick={() => router.push('/settings')}
-                className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-full transition-colors flex items-center gap-1"
-              >
-                Manage Facility
-              </button>
-            </div>
-
-            {/* Bottom Level: Plant Selector for selected Batch */}
-            {selectedBatchId && plants.filter(p => (!selectedBatchId || p.batchId === selectedBatchId) && (!selectedRoomId || p.roomId === selectedRoomId)).length > 0 && (
-              <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
-                <span className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider pr-1">
-                  Plant:
-                </span>
-                {plants
-                  .filter((plant) => (!selectedBatchId || plant.batchId === selectedBatchId) && (!selectedRoomId || plant.roomId === selectedRoomId))
-                  .map((plant) => (
-                    <button
-                      key={plant.id}
-                      onClick={() => {
-                        setSelectedPlantId(plant.id);
-                        setContainerGallons(plant.containerGallons || 5);
-                      }}
-                      className={`px-3 py-1 text-xs font-semibold rounded-full transition-all flex items-center gap-1.5 ${
-                        selectedPlantId === plant.id
-                          ? 'bg-zinc-800 text-emerald-400 border border-emerald-500/30'
-                          : 'bg-transparent text-gray-500 dark:text-zinc-400 border border-gray-200 dark:border-zinc-800 hover:text-gray-800 dark:hover:text-zinc-200'
-                      }`}
-                    >
-                      <span>{plant.name}</span>
-                      {plant.strain && (
-                        <span className="text-[10px] px-1.5 py-0.2 rounded border border-zinc-700 bg-zinc-900/60 opacity-80">
-                          {plant.strain}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-              </div>
-            )}
-            {/* Display batch stats only if a batch is selected */}
-            {selectedBatchId && (
-              <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-zinc-400 pt-2 border-t border-gray-200 dark:border-zinc-800 mt-2">
-                <span>
-                  Day {getBatchDaysSinceStart(selectedBatchId)}
-                </span>
-                <span>
-                  {getBatchLogCount(selectedBatchId)} logs
-                </span>
-                <span className="text-emerald-400 font-mono">
-                  Avg Dry-Back: {getBatchAverage(selectedBatchId)}
-                </span>
-              </div>
-            )}
-          </div>
+        {/* Nav to Check-In Page */}
+        <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl">
+          <Link href="/" className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-950/30 transition-all">
+            Log a Reading
+          </Link>
+        </div>
 
           {/* Telemetry Header Pill (center) */}
           <div className="flex items-center gap-2 sm:gap-4 rounded-full border border-[#d9e2dc] dark:border-zinc-800 bg-mist/60 dark:bg-zinc-800/60 px-3 py-1.5 text-xs font-medium">
