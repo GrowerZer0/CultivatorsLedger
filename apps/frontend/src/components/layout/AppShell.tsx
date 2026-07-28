@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Leaf, Menu, X, Gauge, Weight, Droplets, Settings, LogOut, ThermometerSun, Droplet, Wind } from "lucide-react";
+import { Leaf, Menu, X, Gauge, Weight, Droplets, Settings, LogOut, ThermometerSun, Droplet, Wind, ChevronDown } from "lucide-react";
 import type { ReactNode } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import Link from "next/link";
@@ -31,6 +31,7 @@ export function AppShell({ children, unitSystem = "imperial" }: AppShellProps) {
   const router = useRouter(); 
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [settingsExpanded, setSettingsExpanded] = useState(false);
   const { data } = useTelemetry();
 
   const handleLogout = async () => {
@@ -159,14 +160,49 @@ export function AppShell({ children, unitSystem = "imperial" }: AppShellProps) {
               <ThemeToggle />
             </div>
 
-            <Link
-              href="/settings"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-3 rounded-md px-4 py-3 text-base font-medium text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800/50"
+            {/* Settings Disclosure */}
+            <button
+              onClick={() => setSettingsExpanded(!settingsExpanded)}
+              className="flex items-center justify-between w-full rounded-md px-4 py-3 text-base font-medium text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800/50"
             >
-              <Settings className="size-5 text-clay dark:text-orange-400" />
-              <span>Settings</span>
-            </Link>
+              <div className="flex items-center gap-3">
+                <Settings className="size-5 text-clay dark:text-orange-400" />
+                <span>Settings</span>
+              </div>
+              <ChevronDown className={`size-5 transition-transform ${settingsExpanded ? 'rotate-180' : ''}`} />
+            </button>
+            {settingsExpanded && (
+              <div className="pl-12 mt-2 space-y-1">
+                <Link
+                  href="/settings?tab=hardware"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 rounded-md px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800/50"
+                >
+                  <span>Hardware</span>
+                </Link>
+                <Link
+                  href="/settings?tab=nutrients"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 rounded-md px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800/50"
+                >
+                  <span>Nutrient Feed Library</span>
+                </Link>
+                <Link
+                  href="/settings?tab=facility"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 rounded-md px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800/50"
+                >
+                  <span>Facility Management</span>
+                </Link>
+                <Link
+                  href="/settings?tab=system"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 rounded-md px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800/50"
+                >
+                  <span>System</span>
+                </Link>
+              </div>
+            )}
 
             <button
               onClick={handleLogout}
