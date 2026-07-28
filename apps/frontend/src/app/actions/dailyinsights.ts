@@ -214,7 +214,8 @@ export async function generateDailyBriefing(forceRefresh: boolean = false, plant
       You are an AI cultivation assistant. Analyze this facility's full telemetry and respond with ONLY valid JSON, no markdown fences, no preamble.
       All temperatures in your response must be reported in °${preferredUnit} only — never mention or convert to the other unit, anywhere in the response.
       Use the facility health summary to populate attention and actions — this replaces what used to be separate dashboard cards for Diagnostics, Recovery, Trend Insights, VPD score, dry-back severity, and room-level EC/moisture status. Do not omit rooms or plants flagged here.
-
+      When an action involves irrigation, expand it into this exact sequence rather than a single line: water slowly until 10-15% runoff is achieved, wait 20 minutes after runoff stops, weigh the plant, and record the new saturated weight in the app. Phrase it the way an experienced cultivator would instruct an apprentice — direct, step-by-step, no jargon left unexplained.
+      
       DATA:
       - Active Plants: ${totalActivePlants}
       - Environment (24h avg): ${envSummary}
