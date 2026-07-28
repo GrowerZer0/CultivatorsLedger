@@ -59,6 +59,7 @@ import {
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { supabase } from '@/lib/supabase';
 import { exportAllBatches } from '@/app/actions/batch-mgmt';
+import { getSystemSettings, updateTempUnitPreference } from "@/app/actions/system-settings";
 
 type UserProfile = any;
 type Room = { id: string; name: string };
@@ -102,7 +103,7 @@ export default function SettingsPage() {
   const [newBatchRoom, setNewBatchRoom] = useState<string | null>(null); // Use null for no specific room
   const [batches, setBatches] = useState<Batch[]>([]);
   const [editingBatch, setEditingBatch] = useState<Batch | null>(null);
-
+  const [preferredTempUnit, setPreferredTempUnit] = useState<"C" | "F">("C");
 
   // Plant management states
   const [plants, setPlants] = useState<Plant[]>([]);
@@ -147,6 +148,10 @@ export default function SettingsPage() {
       if (profile) {
         if (profile.activeFeedLine) setActiveFeedLine(profile.activeFeedLine);
       }
+
+    const settings = await getSystemSettings();
+    setPreferredTempUnit(settings.preferredTempUnit === "F" ? "F" : "C");
+
     } catch (err) {
       console.error("Failed to sync profile configuration maps:", err);
     } finally {
@@ -845,13 +850,31 @@ export default function SettingsPage() {
                 </div>
               </div>
               <div className="flex items-center justify-between border-b border-slate-200 dark:border-zinc-800 pb-3">
+              <div>
+                <h4 className="text-sm font-bold text-gray-900 dark:text-white">Theme</h4>
+                <p className="text-xs text-zinc-500">Switch between light and dark mode.</p>
+              </div>
+              <ThemeToggle />
+            </div>
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-zinc-800 pb-3">
   <div>
-    <h4 className="text-sm font-bold text-gray-900 dark:text-white">Theme</h4>
-    <p className="text-xs text-zinc-500">Switch between light and dark mode.</p>
+    <h4 className="text-sm font-bold text-gray-900 dark:text-white">Temperature Unit</h4>
+    <p className="text-xs text-zinc-500">Used for the AI briefing and displayed readings.</p>
   </div>
-  <ThemeToggle />
+  <select
+    value={preferredTempUnit}
+    onChange={async (e) => {
+      const unit = e.target.value as "C" | "F";
+      setPreferredTempUnit(unit);
+      await updateTempUnitPreference(unit);
+    }}
+    className="bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 transition-all"
+  >
+    <option value="F">Fahrenheit (°F)</option>
+    <option value="C">Celsius (°C)</option>
+  </select>
 </div>
-  <div>
+              <div>
               <button
             onClick={handleExportAll}
             className="inline-flex items-center gap-2 rounded-xl border border-gray-300 dark:border-zinc-700 hover:border-zinc-500 px-4 py-2 text-xs font-bold text-gray-700 dark:text-zinc-300 transition-all cursor-pointer"

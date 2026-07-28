@@ -35,7 +35,7 @@ export async function generateDailyBriefing(forceRefresh: boolean = false) {
     const now = new Date();
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-    const [activePlants, climateLogs, rooms, irrigationEvents] = await Promise.all([
+    const [activePlants, climateLogs, rooms, irrigationEvents, systemSettings] = await Promise.all([
       db.plant.findMany({
         where: { userId, batch: { isActive: true } },
         include: {
@@ -57,7 +57,15 @@ export async function generateDailyBriefing(forceRefresh: boolean = false) {
         where: { userId, timestamp: { gte: twentyFourHoursAgo } },
         orderBy: { timestamp: "desc" },
       }),
+      db.systemSetting.findFirst({ where: { userId } }),
     ]);
+
+    const preferredUnit = systemSettings?.preferredTempUnit === "F" ? "F" : "C";
+
+    const formatTemp = (tempC: number): string =>
+      preferredUnit === "F"
+        ? `${((tempC * 9) / 5 + 32).toFixed(1)}°F`
+        : `${tempC.toFixed(1)}°C`;
 
     if (!activePlants.length) {
       return {
@@ -160,9 +168,9 @@ export async function generateDailyBriefing(forceRefresh: boolean = false) {
         }).join("\n        ")
       : "No irrigation events logged in the last 24 hours.";
 
-    const envSummary = avgTempC !== null
-      ? `Temp: ${avgTempC.toFixed(1)}°C (${((avgTempC * 9) / 5 + 32).toFixed(1)}°F), RH: ${avgRh?.toFixed(0)}%, VPD: ${avgVpd?.toFixed(2)} kPa`
-      : "Environment data limited for the last 24 hours.";
+const envSummary = avgTempC !== null
+  ? `Temp: ${formatTemp(avgTempC)}, RH: ${avgRh?.toFixed(0)}%, VPD: ${avgVpd?.toFixed(2)} kPa`
+  : "Environment data limited for the last 24 hours.";
 
     const vpdHealthSummary = vpdScore !== null
       ? `VPD score: ${vpdScore.toFixed(0)}% of ${climateLogs.length} climate readings in target range 0.8-1.2 kPa; current in-range streak: ${currentVpdStreak} consecutive reading${currentVpdStreak === 1 ? "" : "s"} from most recent.`
@@ -176,6 +184,7 @@ export async function generateDailyBriefing(forceRefresh: boolean = false) {
 
     const prompt = `
       You are an AI cultivation assistant. Analyze this facility's full telemetry and respond with ONLY valid JSON, no markdown fences, no preamble.
+      All temperatures in your response must be reported in °${preferredUnit} only — never mention or convert to the other unit, anywhere in the response.
       Use the facility health summary to populate attention and actions — this replaces what used to be separate dashboard cards for VPD score, dry-back severity, and room-level EC/moisture status. Do not omit rooms or plants flagged here.
 
       DATA:
@@ -187,9 +196,10 @@ export async function generateDailyBriefing(forceRefresh: boolean = false) {
 
       Return JSON matching this exact shape:
       {
-        "snapshot": "one paragraph, current facility state only",
-        "attention": ["specific plant/room callouts with abnormal readings, empty array if none"],
         "actions": ["imperative, specific action items the grower should take today, e.g. 'Irrigate Room 2', 'Flush Batch 4, runoff EC elevated'. If nothing needed, a single item: 'No action required — hold current schedule.'"]
+        "attention": ["specific plant/room callouts with abnormal readings, empty array if none"],
+        "snapshot": "one paragraph, current facility state only",
+
       }
     `;
 
