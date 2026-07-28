@@ -851,7 +851,14 @@ export default function SettingsPage() {
   </div>
   <ThemeToggle />
 </div>
-
+  <div>
+              <button
+            onClick={handleExportAll}
+            className="inline-flex items-center gap-2 rounded-xl border border-gray-300 dark:border-zinc-700 hover:border-zinc-500 px-4 py-2 text-xs font-bold text-gray-700 dark:text-zinc-300 transition-all cursor-pointer"
+          >
+            <Download size={16} /> Export All
+          </button>
+  </div>
 <div className="flex items-center justify-between pt-3">
   <div>
     <h4 className="text-sm font-bold text-gray-900 dark:text-white">Account</h4>
@@ -864,14 +871,6 @@ export default function SettingsPage() {
     Logout
   </button>
 </div>
-  <div>
-              <button
-            onClick={handleExportAll}
-            className="inline-flex items-center gap-2 rounded-xl border border-gray-300 dark:border-zinc-700 hover:border-zinc-500 px-4 py-2 text-xs font-bold text-gray-700 dark:text-zinc-300 transition-all cursor-pointer"
-          >
-            <Download size={16} /> Export All
-          </button>
-  </div>
             </SectionPanel>
           </div>
         )}

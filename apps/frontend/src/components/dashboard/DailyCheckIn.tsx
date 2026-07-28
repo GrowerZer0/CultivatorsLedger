@@ -139,28 +139,33 @@ export function DailyCheckIn({
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [csvReadingTime, setCsvReadingTime] = useState<string | null>(null);
 
   // CSV Autofill Handler for Telemetry
-const handleCsvSuccess = (parsedData: any[]) => {
-  if (parsedData.length > 0) {
-    const latest = parsedData[parsedData.length - 1];
-    let imported = false;
+  const handleCsvSuccess = (parsedData: any[]) => {
+    if (parsedData.length > 0) {
+      const latest = parsedData[parsedData.length - 1];
+      let imported = false;
 
-    const tempVal = latest.temp ?? latest.temperature;
-    const rhVal = latest.rh ?? latest.humidity;
+      const tempVal = latest.temp ?? latest.temperature;
+      const rhVal = latest.rh ?? latest.humidity;
 
-    if (tempVal !== undefined && tempVal !== null && tempVal !== "") {
-      setTemp(String(tempVal));
-      imported = true;
+      if (tempVal !== undefined && tempVal !== null && tempVal !== "") {
+        setTemp(String(tempVal));
+        imported = true;
+      }
+      if (rhVal !== undefined && rhVal !== null && rhVal !== "") {
+        setRh(String(rhVal));
+        imported = true;
+      }
+
+      if (latest.timestamp) {
+      setCsvReadingTime(latest.timestamp);
+      }
+
+      if (imported) setIsCsvSynced(true);
     }
-    if (rhVal !== undefined && rhVal !== null && rhVal !== "") {
-      setRh(String(rhVal));
-      imported = true;
-    }
-
-    if (imported) setIsCsvSynced(true);
-  }
-};
+  };
 
 const handleSubmit = (e: React.FormEvent) => {
   e.preventDefault();
@@ -314,7 +319,7 @@ const handleSubmit = (e: React.FormEvent) => {
               {isCsvSynced && (
                 <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold border border-emerald-500/20 animate-fade-in">
                   <Sparkles className="size-3" />
-                  CSV Synced
+                  {csvReadingTime ? `Synced — ${csvReadingTime}` : "CSV Synced"}
                 </span>
               )}
             </div>

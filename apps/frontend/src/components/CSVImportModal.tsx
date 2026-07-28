@@ -37,62 +37,101 @@ export function CSVImportModal({
     setFile(selectedFile);
   };
 
+  const EXCLUDE_KEYWORDS = ["outside", "outdoor", "ambient", "external"];
+  const TIMESTAMP_KEYWORDS = ["timestamp", "date", "time"];
+  const TEMP_KEYWORDS = ["temp"];
+  const HUMIDITY_KEYWORDS = ["humid", "rh"];
+
   const handleProcessCSV = async () => {
-    if (!file) return;
+  if (!file) return;
 
-    setIsProcessing(true);
-    setError(null);
+  setIsProcessing(true);
+  setError(null);
 
-    try {
-      const text = await file.text();
-      const lines = text
-        .split(/\r\n|\n/)
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0);
+  try {
+    const text = await file.text();
+    const lines = text
+      .split(/\r\n|\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
 
-      if (lines.length < 2) {
-        throw new Error("CSV file must contain a header row and at least one data row.");
-      }
-
-      // Extract and normalize headers
-      const rawHeaders = lines[0].split(",").map((h) => h.trim());
-      const headers = rawHeaders.map((h) =>
-        h.toLowerCase().replace(/[^a-z0-9]/g, "")
-      );
-
-      // Parse data rows into key-value objects
-      const parsedRows: Record<string, string>[] = [];
-
-      for (let i = 1; i < lines.length; i++) {
-        // Handle basic comma separation
-        const values = lines[i].split(",").map((v) => v.trim());
-        const rowData: Record<string, string> = {};
-
-        headers.forEach((headerKey, index) => {
-          const val = values[index] ?? "";
-          
-          // Map common sensor CSV column names
-          if (["temp", "temperature", "tempf"].includes(headerKey)) {
-            rowData["temp"] = val;
-          } else if (["rh", "humidity", "relativehumidity"].includes(headerKey)) {
-            rowData["rh"] = val;
-          } else {
-            rowData[rawHeaders[index]] = val;
-          }
-        });
-
-        parsedRows.push(rowData);
-      }
-
-      onImportSuccess(parsedRows);
-      setIsProcessing(false);
-      setFile(null);
-      onClose();
-    } catch (err: any) {
-      setError(err?.message || "Failed to process the CSV file. Please check formatting.");
-      setIsProcessing(false);
+    if (lines.length < 2) {
+      throw new Error("CSV file must contain a header row and at least one data row.");
     }
-  };
+
+    const rawHeaders = lines[0].split(",").map((h) => h.trim());
+    const normalizedHeaders = rawHeaders.map((h) =>
+      h.toLowerCase().replace(/[^a-z0-9]/g, "")
+    );
+
+    // Determine column mapping ONCE from the header row, not per-cell per-row.
+    let tempColIndex = -1;
+    let rhColIndex = -1;
+    let timestampColIndex = -1;
+
+    normalizedHeaders.forEach((headerKey, index) => {
+      const isExcluded = EXCLUDE_KEYWORDS.some((k) => headerKey.includes(k));
+      if (isExcluded) return;
+
+      if (tempColIndex === -1 && TEMP_KEYWORDS.some((k) => headerKey.includes(k))) {
+        tempColIndex = index;
+      }
+      if (rhColIndex === -1 && HUMIDITY_KEYWORDS.some((k) => headerKey.includes(k))) {
+        rhColIndex = index;
+      }
+      if (timestampColIndex === -1 && TIMESTAMP_KEYWORDS.some((k) => headerKey.includes(k))) {
+        timestampColIndex = index;
+      }
+    });
+
+    if (tempColIndex === -1 && rhColIndex === -1) {
+      throw new Error(
+        "Couldn't find temperature or humidity columns in this file. Check that it's an export from a supported sensor (Govee, SensorPush, AC Infinity, VIVOSUN)."
+      );
+    }
+
+    // Heuristic unit normalization: growroom temps realistically run 50-100°F 
+    // or 10-38°C. A raw value under 45 is almost certainly Celsius from a 
+    // sensor set to metric — convert so downstream code always gets °F.
+    const normalizeTemp = (raw: number): number => {
+      if (raw < 45) return Math.round(((raw * 9) / 5 + 32) * 10) / 10;
+      return raw;
+    };
+
+    const parsedRows: Record<string, string>[] = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(",").map((v) => v.trim());
+      const rowData: Record<string, string> = {};
+
+      // Keep all original columns too, in case a future feature wants them
+      rawHeaders.forEach((rawHeader, index) => {
+        rowData[rawHeader] = values[index] ?? "";
+      });
+
+      if (tempColIndex !== -1 && values[tempColIndex] !== undefined) {
+        const rawTemp = parseFloat(values[tempColIndex]);
+        if (!isNaN(rawTemp)) rowData["temp"] = String(normalizeTemp(rawTemp));
+      }
+      if (rhColIndex !== -1 && values[rhColIndex] !== undefined) {
+        rowData["rh"] = values[rhColIndex];
+      }
+      if (timestampColIndex !== -1 && values[timestampColIndex] !== undefined) {
+        rowData["timestamp"] = values[timestampColIndex];
+      }
+
+      parsedRows.push(rowData);
+    }
+
+    onImportSuccess(parsedRows);
+    setIsProcessing(false);
+    setFile(null);
+    onClose();
+  } catch (err: any) {
+    setError(err?.message || "Failed to process the CSV file. Please check formatting.");
+    setIsProcessing(false);
+  }
+};
 
   const handleModalClose = () => {
     setFile(null);
@@ -114,7 +153,7 @@ export function CSVImportModal({
                 Import Environment Telemetry
               </h3>
               <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                Upload sensor CSV exports (Govee, SensorPush, AC Infinity)
+                Upload sensor CSV exports 
               </p>
             </div>
           </div>
