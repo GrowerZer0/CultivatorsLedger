@@ -145,7 +145,7 @@ model IrrigationEvent {
   roomId             String         @map("room_id") @db.VarChar(50)
   zoneId             String         @map("zone_id") @db.VarChar(50)
   sensorMac          String?        @map("sensor_mac") @db.VarChar(17)
-  moisturePercentage Decimal        @map("moisture_percentage") @db.Decimal(5, 2)
+  moisturePercentage Decimal?         @map("moisture_percentage") @db.Decimal(5, 2)
   ecLevel            Decimal?       @map("ec_level") @db.Decimal(3, 1)
   isManualEntry      Boolean        @default(false) @map("is_manual_entry")
   userId             String         @map("user_id")
@@ -156,6 +156,7 @@ model IrrigationEvent {
   plantId            String?        @map("plant_id")
   plant              Plant?         @relation(fields: [plantId], references: [id], onDelete: SetNull)
   currentWeightLbs   Decimal?       @map("current_weight_lbs") @db.Decimal(5, 2)
+  notes              String?
 
   @@index([roomId, timestamp])
   @@map("irrigation_events")

@@ -171,33 +171,14 @@ const handleSubmit = (e: React.FormEvent) => {
   e.preventDefault();
   setFeedback(null);
 
-  if (roomPlants.length === 0) {
-    setFeedback({
-      type: "error",
-      message: "No active plants available in the selected room.",
-    });
-    return;
-  }
-
-  const hasValidWeights = roomPlants.some((plant) => {
-    const st = getPlantState(plant.id);
-    return typeof st.weight === "number" && st.weight > 0;
-  });
-
-  if (!hasValidWeights) {
-    setFeedback({
-      type: "error",
-      message: "Please enter a valid weight (> 0) for at least one plant.",
-    });
-    return;
-  }
-
   startTransition(async () => {
     try {
       // 1. Save room-level climate telemetry, if entered
       const tempF = parseFloat(temp);
       const rhVal = parseFloat(rh);
-      if (!isNaN(tempF) && !isNaN(rhVal)) {
+      const hasClimate = !isNaN(tempF) && !isNaN(rhVal);
+
+      if (hasClimate) {
         const tempC = ((tempF - 32) * 5) / 9;
         await addManualClimateAndWeight({
           temperature: tempC,
@@ -207,29 +188,48 @@ const handleSubmit = (e: React.FormEvent) => {
         });
       }
 
-      // 2. Save each plant's check-in log
+      // 2. Save plant check-in logs ONLY for plants that actually have data entered
+      let plantLogsRecorded = 0;
+
       for (const plant of roomPlants) {
         const st = getPlantState(plant.id);
-        if (typeof st.weight === "number" && st.weight > 0) {
-          const payload: DailyCheckInFormData = {
-            plantId: plant.id,
-            weight: st.weight,
-            watered: st.watered,
-            fed: st.fed,
-            trainingEvent: st.trainingEvent,
-            notes: st.notes.trim() || undefined,
-          };
+        
+        // Check if user filled out ANY plant-specific field
+        const hasWeight = typeof st.weight === "number" && st.weight > 0;
+        const hasNotes = Boolean(st.notes?.trim());
+        const hasActions = st.watered || st.fed || st.trainingEvent;
 
-          const result = await recordDailyCheckInLog(payload);
-          if (!result.success) {
-            throw new Error(result.error || `Failed log for ${plant.name}`);
-          }
+        // Skip plants that were left untouched
+        if (!hasWeight && !hasNotes && !hasActions) continue;
+
+        const payload: DailyCheckInFormData = {
+          plantId: plant.id,
+          weight: st.weight === "" || st.weight === undefined ? undefined: st.weight,
+          watered: st.watered,
+          fed: st.fed,
+          trainingEvent: st.trainingEvent,
+          notes: st.notes.trim() || undefined,
+        };
+
+        const result = await recordDailyCheckInLog(payload);
+        if (!result.success) {
+          throw new Error(result.error || `Failed log for ${plant.name}`);
         }
+        plantLogsRecorded++;
+      }
+
+      // Safeguard: Ensure at least climate data OR at least one plant entry was submitted
+      if (!hasClimate && plantLogsRecorded === 0) {
+        setFeedback({
+          type: "error",
+          message: "Please enter room climate metrics or fill out at least one plant entry.",
+        });
+        return;
       }
 
       setFeedback({
         type: "success",
-        message: "Batch check-in logged successfully! Redirecting...",
+        message: "Check-in logged successfully! Redirecting...",
       });
 
       setPlantStates({});
