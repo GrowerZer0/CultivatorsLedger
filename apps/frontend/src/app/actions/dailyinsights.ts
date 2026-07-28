@@ -196,9 +196,9 @@ const envSummary = avgTempC !== null
 
       Return JSON matching this exact shape:
       {
-        "actions": ["imperative, specific action items the grower should take today, e.g. 'Irrigate Room 2', 'Flush Batch 4, runoff EC elevated'. If nothing needed, a single item: 'No action required — hold current schedule.'"]
+        "actions": ["imperative, specific action items the grower should take today, e.g. 'Irrigate Room 2', 'Flush Batch 4, runoff EC elevated'. If nothing needed, a single item: 'No action required — hold current schedule.'"],
         "attention": ["specific plant/room callouts with abnormal readings, empty array if none"],
-        "snapshot": "one paragraph, current facility state only",
+        "snapshot": "one paragraph, current facility state only"
 
       }
     `;

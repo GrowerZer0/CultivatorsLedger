@@ -33,32 +33,32 @@ export function MorningBrief({ snapshot, attention, actions, lastBriefingTime, i
 
       {isRefreshing ? (
         <p className="text-sm text-gray-500 dark:text-zinc-400 animate-pulse">Generating briefing...</p>
-      ) : snapshot ? (
-        <div className="space-y-4">
-          <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-xl border border-emerald-200 dark:border-emerald-900/40">
-            <h3 className="text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Facility Snapshot</h3>
-            <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">{snapshot}</p>
+        ) : snapshot ? (
+          <div className="space-y-4">
+            {actions.length > 0 && (
+              <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-900/40">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Actions To Take Today</h3>
+                <ol className="text-sm text-gray-900 dark:text-white list-decimal pl-5 space-y-1">
+                  {actions.map((item, i) => <li key={i}>{item}</li>)}
+                </ol>
+              </div>
+            )}
+
+            {attention.length > 0 && (
+              <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-xl border border-amber-200 dark:border-amber-900/40">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Attention Needed</h3>
+                <ul className="text-sm text-gray-900 dark:text-white list-disc pl-5 space-y-1">
+                  {attention.map((item, i) => <li key={i}>{item}</li>)}
+                </ul>
+              </div>
+            )}
+
+            <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-xl border border-emerald-200 dark:border-emerald-900/40">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Facility Snapshot</h3>
+              <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">{snapshot}</p>
+            </div>
           </div>
-
-          {attention.length > 0 && (
-            <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-xl border border-amber-200 dark:border-amber-900/40">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Attention Needed</h3>
-              <ul className="text-sm text-gray-900 dark:text-white list-disc pl-5 space-y-1">
-                {attention.map((item, i) => <li key={i}>{item}</li>)}
-              </ul>
-            </div>
-          )}
-
-          {actions.length > 0 && (
-            <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-900/40">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Actions To Take Today</h3>
-              <ol className="text-sm text-gray-900 dark:text-white list-decimal pl-5 space-y-1">
-                {actions.map((item, i) => <li key={i}>{item}</li>)}
-              </ol>
-            </div>
-          )}
-        </div>
-      ) : (
+        ) : (
         <p className="text-sm text-gray-500 dark:text-zinc-400">No briefing available. Click refresh to generate.</p>
       )}
     </div>
