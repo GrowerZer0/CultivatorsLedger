@@ -39,7 +39,7 @@ export function AppShell({ children, unitSystem = "imperial" }: AppShellProps) {
   };
 
   const tabs = [
-    { name: "Environment", href: "/", icon: Gauge, color: "text-canopy dark:text-emerald-400" },
+    { name: "Dashboard", href: "/", icon: Gauge, color: "text-canopy dark:text-emerald-400" },
     { name: "Nutrients", href: "/nutrients", icon: Droplets, color: "text-canopy dark:text-emerald-400" },
   ];
 
