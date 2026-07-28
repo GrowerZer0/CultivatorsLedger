@@ -13,6 +13,8 @@ import {
   XAxis,
   YAxis,
   ReferenceArea,
+  LineChart,
+  Line
 } from 'recharts';
 import { AppShell } from '@/components/layout/AppShell';
 import {
@@ -25,9 +27,23 @@ import {
 import {
   getDashboardData,
 } from '@/app/actions/loggingreadings';
+
 import { generateDailyBriefing } from '@/app/actions/dailyinsights';
 import { useTelemetry } from '@/lib/telemetry-context';
 import { MorningBrief } from '@/components/MorningBrief';
+
+// Define Plant type more accurately for local use
+type Plant = {
+  id: string;
+  name: string;
+  strain?: string | null;
+  batchId?: string | null;
+  roomId?: string | null;
+  wetWeight?: number | null;
+  dryTarget?: number | null;
+  stage?: string | null; // Assuming stage exists for unit logic
+  containerGallons?: number | null; // Assuming containerGallons also exists on Plant
+};
 
 export default function DashboardPage() {
   const { setData } = useTelemetry();
@@ -37,6 +53,12 @@ export default function DashboardPage() {
   const [dbDryBackLogs, setDbDryBackLogs] = useState<DryBackLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [latestIrrigation, setLatestIrrigation] = useState<any>(null);
+
+
+  // Plants State
+  const [plants, setPlants] = useState<Plant[]>([]); // Use the defined Plant type
+  const [selectedPlantId, setSelectedPlantId] = useState<string | null>(null);
+  
 
   // AI Briefing state
   const [briefing, setBriefing] = useState<string | null>(null);
@@ -164,6 +186,24 @@ export default function DashboardPage() {
     );
   }
 
+  // Formatted chart dataset
+  const dryBackChartData = dbDryBackLogs.map((log) => ({
+    time: new Date(log.loggedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+    weight: log.weight,
+    runoff_ec: log.runoff_ec ?? 0,
+    source: log.source || 'manual',
+  }));
+
+  const weightUnit = useMemo<'lbs' | 'g'>(() => {
+    if (selectedPlantId) {
+      const plant = plants.find((p) => p.id === selectedPlantId);
+      if (plant?.stage === 'SEEDLING' || plant?.stage === 'CLONE') {
+        return 'g';
+      }
+    }
+    return 'lbs';
+  }, [selectedPlantId, plants]);
+
 return (
     <AppShell>
       <div className="min-h-screen bg-white dark:bg-[#0B0F19] text-gray-900 dark:text-zinc-100 p-4 space-y-6">
@@ -205,6 +245,42 @@ return (
                   </linearGradient>
                 </defs>
               </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Dry‑Back Trend Chart */}
+        <div className="mt-6 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 shadow-xl">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400">Dry-Back Trend</h3>
+            <span className="text-[10px] font-mono text-gray-400 dark:text-zinc-500">{dbDryBackLogs.length} points</span>
+          </div>
+          <div className="h-48 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={dryBackChartData} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>
+                <CartesianGrid stroke="#1F2937" className="opacity-40" strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="time"
+                  stroke="var(--axis-color)"
+                  fontSize={10}
+                  tickLine={false}
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  stroke="#4B5563"
+                  fontSize={10}
+                  tickLine={false}
+                  label={{
+                    value: `Weight (${weightUnit})`,
+                    angle: -90,
+                    position: 'insideLeft',
+                    fill: '#9CA3AF',
+                    fontSize: 10,
+                  }}
+                />
+                <Tooltip contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', color: '#fff', fontSize: '12px' }} />
+                <Line type="monotone" dataKey="weight" name="Weight" stroke="#10B981" strokeWidth={2} dot={{ r: 3, fill: '#10B981' }} connectNulls />
+              </LineChart>
             </ResponsiveContainer>
           </div>
         </div>

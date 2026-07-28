@@ -3,17 +3,15 @@
 import { db } from "@/lib/db";
 import { getUserId } from "@/lib/session";
 import { GoogleGenAI } from "@google/genai";
-
+import { getDiagnostics, getTrendInsights, getRecoveryStatus } from '@/app/actions/loggingreadings';
 
 // ==========================================
 // HELPERS & CACHE GLOBALS
 // ==========================================
 
-// In-memory cache to prevent infinite render loops from exhausting Gemini API quota
 let cachedBriefingResponse: { data: { actions: string[]; attention: string[]; snapshot: string }; timestamp: number } | null = null;
 const ONE_HOUR_MS = 60 * 60 * 1000;
 
-// Helper: compute VPD (kPa) from temp (°C) and RH (%)
 function computeVPD(tempC: number, rh: number): number {
   const es = 0.6108 * Math.exp((17.27 * tempC) / (tempC + 237.3));
   const ea = (rh / 100) * es;
@@ -25,8 +23,36 @@ function computeVPD(tempC: number, rh: number): number {
 // DAILY INSIGHTS & BRIEFINGS
 // ==========================================
 
-export async function generateDailyBriefing(forceRefresh: boolean = false) {
+export async function generateDailyBriefing(forceRefresh: boolean = false, plantId?: string) {
   try {
+      // 1. Fetch Diagnostic, Trend, and Recovery server actions in parallel
+      const [diagnostics, trends, recovery] = await Promise.all([
+        getDiagnostics(plantId),
+        getTrendInsights(plantId),
+        getRecoveryStatus(plantId),
+      ]);
+
+      // Extract dryback speed percent safely from trends
+      const drybackPct = trends?.drybackSpeed?.pct ?? 0;
+
+      // Handle union type (check if 'error' property exists before reading metrics)
+      const hasDiagError = !diagnostics || "error" in diagnostics && diagnostics.error;
+
+      const overwaterVal = !hasDiagError && "overwater" in diagnostics ? diagnostics.overwater : 0;
+      const droughtVal = !hasDiagError && "drought" in diagnostics ? diagnostics.drought : 0;
+      const nutrientVal = !hasDiagError && "nutrient" in diagnostics ? diagnostics.nutrient : 0;
+      const lightStressVal = !hasDiagError && "lightStress" in diagnostics ? diagnostics.lightStress : 0;
+      
+      // Structured metrics mapped directly to your EXISTING types
+      const diagnosticSummary = {
+        recoveryPhase: recovery?.phase ?? 'Stable',
+        drybackSpeed: drybackPct ? `${drybackPct}%/hr` : 'N/A',
+        overwaterRisk: `${overwaterVal}%`,
+        droughtRisk: `${droughtVal}%`,
+        nutrientStressRisk: `${nutrientVal}%`,
+        lightStressRisk: `${lightStressVal}%`,
+      };
+
     if (!forceRefresh && cachedBriefingResponse && (Date.now() - cachedBriefingResponse.timestamp < ONE_HOUR_MS)) {
       return { success: true as const, ...cachedBriefingResponse.data, cached: true };
     }
@@ -83,6 +109,7 @@ export async function generateDailyBriefing(forceRefresh: boolean = false) {
     let inRangeVpdCount = 0;
     let currentVpdStreak = 0;
     let isCountingCurrentVpdStreak = true;
+
     climateLogs.forEach((log) => {
       totalTempC += Number(log.airTempC);
       totalRh += Number(log.relativeHumidity);
@@ -98,16 +125,16 @@ export async function generateDailyBriefing(forceRefresh: boolean = false) {
         isCountingCurrentVpdStreak = false;
       }
     });
+
     const avgTempC = climateLogs.length ? totalTempC / climateLogs.length : null;
     const avgRh = climateLogs.length ? totalRh / climateLogs.length : null;
     const avgVpd = climateLogs.length ? totalVpd / climateLogs.length : null;
     const vpdScore = climateLogs.length ? (inRangeVpdCount / climateLogs.length) * 100 : null;
 
-    // roomId -> name lookup, since IrrigationEvent stores roomId as a plain string, not a relation
     const roomNameById = new Map(rooms.map((r) => [r.id, r.name]));
 
     const plantDryBackTrends: string[] = [];
-    activePlants.forEach((plant) => {
+      activePlants.forEach((plant) => {
       const roomName = plant.room?.name || "N/A";
       const batchName = plant.batch?.name || "N/A";
 
@@ -124,7 +151,6 @@ export async function generateDailyBriefing(forceRefresh: boolean = false) {
           : dryBackDiff < -5 ? "drying slower than typical"
           : "stable";
 
-        // Explicit null-check, not `||` — a real 0.00 runoff EC must not be treated as "no reading"
         const ecNote = latestLog.runoffEc !== null && latestLog.runoffEc !== undefined
           ? `, runoff EC ${Number(latestLog.runoffEc).toFixed(2)}`
           : "";
@@ -168,16 +194,18 @@ export async function generateDailyBriefing(forceRefresh: boolean = false) {
         }).join("\n        ")
       : "No irrigation events logged in the last 24 hours.";
 
-const envSummary = avgTempC !== null
-  ? `Temp: ${formatTemp(avgTempC)}, RH: ${avgRh?.toFixed(0)}%, VPD: ${avgVpd?.toFixed(2)} kPa`
-  : "Environment data limited for the last 24 hours.";
+    const envSummary = avgTempC !== null
+      ? `Temp: ${formatTemp(avgTempC)}, RH: ${avgRh?.toFixed(0)}%, VPD: ${avgVpd?.toFixed(2)} kPa`
+      : "Environment data limited for the last 24 hours.";
 
     const vpdHealthSummary = vpdScore !== null
       ? `VPD score: ${vpdScore.toFixed(0)}% of ${climateLogs.length} climate readings in target range 0.8-1.2 kPa; current in-range streak: ${currentVpdStreak} consecutive reading${currentVpdStreak === 1 ? "" : "s"} from most recent.`
       : "VPD score: no climate readings in the last 24 hours.";
 
+    // Single unified facility string passed to prompt
     const facilityHealthSummary = [
       vpdHealthSummary,
+      `Diagnostics & Recovery Context: Phase=${diagnosticSummary.recoveryPhase}, DryBackSpeed=${diagnosticSummary.drybackSpeed}, OverwaterRisk=${diagnosticSummary.overwaterRisk}, DroughtRisk=${diagnosticSummary.droughtRisk}, NutrientRisk=${diagnosticSummary.nutrientStressRisk}, LightRisk=${diagnosticSummary.lightStressRisk}`,
       `Dry-back severity thresholds: >80% needs irrigation, 60-80% monitor, <60% fine.`,
       `Room-level irrigation health thresholds: EC >2.0 high/dilute or flush, EC <0.8 low/increase feed, moisture >80% wet/reduce frequency, moisture <40% dry/increase frequency.`,
     ].join("\n        ");
@@ -185,7 +213,7 @@ const envSummary = avgTempC !== null
     const prompt = `
       You are an AI cultivation assistant. Analyze this facility's full telemetry and respond with ONLY valid JSON, no markdown fences, no preamble.
       All temperatures in your response must be reported in °${preferredUnit} only — never mention or convert to the other unit, anywhere in the response.
-      Use the facility health summary to populate attention and actions — this replaces what used to be separate dashboard cards for VPD score, dry-back severity, and room-level EC/moisture status. Do not omit rooms or plants flagged here.
+      Use the facility health summary to populate attention and actions — this replaces what used to be separate dashboard cards for Diagnostics, Recovery, Trend Insights, VPD score, dry-back severity, and room-level EC/moisture status. Do not omit rooms or plants flagged here.
 
       DATA:
       - Active Plants: ${totalActivePlants}
@@ -199,7 +227,6 @@ const envSummary = avgTempC !== null
         "actions": ["imperative, specific action items the grower should take today, e.g. 'Irrigate Room 2', 'Flush Batch 4, runoff EC elevated'. If nothing needed, a single item: 'No action required — hold current schedule.'"],
         "attention": ["specific plant/room callouts with abnormal readings, empty array if none"],
         "snapshot": "one paragraph, current facility state only"
-
       }
     `;
 

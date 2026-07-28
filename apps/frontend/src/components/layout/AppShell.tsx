@@ -8,7 +8,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useTelemetry } from "@/lib/telemetry-context";
-import AIChatWidget from "@/components/AIChatWidget";
 
 // Define Plant type more accurately for local use
 type Plant = {
@@ -28,50 +27,11 @@ type AppShellProps = {
   unitSystem?: "imperial" | "metric";
 };
 
-function getBatchDaysSinceStart(batch: any): number {
-  if (!batch?.startDate) return 0;
-  const start = new Date(batch.startDate).getTime();
-  const now = new Date().getTime();
-  const diffDays = Math.floor((now - start) / (1000 * 60 * 60 * 24));
-  return Math.max(1, diffDays + 1);
-}
-
-function getBatchLogCount(batch: any): number {
-  if (!batch?.dryBackLogs) return 0;
-  return batch.dryBackLogs.length;
-}
-
-function getBatchAverage(batch: any): string {
-  if (!batch?.dryBackLogs || batch.dryBackLogs.length === 0) return "0.0%";
-
-  const total = batch.dryBackLogs.reduce((acc: number, log: any) => {
-    const val = typeof log.dryBackPercent === "number" 
-      ? log.dryBackPercent 
-      : parseFloat(log.dryBackPercent) || 0;
-    return acc + val;
-  }, 0);
-
-  const avg = total / batch.dryBackLogs.length;
-  return `${Number(avg).toFixed(1)}%`;
-}
-
 export function AppShell({ children, unitSystem = "imperial" }: AppShellProps) {
   const router = useRouter(); 
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { data } = useTelemetry();
-
-  // ✅ MOVED INSIDE APPSHELL COMPONENT
-  const [rooms, setRooms] = useState<any[]>([]);
-  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
-
-  const [batches, setBatches] = useState<any[]>([]);
-  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
-
-  const [plants, setPlants] = useState<Plant[]>([]);
-  const [selectedPlantId, setSelectedPlantId] = useState<string | null>(null);
-
-  const [containerGallons, setContainerGallons] = useState(5);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -149,13 +109,12 @@ export function AppShell({ children, unitSystem = "imperial" }: AppShellProps) {
       {/* Header */}
       <header className="border-b border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 transition-colors duration-200 sticky top-0 z-40">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-          
           {/* Brand Logo (left) */}
           <Link href="/" className="flex items-center gap-3 group">
             <div className="grid size-10 place-items-center rounded-md bg-canopy text-white">
               <Leaf aria-hidden="true" className="size-5" />
             </div>
-            <div>
+            <div className="hidden sm:block">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-clay dark:text-orange-400">
                 Single-grower command
               </p>
@@ -165,15 +124,8 @@ export function AppShell({ children, unitSystem = "imperial" }: AppShellProps) {
             </div>
           </Link>
 
-        {/* Nav to Check-In Page */}
-        <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl">
-          <Link href="/" className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-950/30 transition-all">
-            Log a Reading
-          </Link>
-        </div>
-
-          {/* Telemetry Header Pill (center) */}
-          <div className="flex items-center gap-2 sm:gap-4 rounded-full border border-[#d9e2dc] dark:border-zinc-800 bg-mist/60 dark:bg-zinc-800/60 px-3 py-1.5 text-xs font-medium">
+          {/* Telemetry Pill (center) — hidden on mobile, shown sm and up */}
+          <div className="hidden sm:flex items-center gap-2 sm:gap-4 rounded-full border border-[#d9e2dc] dark:border-zinc-800 bg-mist/60 dark:bg-zinc-800/60 px-3 py-1.5 text-xs font-medium">
             <div className="flex items-center gap-1 text-zinc-700 dark:text-zinc-300" title="Air Temperature">
               <ThermometerSun className="size-3.5 text-orange-500" />
               <span>{tempFormatted}</span>
@@ -190,14 +142,22 @@ export function AppShell({ children, unitSystem = "imperial" }: AppShellProps) {
             </div>
           </div>
 
-          {/* Hamburger (right) */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="grid size-10 place-items-center rounded-md border border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800"
-            aria-label="Toggle navigation menu"
-          >
-            {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
-          </button>
+          {/* Right side: Log a Reading + Hamburger */}
+          <div className="flex items-center gap-2">
+            <Link
+              href="/"
+              className="hidden sm:inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-2 text-xs font-bold text-white shadow-md shadow-emerald-950/20 transition-all"
+            >
+              Log a Reading
+            </Link>
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="grid size-10 place-items-center rounded-md border border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800"
+              aria-label="Toggle navigation menu"
+            >
+              {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -208,6 +168,13 @@ export function AppShell({ children, unitSystem = "imperial" }: AppShellProps) {
             className="absolute top-[73px] left-0 right-0 border-b border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 flex flex-col gap-2 shadow-lg animate-in slide-in-from-top-2 duration-150"
             onClick={(e) => e.stopPropagation()}
           >
+            <Link
+              href="/"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-base font-bold text-white shadow-lg mb-2"
+            >
+              Log a Reading
+            </Link>
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = pathname === tab.href;
@@ -259,19 +226,6 @@ export function AppShell({ children, unitSystem = "imperial" }: AppShellProps) {
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         {children}
       </div>
-
-      {/* AI Grow Coach – always visible, floating */}
-      <AIChatWidget
-        activeDryBack={data.activeDryBack || { dryBackPercent: 0, estimatedHoursUntilWater: 0, poundsUntilIrrigation: 0 }}
-        reservoirDelta={data.reservoirDelta || { topOffGallons: 0, waterPercentToAdd: 0, nutrientsToAdd: [] }}
-        latestEnvironment={data.latestEnvironment}
-        latestRunoffEc={data.latestRunoffEc}
-        activeSchedule={data.activeSchedule || { doses: [] }}
-        leftoverGallons={data.leftoverGallons || 0}
-        dailyWaterUse={data.dailyWaterUse}
-        trendInsights={data.trendInsights}
-        recoveryStatus={data.recoveryStatus}
-      />
     </main>
   );
 }

@@ -391,39 +391,6 @@ export default function WeightsPage() {
                 Monitor moisture levels, dry-back percentages, and unified environmental stats.
               </p>
             </div>
-
-            {/* Environmental Stat Bar */}
-            <div className="flex items-center gap-4 bg-gray-50 dark:bg-zinc-900/80 px-4 py-2 rounded-xl border border-gray-200 dark:border-zinc-800 text-xs">
-              <div className="flex items-center gap-1.5">
-                <Thermometer className="size-3.5 text-emerald-500" />
-                <div>
-                  <span className="text-gray-400 dark:text-zinc-500 block text-[10px]">Air Temp</span>
-                  <span className="font-semibold text-gray-900 dark:text-zinc-100">
-                    {activeRoomClimate?.airTempC ? `${activeRoomClimate.airTempC}°C` : '--'}
-                  </span>
-                </div>
-              </div>
-              <div className="h-6 w-px bg-gray-200 dark:bg-zinc-800" />
-              <div className="flex items-center gap-1.5">
-                <Droplets className="size-3.5 text-cyan-500" />
-                <div>
-                  <span className="text-gray-400 dark:text-zinc-500 block text-[10px]">RH</span>
-                  <span className="font-semibold text-gray-900 dark:text-zinc-100">
-                    {activeRoomClimate?.relativeHumidity ? `${activeRoomClimate.relativeHumidity}%` : '--'}
-                  </span>
-                </div>
-              </div>
-              <div className="h-6 w-px bg-gray-200 dark:bg-zinc-800" />
-              <div className="flex items-center gap-1.5">
-                <Gauge className="size-3.5 text-amber-500" />
-                <div>
-                  <span className="text-gray-400 dark:text-zinc-500 block text-[10px]">VPD</span>
-                  <span className="font-semibold text-gray-900 dark:text-zinc-100">
-                    {activeRoomClimate?.calculatedVpdKpa ? `${activeRoomClimate.calculatedVpdKpa} kPa` : '--'}
-                  </span>
-                </div>
-              </div>
-            </div>
           </div>
         </header>
 
@@ -625,42 +592,6 @@ export default function WeightsPage() {
             </div>
           </div>
         )}
-
-        {/* Dry‑Back Trend Chart */}
-        <div className="mt-6 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 shadow-xl">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400">Dry-Back Trend</h3>
-            <span className="text-[10px] font-mono text-gray-400 dark:text-zinc-500">{dbDryBackLogs.length} points</span>
-          </div>
-          <div className="h-48 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={dryBackChartData} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>
-                <CartesianGrid stroke="#1F2937" className="opacity-40" strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="time"
-                  stroke="var(--axis-color)"
-                  fontSize={10}
-                  tickLine={false}
-                  interval="preserveStartEnd"
-                />
-                <YAxis
-                  stroke="#4B5563"
-                  fontSize={10}
-                  tickLine={false}
-                  label={{
-                    value: `Weight (${weightUnit})`,
-                    angle: -90,
-                    position: 'insideLeft',
-                    fill: '#9CA3AF',
-                    fontSize: 10,
-                  }}
-                />
-                <Tooltip contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', color: '#fff', fontSize: '12px' }} />
-                <Line type="monotone" dataKey="weight" name="Weight" stroke="#10B981" strokeWidth={2} dot={{ r: 3, fill: '#10B981' }} connectNulls />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
 
       </div>
     </AppShell>
