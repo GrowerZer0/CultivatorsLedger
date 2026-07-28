@@ -38,6 +38,8 @@ export async function createBatch(data: {
   roomId?: string;
   wetWeight?: number;
   dryTarget?: number;
+  startDate?: Date | string;
+  isActive?: boolean;
 }) {
   try {
     const userId = await getUserId();

@@ -1,13 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import Link from 'next/link';
 import {
   Droplets,
   Sprout,
-  Settings,
-  Sun,
-  Moon,
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import {
