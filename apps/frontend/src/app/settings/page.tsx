@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import {  
   FlaskConical, 
   Sliders,
@@ -79,7 +79,7 @@ type Plant = {
   dryTarget?: number | null;
 };
 
-export default function SettingsPage() {
+function SettingsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -1237,5 +1237,19 @@ export default function SettingsPage() {
         </div>
       </div>
     </AppShell>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={
+      <AppShell>
+        <div className="flex h-[75vh] items-center justify-center text-sm font-semibold text-gray-500 dark:text-zinc-400 animate-pulse">
+          Loading settings...
+        </div>
+      </AppShell>
+    }>
+      <SettingsPageContent />
+    </Suspense>
   );
 }
