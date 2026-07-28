@@ -49,7 +49,6 @@ export async function createPlant(data: {
       },
     });
     revalidatePath("/settings");
-    revalidatePath("/weights");
     revalidatePath("/");
     return { success: true, plant };
   } catch (error) {
@@ -85,7 +84,6 @@ export async function updatePlant(data: {
       },
     });
     revalidatePath("/settings");
-    revalidatePath("/weights");
     revalidatePath("/");
     return { success: true, plant };
   } catch (error) {
@@ -101,7 +99,6 @@ export async function deletePlant(plantId: string) {
       where: { id: plantId, userId },
     });
     revalidatePath("/settings");
-    revalidatePath("/weights");
     revalidatePath("/");
     return { success: true };
   } catch (error) {

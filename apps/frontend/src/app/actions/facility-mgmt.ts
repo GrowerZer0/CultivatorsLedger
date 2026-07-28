@@ -27,7 +27,6 @@ export async function createRoom(data: { name: string; type?: string }) {
       },
     });
     revalidatePath("/settings");
-    revalidatePath("/weights");
     revalidatePath("/");
     return { success: true, room };
   } catch (error) {
@@ -47,7 +46,6 @@ export async function updateRoom(
       data,
     });
     revalidatePath("/settings");
-    revalidatePath("/weights");
     revalidatePath("/");
     return { success: true, room };
   } catch (error) {
@@ -63,7 +61,6 @@ export async function deleteRoom(roomId: string) {
       where: { id: roomId, userId },
     });
     revalidatePath("/settings");
-    revalidatePath("/weights");
     revalidatePath("/");
     return { success: true };
   } catch (error) {

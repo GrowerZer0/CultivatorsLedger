@@ -52,7 +52,6 @@ export async function createBatch(data: {
       },
     });
     revalidatePath("/settings");
-    revalidatePath("/weights");
     revalidatePath("/");
     return { success: true, batch };
   } catch (error) {
@@ -86,7 +85,6 @@ export async function updateBatch(
       },
     });
     revalidatePath("/settings");
-    revalidatePath("/weights");
     revalidatePath("/");
     return { success: true, batch };
   } catch (error) {
@@ -113,7 +111,6 @@ export async function deleteBatch(batchId: string) {
       where: { id: batchId, userId },
     });
     revalidatePath("/settings");
-    revalidatePath("/weights");
     revalidatePath("/");
     return { success: true };
   } catch (error) {

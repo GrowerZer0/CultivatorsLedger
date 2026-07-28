@@ -102,7 +102,6 @@ export async function recordDailyCheckInLog(data: DailyCheckInFormData) {
     });
 
     revalidatePath("/");
-    revalidatePath("/weights");
 
     return { success: true, id: result.id };
   } catch (error: any) {

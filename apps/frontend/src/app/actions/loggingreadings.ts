@@ -50,7 +50,6 @@ export async function addDryBackLog(data: {
   });
 
   revalidatePath("/");
-  revalidatePath("/weights");
   return { success: true, id: result.id };
 }
 
@@ -127,7 +126,6 @@ export async function logIrrigation(data: {
   });
 
   revalidatePath("/");
-  revalidatePath("/weights");
 
   return {
     success: true,
@@ -214,7 +212,6 @@ export async function addManualClimateAndWeight(data: {
   }
 
   revalidatePath("/");
-  revalidatePath("/weights");
   return {
     success: true,
     climateId: climateResult.id,
