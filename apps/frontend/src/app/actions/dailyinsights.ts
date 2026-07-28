@@ -10,7 +10,7 @@ import { GoogleGenAI } from "@google/genai";
 // ==========================================
 
 // In-memory cache to prevent infinite render loops from exhausting Gemini API quota
-let cachedBriefingResponse: { data: { snapshot: string; attention: string[]; actions: string[] }; timestamp: number } | null = null;
+let cachedBriefingResponse: { data: { actions: string[]; attention: string[]; snapshot: string }; timestamp: number } | null = null;
 const ONE_HOUR_MS = 60 * 60 * 1000;
 
 // Helper: compute VPD (kPa) from temp (°C) and RH (%)
