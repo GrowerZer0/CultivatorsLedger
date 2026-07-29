@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Cpu, FlaskConical, Building, Sliders, User } from "lucide-react";
 import { SectionPanel } from "@/components/layout/SectionPanel";
+import { AppShell } from '@/components/layout/AppShell';
 
 const navigation = [
   { href: "/settings/hardware", label: "Hardware", icon: Cpu, description: "Manage sensor integrations, API keys, and telemetry endpoints." },
@@ -12,6 +13,7 @@ const navigation = [
 
 export default function SettingsHubPage() {
   return (
+    <AppShell>
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-white">System Settings</h1>
@@ -43,5 +45,6 @@ export default function SettingsHubPage() {
         })}
       </div>
     </div>
+    </AppShell>
   );
 }
