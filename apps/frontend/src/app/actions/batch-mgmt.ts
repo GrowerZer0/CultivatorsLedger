@@ -1,8 +1,9 @@
 "use server";
 
-import { db } from "@/lib/db";
+import { db, prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getUserId } from "@/lib/session";
+import { supabase } from "@/lib/supabase";
 
 // ==========================================
 // BATCH MANAGEMENT
@@ -152,4 +153,20 @@ export async function getBatchesForComparison(batchIds: string[]) {
 
 export async function setActiveBatch(batchId: string) {
   // Frontend state handling placeholder
+}
+export async function fetchBatches() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+  return prisma.batch.findMany({
+    where: { userId: user.id },
+    select: {
+      id: true,
+      name: true,
+      cultivar: true,
+      roomId: true,
+      isActive: true,
+      wetWeight: true,
+      dryTarget: true,
+    },
+  });
 }

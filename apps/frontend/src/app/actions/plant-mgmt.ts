@@ -1,8 +1,9 @@
 "use server";
 
-import { db } from "@/lib/db";
+import { db, prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getUserId } from "@/lib/session";
+import { supabase } from "@/lib/supabase";
 
 
 // ==========================================
@@ -105,4 +106,28 @@ export async function deletePlant(plantId: string) {
     console.error("deletePlant error:", error);
     return { success: false, error: "Failed to delete plant." };
   }
+}
+
+export async function fetchPlants() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+  const plants = await prisma.plant.findMany({
+    where: { userId: user.id },
+    select: {
+      id: true,
+      name: true,
+      strain: true,
+      roomId: true,
+      batchId: true,
+      containerGallons: true,
+      wetWeight: true,
+      dryTarget: true,
+    },
+  });
+  return plants.map(p => ({
+    ...p,
+    containerGallons: p.containerGallons ? Number(p.containerGallons) : null,
+    wetWeight: p.wetWeight ? Number(p.wetWeight) : null,
+    dryTarget: p.dryTarget ? Number(p.dryTarget) : null,
+  }));
 }

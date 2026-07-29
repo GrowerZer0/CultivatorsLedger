@@ -1,8 +1,10 @@
 "use server";
 
-import { db } from "@/lib/db";
+import { db, prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getUserId } from "@/lib/session";
+import { supabase } from "@/lib/supabase";
+
 
 // ==========================================
 // FACILITY MANAGEMENT (ROOMS / TENTS)
@@ -67,4 +69,13 @@ export async function deleteRoom(roomId: string) {
     console.error("Failed to delete room:", error);
     return { success: false, error: "Failed to delete room." };
   }
+}
+
+export async function fetchRooms() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+  return prisma.room.findMany({
+    where: { userId: user.id },
+    select: { id: true, name: true, type: true },
+  });
 }
