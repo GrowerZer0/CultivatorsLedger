@@ -27,21 +27,6 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
 return (
   <div className="min-h-screen bg-zinc-950">
 
-    {/* Mobile Settings Header */}
-    <div className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-zinc-800 bg-zinc-900">
-      <h1 className="text-lg font-semibold text-white">
-        Settings
-      </h1>
-
-      <button
-        onClick={() => setMobileOpen(true)}
-        className="rounded-lg p-2 text-zinc-400 hover:text-white hover:bg-zinc-800"
-      >
-        ☰
-      </button>
-    </div>
-
-
     {/* Mobile Drawer */}
     {mobileOpen && (
       <div className="lg:hidden fixed inset-0 z-50">
@@ -155,13 +140,25 @@ return (
 
       </aside>
 
-
-      {/* Main Content */}
-      <main className="flex-1 min-w-0">
-        <div className="px-4 py-6 lg:px-8 lg:py-8">
-          {children}
+    {/* Main Content */}
+    <main className="flex-1 min-w-0">
+      <div className="px-4 py-6 lg:px-8 lg:py-8">
+        {/* Mobile Settings Toolbar */}
+        <div className="lg:hidden flex items-center justify-between mb-6">
+          <h1 className="text-xl font-semibold text-white">
+            Settings
+          </h1>
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="rounded-lg p-2 text-zinc-400 hover:text-white hover:bg-zinc-800"
+            aria-label="Open settings menu"
+          >
+            ☰
+          </button>
         </div>
-      </main>
+        {children}
+      </div>
+    </main>
     </div>
   </div>
 );
