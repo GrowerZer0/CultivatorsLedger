@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { SectionPanel } from "@/components/layout/SectionPanel";
-import { getUserProfile, updateUserProfile } from "@/app/actions";
+import { getUserProfile, updateUserProfile } from "@/app/actions/profile";
 import { supabase } from "@/lib/supabase";
 
 export default function ProfileSettingsPage() {
@@ -44,18 +44,15 @@ export default function ProfileSettingsPage() {
     setSaving(true);
     setMessage(null);
     try {
-      const result = await updateUserProfile(formData);
-      if (result?.success) {
-        setMessage({ type: "success", text: "Profile updated successfully." });
-        // Refresh profile
-        const data = await getUserProfile();
-        if (data) setProfile(data);
-      } else {
-        setMessage({ type: "error", text: result?.error || "Failed to update profile." });
-      }
+      await updateUserProfile(formData);
+      setMessage({ type: "success", text: "Profile updated successfully." });
+      // Refresh profile
+      const data = await getUserProfile();
+      if (data) setProfile(data);
     } catch (err) {
       console.error("Failed to save profile:", err);
-      setMessage({ type: "error", text: "An unexpected error occurred." });
+      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+      setMessage({ type: "error", text: errorMessage });
     } finally {
       setSaving(false);
     }

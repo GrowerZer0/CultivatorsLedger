@@ -16,10 +16,15 @@ datasource db {
 // ============================================================
 
 model User {
-  id               String            @id @default(cuid())
-  email            String            @unique
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  id                String            @id @default(cuid())
+  email             String            @unique
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  displayName       String?           // optional display name
+  timezone          String            @default("UTC")
+  language          String            @default("en")
+  preferredTempUnit String           @default("C") // "C" or "F"
+  activeFeedLine    String?
 
   // Relations
   rooms            Room[]

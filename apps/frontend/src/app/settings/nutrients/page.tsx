@@ -4,12 +4,13 @@ import { useState, useEffect, useCallback } from "react";
 import { Plus, X, Save, Trash2, Edit, ChevronLeft, ChevronRight } from "lucide-react";
 import { SectionPanel } from "@/components/layout/SectionPanel";
 import { commercialFeedSchedules } from "@/lib/cultivation";
-import { getCustomBlueprints, saveOrUpdateBlueprint, deleteCustomBlueprint, getUserProfile, updateUserProfile } from "@/app/actions";
+import { getCustomBlueprints, saveOrUpdateBlueprint, deleteCustomBlueprint } from "@/app/actions";
+import { getUserProfile, updateUserProfile } from "@/app/actions/profile";
 
 export default function NutrientsSettingsPage() {
   const [customSchedules, setCustomSchedules] = useState<any[]>([]);
   const [editingSchedule, setEditingSchedule] = useState<any | null>(null);
-  const [activeFeedLine, setActiveFeedLine] = useState("fox-farm-soil-veg");
+  const [activeFeedLine, setActiveFeedLine] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadProfileAndBlueprints = useCallback(async () => {
@@ -17,7 +18,7 @@ export default function NutrientsSettingsPage() {
     try {
       const dbBlueprints = await getCustomBlueprints();
       setCustomSchedules(dbBlueprints || []);
-      const profile = await getUserProfile() as any;
+      const profile = await getUserProfile();
       if (profile?.activeFeedLine) setActiveFeedLine(profile.activeFeedLine);
     } catch (err) {
       console.error("Failed to sync profile configuration maps:", err);

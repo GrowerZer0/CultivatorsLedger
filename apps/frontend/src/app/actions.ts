@@ -1,13 +1,4 @@
-"use server";
-
-// Placeholders for profiles and blueprints
-export async function getUserProfile() {
-  return null;
-}
-
-export async function updateUserProfile(data: any) {
-  return null;
-}
+'use server'
 
 export async function getCustomBlueprints() {
   return [];
