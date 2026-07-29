@@ -159,14 +159,14 @@ export default function ProfileSettingsPage() {
           </div>
         </div>
 
-        <div className="border-t border-zinc-800 pt-4">
-          <button onClick={handleSignOut} className="w-full px-4 py-2 text-sm font-semibold rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition">Sign Out</button>
-        </div>
-
         <div className="pt-4">
           <button onClick={handleSave} disabled={saving} className="w-full px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white transition">
             {saving ? "Saving..." : "Save Changes"}
           </button>
+        </div>
+
+        <div className="border-t border-zinc-800 pt-4">
+          <button onClick={handleSignOut} className="w-full px-4 py-2 text-sm font-semibold rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition">Sign Out</button>
         </div>
       </div>
     </SectionPanel>

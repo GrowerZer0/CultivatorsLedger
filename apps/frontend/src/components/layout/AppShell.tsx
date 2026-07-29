@@ -161,48 +161,14 @@ export function AppShell({ children, unitSystem = "imperial" }: AppShellProps) {
             </div>
 
             {/* Settings Disclosure */}
-            <button
-              onClick={() => setSettingsExpanded(!settingsExpanded)}
-              className="flex items-center justify-between w-full rounded-md px-4 py-3 text-base font-medium text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800/50"
+            <Link
+            href="/settings/profile"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center gap-3 rounded-md px-4 py-3 text-base font-medium text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800/50"
             >
-              <div className="flex items-center gap-3">
-                <Settings className="size-5 text-clay dark:text-orange-400" />
-                <span>Settings</span>
-              </div>
-              <ChevronDown className={`size-5 transition-transform ${settingsExpanded ? 'rotate-180' : ''}`} />
-            </button>
-            {settingsExpanded && (
-              <div className="pl-12 mt-2 space-y-1">
-                <Link
-                  href="/settings?tab=hardware"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 rounded-md px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800/50"
-                >
-                  <span>Hardware</span>
-                </Link>
-                <Link
-                  href="/settings?tab=nutrients"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 rounded-md px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800/50"
-                >
-                  <span>Nutrient Feed Library</span>
-                </Link>
-                <Link
-                  href="/settings?tab=facility"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 rounded-md px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800/50"
-                >
-                  <span>Facility Management</span>
-                </Link>
-                <Link
-                  href="/settings?tab=system"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 rounded-md px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800/50"
-                >
-                  <span>System</span>
-                </Link>
-              </div>
-            )}
+              <Settings className="size-5 text-clay dark:text-orange-400" />
+              <span>Settings</span>
+            </Link>
 
             <button
               onClick={handleLogout}

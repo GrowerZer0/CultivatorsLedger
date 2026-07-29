@@ -14,19 +14,70 @@ import {
 import { useState } from "react";
 
 const navigation = [
+  { href: "/settings/profile", label: "Profile", icon: User },
+  { href: "/settings/facility", label: "Facility", icon: Building },
   { href: "/settings/hardware", label: "Hardware", icon: Cpu },
   { href: "/settings/nutrients", label: "Nutrients", icon: FlaskConical },
-  { href: "/settings/facility", label: "Facility", icon: Building },
   { href: "/settings/system", label: "System", icon: Sliders },
-  { href: "/settings/profile", label: "Profile", icon: User },
 ];
 
 export default function SettingsLayout({ children }: { children: ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
+  const [mobileOpen, setMobileOpen] = useState(false);
   return (
     <div className="min-h-screen bg-zinc-950">
       <div className="flex">
+      {/* Mobile Settings Header */}
+      <div className="lg:hidden flex items-center justify-between bg-zinc-900 border-b border-zinc-800 px-4 py-3">
+
+        <h1 className="text-lg font-semibold text-white">
+          Settings
+        </h1>
+
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="rounded-lg p-2 text-zinc-400 hover:text-white hover:bg-zinc-800"
+        >
+          ☰
+        </button>
+      </div>
+      {mobileOpen && (
+      <div className="lg:hidden fixed inset-0 z-50">
+        <div
+          className="absolute inset-0 bg-black/50"
+          onClick={() => setMobileOpen(false)}
+        />
+        <aside className="absolute left-0 top-0 bottom-0 w-72 bg-zinc-900 border-r border-zinc-800 p-5">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-white text-xl font-semibold">
+              Settings
+            </h2>
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="text-zinc-400 hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
+          <nav className="space-y-2">
+            {navigation.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-3 rounded-lg px-3 py-3 text-zinc-400 hover:text-white hover:bg-zinc-800"
+                >
+                  <Icon className="size-5" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        </aside>
+      </div>
+)}
         {/* Desktop Sidebar */}
         <aside
           className="hidden lg:flex lg:flex-col lg:flex-shrink-0 transition-all duration-200 bg-zinc-900 border-r border-zinc-800"
@@ -77,29 +128,9 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
           </div>
         </aside>
 
-        {/* Mobile Navigation - Bottom Tab Bar */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-zinc-900 border-t border-zinc-800">
-          <div className="flex justify-around items-center h-14">
-            {navigation.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="flex flex-col items-center gap-1 text-zinc-500 hover:text-emerald-400 transition"
-                >
-                  <Icon className="w-5 h-5" />
-                  <span className="text-[10px] font-medium">{item.label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
-
         {/* Main Content */}
         <main
           className="flex-1 min-w-0 lg:pl-0"
-          style={{ paddingBottom: '5rem' }} // Space for mobile bottom nav
         >
           <div className="max-w-full px-4 py-6 lg:px-8 lg:py-8">
             {children}
