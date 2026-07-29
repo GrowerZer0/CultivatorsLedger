@@ -6,7 +6,6 @@ import { SectionPanel } from "@/components/layout/SectionPanel";
 import { commercialFeedSchedules } from "@/lib/cultivation";
 import { getCustomBlueprints, saveOrUpdateBlueprint, deleteCustomBlueprint } from "@/app/actions";
 import { getUserProfile, updateUserProfile } from "@/app/actions/profile";
-import { AppShell } from '@/components/layout/AppShell';
 
 export default function NutrientsSettingsPage() {
   const [customSchedules, setCustomSchedules] = useState<any[]>([]);
@@ -66,7 +65,6 @@ export default function NutrientsSettingsPage() {
   if (loading) return <div className="text-xs text-zinc-500 py-8 text-center animate-pulse">Loading nutrient profiles...</div>;
 
   return (
-    <AppShell>
     <SectionPanel title="Fertigation Schedules & Recipe Blueprints">
       <div className="space-y-4">
         <div className="flex justify-between items-center">
@@ -93,7 +91,5 @@ export default function NutrientsSettingsPage() {
         </div>
       </div>
     </SectionPanel>
-    </AppShell>
-
   );
 }

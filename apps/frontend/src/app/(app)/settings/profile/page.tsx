@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { SectionPanel } from "@/components/layout/SectionPanel";
 import { getUserProfile, updateUserProfile } from "@/app/actions/profile";
 import { supabase } from "@/lib/supabase";
-import { AppShell } from '@/components/layout/AppShell';
 
 export default function ProfileSettingsPage() {
   const [profile, setProfile] = useState<any>(null);
@@ -67,7 +66,6 @@ export default function ProfileSettingsPage() {
   if (loading) return <div className="text-xs text-zinc-500 py-8 text-center animate-pulse">Loading profile...</div>;
 
   return (
-    <AppShell>
     <SectionPanel title="Profile & Account">
       <div className="space-y-6 max-w-xl">
         {message && (
@@ -170,7 +168,5 @@ export default function ProfileSettingsPage() {
         </div>
       </div>
     </SectionPanel>
-    </AppShell>
-
   );
 }

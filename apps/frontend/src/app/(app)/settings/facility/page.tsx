@@ -13,7 +13,6 @@ import {
   fetchRooms,
 } from "@/app/actions/facility-mgmt";
 import { fetchBatches } from "@/app/actions/batch-mgmt";
-import { AppShell } from '@/components/layout/AppShell';
 
 // Types (keep as you have)
 interface RoomData {
@@ -137,7 +136,6 @@ export default function FacilityManagementPage() {  // renamed; no props
   }
 
   return (
-    <AppShell>
     <SectionPanel title="Facility Management">
       <div className="space-y-6">
         <div className="flex border-b border-gray-200 dark:border-zinc-800 pb-2 gap-4">
@@ -245,7 +243,5 @@ export default function FacilityManagementPage() {  // renamed; no props
         )}
       </div>
     </SectionPanel>
-      </AppShell>
-
   );
 }
