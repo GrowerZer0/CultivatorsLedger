@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Plus, X, Trash2, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { SectionPanel } from "@/components/layout/SectionPanel";
 import { getSensors, createSensor, toggleSensor, deleteSensor, regenerateApiKey } from "@/app/actions/sensorconfig";
+import { AppShell } from '@/components/layout/AppShell';
 
 export default function HardwareSettingsPage() {
   const [sensors, setSensors] = useState<any[]>([]);
@@ -74,6 +75,7 @@ export default function HardwareSettingsPage() {
   }
 
   return (
+    <AppShell>
     <SectionPanel title="Hardware & Sensor Controller API Keys">
       <div className="space-y-4">
         <div className="flex justify-between items-center">
@@ -118,5 +120,7 @@ export default function HardwareSettingsPage() {
         )}
       </div>
     </SectionPanel>
+    </AppShell>
+
   );
 }

@@ -4,7 +4,9 @@ import { useState, useEffect } from "react";
 import { SectionPanel } from "@/components/layout/SectionPanel";                
 import { ThemeToggle } from "@/components/ThemeToggle";                         
 import { getSystemSettings, updateTempUnitPreference } from                     
-"@/app/actions/system-settings";                                                
+"@/app/actions/system-settings";      
+import { AppShell } from '@/components/layout/AppShell';
+
                                                                                 
 export default function SystemSettingsPage() {                                  
   const [preferredTempUnit, setPreferredTempUnit] = useState<"C" | "F">("C");   
@@ -33,6 +35,7 @@ export default function SystemSettingsPage() {
 animate-pulse">Loading system preferences...</div>;                             
                                                                                 
  return (
+  <AppShell>
     <SectionPanel title="System Preferences & Displays">
       <div className="space-y-6 max-w-xl">
         <div className="flex items-center justify-between">
@@ -82,5 +85,7 @@ animate-pulse">Loading system preferences...</div>;
         </div>
       </div>
     </SectionPanel>
+  </AppShell>
+
   );
 }

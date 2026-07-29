@@ -13,6 +13,7 @@ import {
   fetchRooms,
 } from "@/app/actions/facility-mgmt";
 import { fetchBatches } from "@/app/actions/batch-mgmt";
+import { AppShell } from '@/components/layout/AppShell';
 
 // Types (keep as you have)
 interface RoomData {
@@ -136,20 +137,10 @@ export default function FacilityManagementPage() {  // renamed; no props
   }
 
   return (
+    <AppShell>
     <SectionPanel title="Facility Management">
       <div className="space-y-6">
-        {/* Your existing JSX – unchanged */}
         <div className="flex border-b border-gray-200 dark:border-zinc-800 pb-2 gap-4">
-          <button
-            onClick={() => setActiveTab("plants")}
-            className={`text-sm font-bold pb-2 border-b-2 transition-colors ${
-              activeTab === "plants"
-                ? "border-emerald-500 text-emerald-600 dark:text-emerald-400"
-                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-zinc-400"
-            }`}
-          >
-            🌱 Plant Registry ({plants.length})
-          </button>
           <button
             onClick={() => setActiveTab("rooms")}
             className={`text-sm font-bold pb-2 border-b-2 transition-colors ${
@@ -158,7 +149,7 @@ export default function FacilityManagementPage() {  // renamed; no props
                 : "border-transparent text-gray-500 hover:text-gray-700 dark:text-zinc-400"
             }`}
           >
-            ⛺ Rooms & Tents ({rooms.length})
+            Rooms & Tents ({rooms.length})
           </button>
           <button
             onClick={() => setActiveTab("batches")}
@@ -168,7 +159,17 @@ export default function FacilityManagementPage() {  // renamed; no props
                 : "border-transparent text-gray-500 hover:text-gray-700 dark:text-zinc-400"
             }`}
           >
-            📦 Batches ({batches.length})
+            Batches ({batches.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("plants")}
+            className={`text-sm font-bold pb-2 border-b-2 transition-colors ${
+              activeTab === "plants"
+                ? "border-emerald-500 text-emerald-600 dark:text-emerald-400"
+                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-zinc-400"
+            }`}
+          >
+            Plants ({plants.length})
           </button>
         </div>
 
@@ -244,5 +245,7 @@ export default function FacilityManagementPage() {  // renamed; no props
         )}
       </div>
     </SectionPanel>
+      </AppShell>
+
   );
 }
