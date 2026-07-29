@@ -12,7 +12,6 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useState } from "react";
-import { AppShell } from '@/components/layout/AppShell';
 
 const navigation = [
   { href: "/settings/hardware", label: "Hardware", icon: Cpu },
@@ -26,7 +25,6 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
-  <AppShell>
     <div className="min-h-screen bg-zinc-950">
       <div className="flex">
         {/* Desktop Sidebar */}
@@ -109,6 +107,5 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
         </main>
       </div>
     </div>
-  </AppShell>
   );
 }
