@@ -3,20 +3,35 @@ import { db, prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getUserId } from "@/lib/session";
 import { supabase } from "@/lib/supabase";
+
+function serializePrisma<T>(data: T): T {
+  return JSON.parse(
+    JSON.stringify(data, (_, value) =>
+      typeof value === "object" && value !== null && "toNumber" in value
+        ? value.toNumber()
+        : value instanceof Date
+        ? value.toISOString()
+        : value
+    )
+  );
+}
 // ==========================================
 // BATCH MANAGEMENT
 // ==========================================
 export async function getBatches() {
   const userId = await getUserId();
-  return await db.batch.findMany({
+  const batches = await db.batch.findMany({
     where: { userId },
     orderBy: { startDate: "desc" },
     include: { dryBackLogs: true },
   });
+
+  return serializePrisma(batches);
 }
 export async function getBatch(batchId: string) {
   const userId = await getUserId();
-  return await db.batch.findUnique({
+
+  const batch = await db.batch.findUnique({
     where: { id: batchId, userId },
     include: {
       dryBackLogs: {
@@ -25,6 +40,8 @@ export async function getBatch(batchId: string) {
       },
     },
   });
+
+  return serializePrisma(batch);
 }
 export async function createBatch(data: {
   name: string;
@@ -49,7 +66,7 @@ export async function createBatch(data: {
     });
     revalidatePath("/settings");
     revalidatePath("/");
-    return { success: true, batch };
+    return { success: true, batch: serializePrisma(batch) };
   } catch (error) {
     console.error("Failed to create batch:", error);
     return { success: false, error: "Failed to create batch." };
@@ -81,7 +98,7 @@ export async function updateBatch(
     });
     revalidatePath("/settings");
     revalidatePath("/");
-    return { success: true, batch };
+    return { success: true, batch: serializePrisma(batch) };
   } catch (error) {
     console.error("Failed to update batch:", error);
     return { success: false, error: "Failed to update batch." };
@@ -113,7 +130,7 @@ export async function deleteBatch(batchId: string) {
 }
 export async function exportAllBatches() {
   const userId = await getUserId();
-  return await db.batch.findMany({
+  const batches = await db.batch.findMany({
     where: { userId },
     include: {
       dryBackLogs: {
@@ -122,11 +139,13 @@ export async function exportAllBatches() {
     },
     orderBy: { startDate: "desc" },
   });
+
+  return serializePrisma(batches);
 }
 export async function getBatchesForComparison(batchIds: string[]) {
   const userId = await getUserId();
-  return await db.batch.findMany({
-    where: {
+  const batches = await db.batch.findMany({
+      where: {
       userId,
       id: { in: batchIds },
     },
@@ -137,6 +156,8 @@ export async function getBatchesForComparison(batchIds: string[]) {
       },
     },
   });
+
+  return serializePrisma(batches);
 }
 export async function setActiveBatch(batchId: string) {
   // Frontend state handling placeholder
@@ -144,7 +165,7 @@ export async function setActiveBatch(batchId: string) {
 export async function fetchBatches() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");
-  return prisma.batch.findMany({
+  const batches = await prisma.batch.findMany({
     where: { userId: user.id },
     select: {
       id: true,
@@ -156,4 +177,5 @@ export async function fetchBatches() {
       dryTarget: true,
     },
   });
+  return serializePrisma(batches);
 }
