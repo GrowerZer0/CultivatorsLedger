@@ -50,8 +50,8 @@ export function AppShell({
   const tabs = [
     {
       name: "Grow Dashboard",
-      href: "/",
-      match: ["/", "/dashboard"],
+      href: "/dashboard",
+      match: ["/dashboard"],
       icon: Gauge,
       color: "text-canopy dark:text-emerald-400",
     },
@@ -89,34 +89,23 @@ export function AppShell({
         ? `${Math.round(Number(env.temperatureF))}°F`
         : `${(((Number(env.temperatureF) - 32) * 5) / 9).toFixed(1)}°C`
       : "--";
-
-
   const rhFormatted =
     env?.humidity !== undefined && env?.humidity !== null
       ? `${Math.round(Number(env.humidity))}%`
       : "--";
-
-
   const vpdFormatted =
     env?.vpd !== undefined && env?.vpd !== null
       ? `${Number(env.vpd).toFixed(1)} kPa`
       : "--";
-
-
   return (
     <>
-
       <header className="border-b border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-950">
-
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-
           {/* Brand */}
-          <Link href="/" className="flex items-center gap-3">
-
+          <Link href="/dashboard" className="flex items-center gap-3">
             <div className="grid size-10 place-items-center rounded-md bg-canopy text-white">
               <Leaf className="size-5" />
             </div>
-
             <div className="hidden sm:block">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-clay dark:text-orange-400">
                 Single-grower command
@@ -126,46 +115,34 @@ export function AppShell({
                 Cultivator's Ledger
               </h1>
             </div>
-
           </Link>
-
 
           {/* Telemetry */}
           <div className="hidden sm:flex items-center gap-3 rounded-full border border-[#d9e2dc] dark:border-zinc-800 bg-mist/60 dark:bg-zinc-800/60 px-3 py-1.5 text-xs">
-
             <span className="flex items-center gap-1">
               <ThermometerSun className="size-3.5 text-orange-500" />
               {tempFormatted}
             </span>
-
             <span>|</span>
-
             <span className="flex items-center gap-1">
               <Droplet className="size-3.5 text-blue-500" />
               {rhFormatted}
             </span>
-
             <span>|</span>
-
             <span className="flex items-center gap-1">
               <Wind className="size-3.5 text-emerald-500" />
               {vpdFormatted}
             </span>
-
           </div>
-
 
           {/* Actions */}
           <div className="flex items-center gap-2">
-
             <Link
-              href="/"
+              href="/check-in"
               className="hidden sm:inline-flex rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white"
             >
               Log a Reading
             </Link>
-
-
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="grid size-10 place-items-center rounded-md border border-[#d9e2dc] dark:border-zinc-800"
@@ -176,17 +153,10 @@ export function AppShell({
                 <Menu className="size-5" />
               )}
             </button>
-
           </div>
-
         </div>
-
       </header>
-
-
-
       {mobileMenuOpen && (
-
         <div
           className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm"
           onClick={() => {
@@ -194,31 +164,23 @@ export function AppShell({
             setSettingsExpanded(false);
           }}
         >
-
           <nav
             className="absolute top-[73px] left-0 right-0 bg-white dark:bg-zinc-900 p-4 shadow-lg"
             onClick={(e)=>e.stopPropagation()}
           >
-
             <Link
-              href="/"
+              href="/check-in"
               className="block rounded-xl bg-emerald-600 px-4 py-3 text-center font-bold text-white"
             >
               Log a Reading
             </Link>
-
-
             {tabs.map((tab)=>{
-
               const Icon = tab.icon;
-
               const isActive = tab.match?.some(
                 route =>
                   pathname === route ||
                   pathname.startsWith(route + "/")
               );
-
-
               return (
                 <Link
                   key={tab.name}
@@ -234,50 +196,32 @@ export function AppShell({
                   {tab.name}
                 </Link>
               );
-
             })}
-
-
             <div className="my-3 border-t border-zinc-200 dark:border-zinc-800"/>
-
-
             <div className="flex items-center justify-between px-4 py-3">
               <span>
                 Theme
               </span>
-
               <ThemeToggle />
             </div>
-
-
             <button
               onClick={()=>setSettingsExpanded(!settingsExpanded)}
               className="flex w-full items-center justify-between rounded-md px-4 py-3"
             >
-
               <span className="flex items-center gap-3">
                 <Settings className="size-5"/>
                 Settings
               </span>
-
               <ChevronDown
                 className={`transition-transform ${
                   settingsExpanded ? "rotate-180" : ""
                 }`}
               />
-
             </button>
-
-
             {settingsExpanded && (
-
               <div className="ml-8 space-y-1">
-
                 {settingsLinks.map((item)=>{
-
                   const isActive = pathname === item.href;
-
-
                   return (
                     <Link
                       key={item.href}
@@ -292,14 +236,9 @@ export function AppShell({
                       {item.name}
                     </Link>
                   );
-
                 })}
-
               </div>
-
             )}
-
-
             <button
               onClick={handleLogout}
               className="mt-3 flex w-full items-center gap-3 rounded-md px-4 py-3 text-red-400"
@@ -307,21 +246,12 @@ export function AppShell({
               <LogOut className="size-5"/>
               Logout
             </button>
-
-
           </nav>
-
         </div>
-
       )}
-
-
-
       <main>
         {children}
       </main>
-
-
     </>
   );
 }
