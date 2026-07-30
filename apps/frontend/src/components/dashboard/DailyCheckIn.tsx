@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { CSVImportModal } from "@/components/CSVImportModal";
 import { addManualClimateAndWeight } from "@/app/actions/loggingreadings";
+import { AddPlantModal } from "@/components/AddPlantModal";
+
 type TrainingEvent = DailyCheckInFormData["trainingEvent"];
 export interface PlantOption {
   id: string;
@@ -61,11 +63,12 @@ interface PlantEntryState {
 }
 export function DailyCheckIn({
   rooms = [
-    { id: "room-1", name: "Flower Tent 1" },
-    { id: "room-2", name: "Veg Room" },
+    { id: "room-1", name: "Veg Room" },
+    { id: "room-2", name: "Flower Tent 1" },
   ],
   plants = [],
 }: DailyCheckInProps) {
+const [plantList, setPlantList] = useState<PlantOption[]>(plants);  const [showAddPlant, setShowAddPlant] = useState(false);
   const router = useRouter();
   // 1. Room State
   const [selectedRoomId, setSelectedRoomId] = useState<string>(
@@ -83,7 +86,7 @@ export function DailyCheckIn({
   }, [temp, rh]);
   // Filter plants for selected room
   const roomPlants = useMemo(() => {
-    return plants.filter(
+    return plantList.filter(
       (p) => !p.roomId || p.roomId === selectedRoomId || selectedRoomId === ""
     );
   }, [plants, selectedRoomId]);
@@ -337,9 +340,23 @@ const handleSubmit = (e: React.FormEvent) => {
               <h3 className="text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider">
                 Plants in Room ({roomPlants.length})
               </h3>
-              <span className="text-xs text-zinc-400">
-                Enter plant specific factors
-              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddPlant(true);
+                }}
+                className="
+                text-xs
+                font-bold
+                px-3
+                py-1.5
+                rounded-lg
+                bg-canopy
+                text-white
+                "
+              >
+                + Add Plant
+              </button>
             </div>
             {roomPlants.length === 0 ? (
               <p className="text-xs text-zinc-400 italic text-center py-6 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
@@ -544,6 +561,25 @@ const handleSubmit = (e: React.FormEvent) => {
         onClose={() => setIsCsvModalOpen(false)}
         onImportSuccess={handleCsvSuccess}
       />
+
+      <AddPlantModal
+      open={showAddPlant}
+      onClose={() => setShowAddPlant(false)}
+      rooms={rooms}
+      defaultRoomId={selectedRoomId}
+      onPlantCreated={(plant)=>{
+
+        setPlantList(prev=>[
+          ...prev,
+          {
+            id: plant.id,
+            name: plant.name,
+            roomId: plant.roomId ?? undefined,
+          }
+        ]);
+
+      }}
+    />
     </>
   );
 }
