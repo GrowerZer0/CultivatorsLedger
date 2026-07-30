@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """
 Sensor Ping Script - Publishes mock sensor data to PGMQ
-
 Usage:
     python3 sensor_ping.py [--interval SECONDS] [--room ROOM_ID] [--zone ZONE_ID]
 """
-
 import json
 import random
 import time
@@ -14,18 +12,14 @@ import logging
 import os
 from datetime import datetime
 from typing import Dict, Tuple, Optional
-
 import psycopg2
 from psycopg2 import OperationalError
 from dotenv import load_dotenv
-
 # Load environment variables from .env file
 load_dotenv()
-
 # ============================================================
 # CONFIGURATION FROM ENVIRONMENT
 # ============================================================
-
 DB_CONFIG = {
     'host': os.getenv('DB_HOST', 'localhost'),
     'port': int(os.getenv('DB_PORT', 5433)),
@@ -33,14 +27,11 @@ DB_CONFIG = {
     'user': os.getenv('DB_USER', 'postgres'),
     'password': os.getenv('DB_PASSWORD', 'postgres')
 }
-
 QUEUE_NAME = 'sensor_pings'
-
 # Default sensor identity
 DEFAULT_SENSOR_MAC = 'AA:BB:CC:DD:EE:FF'
 DEFAULT_ROOM_ID = 'tent_1'
 DEFAULT_ZONE_ID = 'Main'
-
 # Realistic sensor reading ranges
 TEMP_MIN = 22.0
 TEMP_MAX = 26.0
@@ -48,22 +39,18 @@ HUMIDITY_MIN = 55.0
 HUMIDITY_MAX = 75.0
 OFFSET_MIN = 1.5
 OFFSET_MAX = 3.0
-
 # ============================================================
 # LOGGING SETUP
 # ============================================================
-
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s | %(levelname)s | %(message)s',
     datefmt='%H:%M:%S'
 )
 logger = logging.getLogger(__name__)
-
 # ============================================================
 # CORE FUNCTIONS
 # ============================================================
-
 def get_db_connection() -> psycopg2.extensions.connection:
     """Establish a database connection with retries."""
     max_retries = 3
@@ -76,8 +63,6 @@ def get_db_connection() -> psycopg2.extensions.connection:
                 raise
             time.sleep(2)
     raise RuntimeError("Failed to connect to database after 3 attempts")
-
-
 def generate_sensor_reading() -> Tuple[float, float, float]:
     """Generate realistic sensor data."""
     return (
@@ -85,8 +70,6 @@ def generate_sensor_reading() -> Tuple[float, float, float]:
         round(random.uniform(HUMIDITY_MIN, HUMIDITY_MAX), 2),
         round(random.uniform(OFFSET_MIN, OFFSET_MAX), 2)
     )
-
-
 def create_sensor_payload(
     sensor_mac: str,
     room_id: str,
@@ -105,8 +88,6 @@ def create_sensor_payload(
         'leaf_offset_c': leaf_offset_c,
         'timestamp': datetime.now().isoformat()
     }
-
-
 def publish_sensor_ping(conn, payload: Dict) -> Optional[int]:
     """Publish a sensor reading to the PGMQ queue."""
     try:
@@ -122,8 +103,6 @@ def publish_sensor_ping(conn, payload: Dict) -> Optional[int]:
         logger.error(f"Failed to publish message: {e}")
         conn.rollback()
         return None
-
-
 def run_ping_loop(interval_seconds: int, sensor_mac: str, room_id: str, zone_id: str):
     """Main loop - generates and publishes sensor pings."""
     logger.info(f"🔄 Starting sensor ping loop (interval={interval_seconds}s)")
@@ -162,12 +141,9 @@ def run_ping_loop(interval_seconds: int, sensor_mac: str, room_id: str, zone_id:
         logger.error(f"Fatal error: {e}")
     finally:
         conn.close()
-
-
 # ============================================================
 # COMMAND LINE INTERFACE
 # ============================================================
-
 def parse_args():
     parser = argparse.ArgumentParser(description="Sensor Ping Script")
     parser.add_argument('--interval', '-i', type=int, default=5, help="Interval between pings (default: 5)")
@@ -175,8 +151,6 @@ def parse_args():
     parser.add_argument('--zone', '-z', type=str, default=DEFAULT_ZONE_ID, help=f"Zone ID (default: {DEFAULT_ZONE_ID})")
     parser.add_argument('--sensor', '-s', type=str, default=DEFAULT_SENSOR_MAC, help=f"Sensor MAC (default: {DEFAULT_SENSOR_MAC})")
     return parser.parse_args()
-
-
 if __name__ == "__main__":
     args = parse_args()
     run_ping_loop(

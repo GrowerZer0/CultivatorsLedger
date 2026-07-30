@@ -6,29 +6,23 @@ yarn-error.log
 .env
 .env.local
 .env.*.local
-
 # Python
 venv/
 __pycache__/
 *.pyc
 *.pyo
-
 # Docker
 docker-compose.override.yml
-
 # IDE
 .vscode/
 .idea/
-
 # AI Instructions
 AGENTS.md
 PROJECT_STATE.md
-
 # Build outputs
 dist/
 build/
 .next/
-
 .venv/
 .DS_Store
 .aider*

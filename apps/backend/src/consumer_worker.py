@@ -2,7 +2,6 @@
 """
 Consumer Worker - Reads from PGMQ using read() + delete() for data safety
 """
-
 import json
 import time
 import argparse
@@ -12,13 +11,10 @@ from typing import Optional, Dict, Any, List, Tuple
 import psycopg2
 from psycopg2 import OperationalError, IntegrityError
 from dotenv import load_dotenv
-
 load_dotenv()
-
 # ============================================================
 # CONFIGURATION
 # ============================================================
-
 DB_CONFIG = {
     'host': os.getenv('DB_HOST', 'localhost'),
     'port': int(os.getenv('DB_PORT', 5433)),
@@ -26,35 +22,28 @@ DB_CONFIG = {
     'user': os.getenv('DB_USER', 'postgres'),
     'password': os.getenv('DB_PASSWORD', 'postgres')
 }
-
 QUEUE_NAME = 'sensor_pings'
 VISIBILITY_TIMEOUT_SECONDS = 30
-
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s | %(levelname)s | %(message)s',
     datefmt='%H:%M:%S'
 )
 logger = logging.getLogger(__name__)
-
 # ============================================================
 # VPD CALCULATION
 # ============================================================
-
 def calculate_vpd(air_temp_c: float, relative_humidity: float, leaf_offset_c: float) -> float:
     leaf_temp_c = air_temp_c - leaf_offset_c
     svp = 610.78 * (2.71828 ** (17.27 * leaf_temp_c / (leaf_temp_c + 237.3)))
     avp = svp * (relative_humidity / 100.0)
     vpd_kpa = round((svp - avp) / 1000.0, 2)
     return max(0.0, vpd_kpa)
-
 # ============================================================
 # DATABASE FUNCTIONS
 # ============================================================
-
 def get_db_connection():
     return psycopg2.connect(**DB_CONFIG)
-
 def read_messages(conn, batch_size: int = 1) -> List[Tuple[int, Any, str]]:
     try:
         with conn.cursor() as cur:
@@ -67,7 +56,6 @@ def read_messages(conn, batch_size: int = 1) -> List[Tuple[int, Any, str]]:
     except Exception as e:
         logger.error(f"Failed to read messages: {e}")
         return []
-
 def delete_message(conn, msg_id: int) -> bool:
     try:
         with conn.cursor() as cur:
@@ -78,7 +66,6 @@ def delete_message(conn, msg_id: int) -> bool:
         logger.error(f"Failed to delete message {msg_id}: {e}")
         conn.rollback()
         return False
-
 def insert_climate_log(conn, payload: Dict[str, Any]) -> Tuple[bool, Optional[float]]:
     try:
         air_temp_c = payload['air_temp_c']
@@ -114,7 +101,6 @@ def insert_climate_log(conn, payload: Dict[str, Any]) -> Tuple[bool, Optional[fl
         logger.error(f"Database insert error: {e}")
         conn.rollback()
         return False, None
-
 def process_message(conn, msg_id: int, msg_content) -> bool:
     try:
         if isinstance(msg_content, dict):
@@ -136,14 +122,12 @@ def process_message(conn, msg_id: int, msg_content) -> bool:
     except Exception as e:
         logger.error(f"Unexpected error parsing message {msg_id}: {e}")
         return True
-
     success, vpd_value = insert_climate_log(conn, payload)
     if success:
         logger.debug(f"✅ Processed message {msg_id}")
     else:
         logger.warning(f"⚠️  Failed to process message {msg_id}")
     return success
-
 def run_consumer(batch_size: int = 1, poll_interval: int = 1):
     logger.info(f"🔄 Consumer started (batch_size={batch_size}, poll_interval={poll_interval}s)")
     logger.info(f"   Queue: '{QUEUE_NAME}'")
@@ -188,13 +172,11 @@ def run_consumer(batch_size: int = 1, poll_interval: int = 1):
         conn.rollback()
     finally:
         conn.close()
-
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--batch-size', '-b', type=int, default=1)
     parser.add_argument('--poll-interval', '-p', type=int, default=1)
     return parser.parse_args()
-
 if __name__ == "__main__":
     args = parse_args()
     run_consumer(batch_size=args.batch_size, poll_interval=args.poll_interval)

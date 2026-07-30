@@ -3,5 +3,4 @@ psycopg2-binary>=2.9.9
 python-dotenv>=1.0.0
 EOF
 git add requirements.txt
-
 prisma generate --schema=../frontend/prisma/schema.prisma
