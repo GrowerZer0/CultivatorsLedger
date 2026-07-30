@@ -212,7 +212,7 @@ export function AppShell({
 
               const Icon = tab.icon;
 
-              const isActive = tab.match.some(
+              const isActive = tab.match?.some(
                 route =>
                   pathname === route ||
                   pathname.startsWith(route + "/")
