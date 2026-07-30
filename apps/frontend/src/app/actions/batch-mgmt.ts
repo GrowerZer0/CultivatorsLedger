@@ -1,27 +1,21 @@
 "use server";
-
 import { db, prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getUserId } from "@/lib/session";
 import { supabase } from "@/lib/supabase";
-
 // ==========================================
 // BATCH MANAGEMENT
 // ==========================================
-
 export async function getBatches() {
   const userId = await getUserId();
-
   return await db.batch.findMany({
     where: { userId },
     orderBy: { startDate: "desc" },
     include: { dryBackLogs: true },
   });
 }
-
 export async function getBatch(batchId: string) {
   const userId = await getUserId();
-
   return await db.batch.findUnique({
     where: { id: batchId, userId },
     include: {
@@ -32,7 +26,6 @@ export async function getBatch(batchId: string) {
     },
   });
 }
-
 export async function createBatch(data: {
   name: string;
   cultivar: string;
@@ -62,7 +55,6 @@ export async function createBatch(data: {
     return { success: false, error: "Failed to create batch." };
   }
 }
-
 export async function updateBatch(
   batchId: string,
   data: {
@@ -95,7 +87,6 @@ export async function updateBatch(
     return { success: false, error: "Failed to update batch." };
   }
 }
-
 export async function updateBatchTargets(data: {
   batchId: string;
   wetWeight?: number | null;
@@ -106,7 +97,6 @@ export async function updateBatchTargets(data: {
     dryTarget: data.dryTarget,
   });
 }
-
 export async function deleteBatch(batchId: string) {
   try {
     const userId = await getUserId();
@@ -121,7 +111,6 @@ export async function deleteBatch(batchId: string) {
     return { success: false, error: "Failed to delete batch." };
   }
 }
-
 export async function exportAllBatches() {
   const userId = await getUserId();
   return await db.batch.findMany({
@@ -134,7 +123,6 @@ export async function exportAllBatches() {
     orderBy: { startDate: "desc" },
   });
 }
-
 export async function getBatchesForComparison(batchIds: string[]) {
   const userId = await getUserId();
   return await db.batch.findMany({
@@ -150,7 +138,6 @@ export async function getBatchesForComparison(batchIds: string[]) {
     },
   });
 }
-
 export async function setActiveBatch(batchId: string) {
   // Frontend state handling placeholder
 }

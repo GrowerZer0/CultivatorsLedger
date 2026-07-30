@@ -1,15 +1,11 @@
 "use server";
-
 import { db, prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getUserId } from "@/lib/session";
 import { supabase } from "@/lib/supabase";
-
-
 // ==========================================
 // PLANT MANAGEMENT
 // ==========================================
-
 export async function getPlants() {
   const userId = await getUserId();
   return await db.plant.findMany({
@@ -17,7 +13,6 @@ export async function getPlants() {
     orderBy: { createdAt: "asc" },
   });
 }
-
 export async function getPlantsForBatch(batchId: string) {
   const userId = await getUserId();
   return await db.plant.findMany({
@@ -25,7 +20,6 @@ export async function getPlantsForBatch(batchId: string) {
     orderBy: { createdAt: "asc" },
   });
 }
-
 export async function createPlant(data: {
   name: string;
   strain?: string;
@@ -57,7 +51,6 @@ export async function createPlant(data: {
     return { success: false, error: "Failed to create plant." };
   }
 }
-
 export async function updatePlant(data: {
   id: string;
   name?: string;
@@ -92,7 +85,6 @@ export async function updatePlant(data: {
     return { success: false, error: "Failed to update plant." };
   }
 }
-
 export async function deletePlant(plantId: string) {
   try {
     const userId = await getUserId();
@@ -107,7 +99,6 @@ export async function deletePlant(plantId: string) {
     return { success: false, error: "Failed to delete plant." };
   }
 }
-
 export async function fetchPlants() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");

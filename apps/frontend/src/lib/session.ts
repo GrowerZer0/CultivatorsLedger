@@ -1,7 +1,6 @@
 // lib/session.ts
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-
 export async function getUserId() {
   const cookieStore = await cookies()
   const supabase = createServerClient(
@@ -21,7 +20,6 @@ export async function getUserId() {
       },
     }
   )
-
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Not authenticated')
   return user.id

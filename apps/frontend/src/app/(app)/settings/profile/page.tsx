@@ -1,23 +1,19 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import { SectionPanel } from "@/components/layout/SectionPanel";
 import { getUserProfile, updateUserProfile } from "@/app/actions/profile";
 import { supabase } from "@/lib/supabase";
-
 export default function ProfileSettingsPage() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-
   const [formData, setFormData] = useState({
     displayName: "",
     email: "",
     timezone: "UTC",
     language: "en",
   });
-
   useEffect(() => {
     async function loadProfile() {
       try {
@@ -39,7 +35,6 @@ export default function ProfileSettingsPage() {
     }
     loadProfile();
   }, []);
-
   async function handleSave() {
     setSaving(true);
     setMessage(null);
@@ -57,14 +52,11 @@ export default function ProfileSettingsPage() {
       setSaving(false);
     }
   }
-
   async function handleSignOut() {
     await supabase.auth.signOut();
     window.location.href = "/auth/login";
   }
-
   if (loading) return <div className="text-xs text-zinc-500 py-8 text-center animate-pulse">Loading profile...</div>;
-
   return (
     <SectionPanel title="Profile & Account">
       <div className="space-y-6 max-w-xl">
@@ -73,7 +65,6 @@ export default function ProfileSettingsPage() {
             {message.text}
           </div>
         )}
-
         <div className="space-y-4">
           <h4 className="text-sm font-semibold text-white">Account Information</h4>
           <div className="grid grid-cols-1 gap-4">
@@ -99,7 +90,6 @@ export default function ProfileSettingsPage() {
             </div>
           </div>
         </div>
-
         <div className="border-t border-zinc-800 pt-4 space-y-4">
           <h4 className="text-sm font-semibold text-white">Preferences</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -141,7 +131,6 @@ export default function ProfileSettingsPage() {
             </div>
           </div>
         </div>
-
         <div className="border-t border-zinc-800 pt-4 space-y-4">
           <h4 className="text-sm font-semibold text-white">Subscription</h4>
           <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl">
@@ -156,13 +145,11 @@ export default function ProfileSettingsPage() {
             <button className="mt-3 px-3 py-1.5 text-xs font-semibold rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition">Manage Billing</button>
           </div>
         </div>
-
         <div className="pt-4">
           <button onClick={handleSave} disabled={saving} className="w-full px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white transition">
             {saving ? "Saving..." : "Save Changes"}
           </button>
         </div>
-
         <div className="border-t border-zinc-800 pt-4">
           <button onClick={handleSignOut} className="w-full px-4 py-2 text-sm font-semibold rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition">Sign Out</button>
         </div>

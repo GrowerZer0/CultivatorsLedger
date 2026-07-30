@@ -1,10 +1,8 @@
 // src/app/actions/profile.ts
 "use server";
-
 import { prisma } from "@/lib/db";
 import { supabase } from "@/lib/supabase";
 import { revalidatePath } from "next/cache";
-
 export type UserProfile = {
   id: string;
   email: string;
@@ -14,7 +12,6 @@ export type UserProfile = {
   preferredTempUnit: "C" | "F";
   activeFeedLine: string | null;
 };
-
 /**
  * Get the current user's profile.
  * Returns null if not authenticated.
@@ -22,7 +19,6 @@ export type UserProfile = {
 export async function getUserProfile(): Promise<UserProfile | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
-
   const profile = await prisma.user.findUnique({
     where: { id: user.id },
     select: {
@@ -35,7 +31,6 @@ export async function getUserProfile(): Promise<UserProfile | null> {
       activeFeedLine: true,
     },
   });
-
   if (!profile) {
     // Create default profile if none exists
     const newProfile = await prisma.user.create({
@@ -58,21 +53,18 @@ export async function getUserProfile(): Promise<UserProfile | null> {
         activeFeedLine: true,
       },
     });
-
     // Cast the preferredTempUnit to union type
     return {
       ...newProfile,
       preferredTempUnit: newProfile.preferredTempUnit as "C" | "F",
     };
   }
-
   // Cast for existing profile
   return {
     ...profile,
     preferredTempUnit: profile.preferredTempUnit as "C" | "F",
   };
 }
-
 /**
  * Update the current user's profile.
  * Returns the updated profile.
@@ -82,9 +74,7 @@ export async function updateUserProfile(
 ): Promise<UserProfile> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
-
   const { displayName, timezone, language, preferredTempUnit, activeFeedLine } = data;
-
   const updated = await prisma.user.update({
     where: { id: user.id },
     data: {
@@ -104,10 +94,8 @@ export async function updateUserProfile(
       activeFeedLine: true,
     },
   });
-
   revalidatePath("/settings/profile");
   revalidatePath("/settings/system");
-
   // Cast before returning
   return {
     ...updated,

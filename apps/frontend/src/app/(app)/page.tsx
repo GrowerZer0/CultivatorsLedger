@@ -3,18 +3,14 @@ import Link from 'next/link';
 import { DailyCheckIn } from '@/components/dashboard/DailyCheckIn';
 import { getPlants } from '@/app/actions/plant-mgmt';
 import { BarChart3, ChevronRight } from 'lucide-react';
-
 export const revalidate = 0; // Fresh data on every load (Server Component segment config)
-
 export default async function HomePage() {
   const plantsRaw = await getPlants();
-
   // Transform Prisma plants into the shape expected by DailyCheckIn
   const activePlants = plantsRaw.map((plant) => ({
     id: plant.id,
     name: plant.name,
   }));
-
   return (
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header / Navigation Quick Link */}
@@ -32,7 +28,6 @@ export default async function HomePage() {
             <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
-
         {/* Primary Operational Loop Component */}
         <DailyCheckIn plants={activePlants} />
       </div>

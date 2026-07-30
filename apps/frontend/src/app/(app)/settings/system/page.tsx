@@ -9,7 +9,6 @@ import { getSystemSettings, updateTempUnitPreference } from
 export default function SystemSettingsPage() {                                  
   const [preferredTempUnit, setPreferredTempUnit] = useState<"C" | "F">("C");   
   const [loading, setLoading] = useState(true);                              
-
   useEffect(() => {                                                             
     async function loadSettings() {                                             
       try {                                                                     
@@ -59,7 +58,6 @@ animate-pulse">Loading system preferences...</div>;
             </button>
           </div>
         </div>
-
         <div className="flex items-center justify-between border-t border-zinc-800 pt-4">
           <div>
             <h4 className="text-sm font-semibold text-white">UI Color Mode</h4>
@@ -67,7 +65,6 @@ animate-pulse">Loading system preferences...</div>;
           </div>
           <ThemeToggle />
         </div>
-
         <div className="border-t border-zinc-800 pt-4">
           <h4 className="text-sm font-semibold text-white">Data & Privacy</h4>
           <p className="text-xs text-zinc-400 mt-1">Manage your data export, deletion, and privacy settings.</p>

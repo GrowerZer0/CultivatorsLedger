@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState, useTransition, useMemo } from "react";
 import { recordDailyCheckInLog, DailyCheckInFormData } from "@/app/actions/check-in";
 import { useRouter } from "next/navigation";
@@ -19,25 +18,20 @@ import {
 } from "lucide-react";
 import { CSVImportModal } from "@/components/CSVImportModal";
 import { addManualClimateAndWeight } from "@/app/actions/loggingreadings";
-
 type TrainingEvent = DailyCheckInFormData["trainingEvent"];
-
 export interface PlantOption {
   id: string;
   name: string;
   roomId?: string;
 }
-
 export interface RoomOption {
   id: string;
   name: string;
 }
-
 interface DailyCheckInProps {
   rooms?: RoomOption[];
   plants?: PlantOption[];
 }
-
 const TRAINING_EVENTS: TrainingEvent[] = [
   "None",
   "Top",
@@ -46,7 +40,6 @@ const TRAINING_EVENTS: TrainingEvent[] = [
   "Flip",
   "Harvest",
 ];
-
 // Helper: Calculate Vapor Pressure Deficit (VPD) in kPa
 function calculateVPD(tempF: number, rh: number): number | null {
   if (isNaN(tempF) || isNaN(rh) || rh < 0 || rh > 100) return null;
@@ -56,7 +49,6 @@ function calculateVPD(tempF: number, rh: number): number | null {
   const vpd = vpsat - vpact;
   return Math.max(0, parseFloat(vpd.toFixed(2)));
 }
-
 interface PlantEntryState {
   weight: number | "";
   watered: boolean;
@@ -67,7 +59,6 @@ interface PlantEntryState {
   audioBlob: Blob | null;
   isRecording: boolean;
 }
-
 export function DailyCheckIn({
   rooms = [
     { id: "room-1", name: "Flower Tent 1" },
@@ -76,34 +67,28 @@ export function DailyCheckIn({
   plants = [],
 }: DailyCheckInProps) {
   const router = useRouter();
-
   // 1. Room State
   const [selectedRoomId, setSelectedRoomId] = useState<string>(
     rooms[0]?.id || ""
   );
-
   // 2. Room Telemetry State
   const [temp, setTemp] = useState<string>("");
   const [rh, setRh] = useState<string>("");
   const [isCsvSynced, setIsCsvSynced] = useState<boolean>(false);
-
   // Calculate live VPD
   const vpdValue = useMemo(() => {
     const t = parseFloat(temp);
     const r = parseFloat(rh);
     return calculateVPD(t, r);
   }, [temp, rh]);
-
   // Filter plants for selected room
   const roomPlants = useMemo(() => {
     return plants.filter(
       (p) => !p.roomId || p.roomId === selectedRoomId || selectedRoomId === ""
     );
   }, [plants, selectedRoomId]);
-
   // 3. Dynamic Card State per Plant
   const [plantStates, setPlantStates] = useState<Record<string, PlantEntryState>>({});
-
   const getPlantState = (plantId: string): PlantEntryState => {
     return (
       plantStates[plantId] || {
@@ -118,7 +103,6 @@ export function DailyCheckIn({
       }
     );
   };
-
   const updatePlantState = (
     plantId: string,
     updates: Partial<PlantEntryState>
@@ -131,7 +115,6 @@ export function DailyCheckIn({
       },
     }));
   };
-
   // UI & Action States
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -140,16 +123,13 @@ export function DailyCheckIn({
     message: string;
   } | null>(null);
   const [csvReadingTime, setCsvReadingTime] = useState<string | null>(null);
-
   // CSV Autofill Handler for Telemetry
   const handleCsvSuccess = (parsedData: any[]) => {
     if (parsedData.length > 0) {
       const latest = parsedData[parsedData.length - 1];
       let imported = false;
-
       const tempVal = latest.temp ?? latest.temperature;
       const rhVal = latest.rh ?? latest.humidity;
-
       if (tempVal !== undefined && tempVal !== null && tempVal !== "") {
         setTemp(String(tempVal));
         imported = true;
@@ -158,26 +138,21 @@ export function DailyCheckIn({
         setRh(String(rhVal));
         imported = true;
       }
-
       if (latest.timestamp) {
       setCsvReadingTime(latest.timestamp);
       }
-
       if (imported) setIsCsvSynced(true);
     }
   };
-
 const handleSubmit = (e: React.FormEvent) => {
   e.preventDefault();
   setFeedback(null);
-
   startTransition(async () => {
     try {
       // 1. Save room-level climate telemetry, if entered
       const tempF = parseFloat(temp);
       const rhVal = parseFloat(rh);
       const hasClimate = !isNaN(tempF) && !isNaN(rhVal);
-
       if (hasClimate) {
         const tempC = ((tempF - 32) * 5) / 9;
         await addManualClimateAndWeight({
@@ -187,10 +162,8 @@ const handleSubmit = (e: React.FormEvent) => {
           dryTarget: 13.2,
         });
       }
-
       // 2. Save plant check-in logs ONLY for plants that actually have data entered
       let plantLogsRecorded = 0;
-
       for (const plant of roomPlants) {
         const st = getPlantState(plant.id);
         
@@ -198,10 +171,8 @@ const handleSubmit = (e: React.FormEvent) => {
         const hasWeight = typeof st.weight === "number" && st.weight > 0;
         const hasNotes = Boolean(st.notes?.trim());
         const hasActions = st.watered || st.fed || st.trainingEvent;
-
         // Skip plants that were left untouched
         if (!hasWeight && !hasNotes && !hasActions) continue;
-
         const payload: DailyCheckInFormData = {
           plantId: plant.id,
           weight: st.weight === "" || st.weight === undefined ? undefined: st.weight,
@@ -210,14 +181,12 @@ const handleSubmit = (e: React.FormEvent) => {
           trainingEvent: st.trainingEvent,
           notes: st.notes.trim() || undefined,
         };
-
         const result = await recordDailyCheckInLog(payload);
         if (!result.success) {
           throw new Error(result.error || `Failed log for ${plant.name}`);
         }
         plantLogsRecorded++;
       }
-
       // Safeguard: Ensure at least climate data OR at least one plant entry was submitted
       if (!hasClimate && plantLogsRecorded === 0) {
         setFeedback({
@@ -226,17 +195,14 @@ const handleSubmit = (e: React.FormEvent) => {
         });
         return;
       }
-
       setFeedback({
         type: "success",
         message: "Check-in logged successfully! Redirecting...",
       });
-
       setPlantStates({});
       setTemp("");
       setRh("");
       setIsCsvSynced(false);
-
       router.push("/dashboard");
       router.refresh();
     } catch (err: any) {
@@ -247,7 +213,6 @@ const handleSubmit = (e: React.FormEvent) => {
     }
   });
 };
-
   return (
     <>
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xl max-w-2xl mx-auto space-y-6">
@@ -261,7 +226,6 @@ const handleSubmit = (e: React.FormEvent) => {
               Record room telemetry and plant batch factors
             </p>
           </div>
-
           <button
             type="button"
             onClick={() => setIsCsvModalOpen(true)}
@@ -271,7 +235,6 @@ const handleSubmit = (e: React.FormEvent) => {
             <span>Import CSV</span>
           </button>
         </div>
-
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Section 1: Room Selector */}
           <div>
@@ -301,7 +264,6 @@ const handleSubmit = (e: React.FormEvent) => {
               )}
             </select>
           </div>
-
           {/* Section 2: Room Environmental Telemetry & Live VPD (With CSV Visual Feedback) */}
           <div
             className={`border rounded-xl p-4 transition-all ${
@@ -315,7 +277,6 @@ const handleSubmit = (e: React.FormEvent) => {
               <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                 Room Telemetry
               </span>
-
               {isCsvSynced && (
                 <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold border border-emerald-500/20 animate-fade-in">
                   <Sparkles className="size-3" />
@@ -323,7 +284,6 @@ const handleSubmit = (e: React.FormEvent) => {
                 </span>
               )}
             </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
               <div>
                 <label className="text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
@@ -342,7 +302,6 @@ const handleSubmit = (e: React.FormEvent) => {
                   className="w-full p-2 bg-white dark:bg-zinc-900 text-graphite dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-canopy dark:focus:ring-emerald-500 outline-none text-sm font-semibold"
                 />
               </div>
-
               <div>
                 <label className="text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
                   <Droplet className="size-4 text-blue-500" />
@@ -360,7 +319,6 @@ const handleSubmit = (e: React.FormEvent) => {
                   className="w-full p-2 bg-white dark:bg-zinc-900 text-graphite dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-canopy dark:focus:ring-emerald-500 outline-none text-sm font-semibold"
                 />
               </div>
-
               {/* VPD Metric Display */}
               <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700/80">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
@@ -373,7 +331,6 @@ const handleSubmit = (e: React.FormEvent) => {
               </div>
             </div>
           </div>
-
           {/* Section 3: Plant Cards Batch List */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -384,7 +341,6 @@ const handleSubmit = (e: React.FormEvent) => {
                 Enter plant specific factors
               </span>
             </div>
-
             {roomPlants.length === 0 ? (
               <p className="text-xs text-zinc-400 italic text-center py-6 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
                 No active plants found for this room.
@@ -405,7 +361,6 @@ const handleSubmit = (e: React.FormEvent) => {
                         ID: {plant.id.slice(0, 8)}
                       </span>
                     </div>
-
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1 flex items-center gap-1">
@@ -428,7 +383,6 @@ const handleSubmit = (e: React.FormEvent) => {
                           className="w-full p-2 bg-mist/30 dark:bg-zinc-800 text-graphite dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-semibold outline-none focus:ring-2 focus:ring-canopy dark:focus:ring-emerald-500"
                         />
                       </div>
-
                       <div className="grid grid-cols-2 gap-2">
                         <div>
                           <span className="block text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
@@ -450,7 +404,6 @@ const handleSubmit = (e: React.FormEvent) => {
                             {st.watered ? "Yes" : "No"}
                           </button>
                         </div>
-
                         <div>
                           <span className="block text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
                             Fed
@@ -471,7 +424,6 @@ const handleSubmit = (e: React.FormEvent) => {
                         </div>
                       </div>
                     </div>
-
                     <div>
                       <span className="block text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
                         Training Event
@@ -497,7 +449,6 @@ const handleSubmit = (e: React.FormEvent) => {
                         ))}
                       </div>
                     </div>
-
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
                       <div className="sm:col-span-2">
                         <input
@@ -511,7 +462,6 @@ const handleSubmit = (e: React.FormEvent) => {
                           className="w-full p-2 bg-mist/30 dark:bg-zinc-800 text-graphite dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs outline-none"
                         />
                       </div>
-
                       <div className="flex items-center gap-1.5">
                         <button
                           type="button"
@@ -533,7 +483,6 @@ const handleSubmit = (e: React.FormEvent) => {
                             <Mic className="size-3.5" />
                           )}
                         </button>
-
                         <label
                           className="flex-1 flex items-center justify-center p-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-mist/30 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 cursor-pointer hover:border-canopy dark:hover:border-emerald-500"
                           title="Attach photo"
@@ -560,7 +509,6 @@ const handleSubmit = (e: React.FormEvent) => {
               })
             )}
           </div>
-
           {feedback && (
             <p
               className={`text-center text-xs font-bold ${
@@ -572,7 +520,6 @@ const handleSubmit = (e: React.FormEvent) => {
               {feedback.message}
             </p>
           )}
-
           <button
             type="submit"
             disabled={isPending || roomPlants.length === 0}
@@ -592,7 +539,6 @@ const handleSubmit = (e: React.FormEvent) => {
           </button>
         </form>
       </div>
-
       <CSVImportModal
         isOpen={isCsvModalOpen}
         onClose={() => setIsCsvModalOpen(false)}

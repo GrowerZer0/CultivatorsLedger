@@ -1,234 +1,320 @@
 "use client";
 
 import { useState } from "react";
-import { Leaf, Menu, X, Gauge, Weight, Droplets, Settings, LogOut, ThermometerSun, Droplet, Wind, ChevronDown } from "lucide-react";
+import {
+  Leaf,
+  Menu,
+  X,
+  Gauge,
+  Droplets,
+  Settings,
+  LogOut,
+  ThermometerSun,
+  Droplet,
+  Wind,
+  ChevronDown,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useTelemetry } from "@/lib/telemetry-context";
-
-// Define Plant type more accurately for local use
-type Plant = {
-  id: string;
-  name: string;
-  strain?: string | null;
-  batchId?: string | null;
-  roomId?: string | null;
-  wetWeight?: number | null;
-  dryTarget?: number | null;
-  stage?: string | null;
-  containerGallons?: number | null;
-};
 
 type AppShellProps = {
   children: ReactNode;
   unitSystem?: "imperial" | "metric";
 };
 
-export function AppShell({ children, unitSystem = "imperial" }: AppShellProps) {
-  const router = useRouter(); 
+export function AppShell({
+  children,
+  unitSystem = "imperial",
+}: AppShellProps) {
   const pathname = usePathname();
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-const [settingsExpanded, setSettingsExpanded] = useState(
-  pathname.startsWith("/settings")
-);  const { data } = useTelemetry();
+
+  const [settingsExpanded, setSettingsExpanded] = useState(
+    pathname.startsWith("/settings")
+  );
+
+  const { data } = useTelemetry();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     window.location.href = "/auth/login";
   };
 
+
   const tabs = [
-    { name: "Dashboard", href: "/", icon: Gauge, color: "text-canopy dark:text-emerald-400" },
-    { name: "Nutrients", href: "/nutrients", icon: Droplets, color: "text-canopy dark:text-emerald-400" },
+    {
+      name: "Dashboard",
+      href: "/",
+      match: ["/", "/dashboard"],
+      icon: Gauge,
+      color: "text-canopy dark:text-emerald-400",
+    },
+    {
+      name: "Nutrients",
+      href: "/nutrients",
+      match: ["/nutrients"],
+      icon: Droplets,
+      color: "text-canopy dark:text-emerald-400",
+    },
   ];
 
+
   const settingsLinks = [
-  { name: "Profile", href: "/settings/profile" },
-  { name: "Facility", href: "/settings/facility" },
-  { name: "Hardware", href: "/settings/hardware" },
-  { name: "Nutrients", href: "/settings/nutrients" },
-  { name: "System", href: "/settings/system" },
-];
+    { name: "Profile", href: "/settings/profile" },
+    { name: "Facility", href: "/settings/facility" },
+    { name: "Hardware", href: "/settings/hardware" },
+    { name: "Nutrients", href: "/settings/nutrients" },
+    { name: "System", href: "/settings/system" },
+  ];
 
-  // --- Telemetry Data Extraction ---
+
   const env = data.latestEnvironment;
-  
-  // Format Temp (°F vs °C)
-  const tempFormatted = env?.temperatureF !== undefined && env?.temperatureF !== null
-    ? unitSystem === "imperial"
-      ? `${Math.round(Number(env.temperatureF))}°F`
-      : `${(((Number(env.temperatureF) - 32) * 5) / 9).toFixed(1)}°C`
-    : "--";
 
-  const rhFormatted = env?.humidity !== undefined && env?.humidity !== null
-    ? `${Math.round(Number(env.humidity))}%`
-    : "--";
 
-  const vpdFormatted = env?.vpd !== undefined && env?.vpd !== null
-    ? `${Number(env.vpd).toFixed(1)} kPa`
-    : "--";
+  const tempFormatted =
+    env?.temperatureF !== undefined && env?.temperatureF !== null
+      ? unitSystem === "imperial"
+        ? `${Math.round(Number(env.temperatureF))}°F`
+        : `${(((Number(env.temperatureF) - 32) * 5) / 9).toFixed(1)}°C`
+      : "--";
+
+
+  const rhFormatted =
+    env?.humidity !== undefined && env?.humidity !== null
+      ? `${Math.round(Number(env.humidity))}%`
+      : "--";
+
+
+  const vpdFormatted =
+    env?.vpd !== undefined && env?.vpd !== null
+      ? `${Number(env.vpd).toFixed(1)} kPa`
+      : "--";
+
 
   return (
-    <main className="min-h-screen bg-[#f6f8f4] dark:bg-zinc-950 text-graphite dark:text-zinc-100 transition-colors duration-200">
-      {/* Header */}
-      <header className="border-b border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 transition-colors duration-200 sticky top-0 z-40">
+    <>
+
+      <header className="border-b border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-950">
+
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-          {/* Brand Logo (left) */}
-          <Link href="/dashboard" className="flex items-center gap-3 group">
+
+          {/* Brand */}
+          <Link href="/" className="flex items-center gap-3">
+
             <div className="grid size-10 place-items-center rounded-md bg-canopy text-white">
-              <Leaf aria-hidden="true" className="size-5" />
+              <Leaf className="size-5" />
             </div>
+
             <div className="hidden sm:block">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-clay dark:text-orange-400">
                 Single-grower command
               </p>
-              <h1 className="text-xl font-semibold tracking-normal text-graphite dark:text-zinc-100">
+
+              <h1 className="text-xl font-semibold text-graphite dark:text-zinc-100">
                 Cultivator's Ledger
               </h1>
             </div>
+
           </Link>
 
-          {/* Telemetry Pill (center) — hidden on mobile, shown sm and up */}
-          <div className="hidden sm:flex items-center gap-2 sm:gap-4 rounded-full border border-[#d9e2dc] dark:border-zinc-800 bg-mist/60 dark:bg-zinc-800/60 px-3 py-1.5 text-xs font-medium">
-            <div className="flex items-center gap-1 text-zinc-700 dark:text-zinc-300" title="Air Temperature">
+
+          {/* Telemetry */}
+          <div className="hidden sm:flex items-center gap-3 rounded-full border border-[#d9e2dc] dark:border-zinc-800 bg-mist/60 dark:bg-zinc-800/60 px-3 py-1.5 text-xs">
+
+            <span className="flex items-center gap-1">
               <ThermometerSun className="size-3.5 text-orange-500" />
-              <span>{tempFormatted}</span>
-            </div>
-            <span className="text-zinc-300 dark:text-zinc-700">|</span>
-            <div className="flex items-center gap-1 text-zinc-700 dark:text-zinc-300" title="Relative Humidity">
+              {tempFormatted}
+            </span>
+
+            <span>|</span>
+
+            <span className="flex items-center gap-1">
               <Droplet className="size-3.5 text-blue-500" />
-              <span>{rhFormatted}</span>
-            </div>
-            <span className="text-zinc-300 dark:text-zinc-700">|</span>
-            <div className="flex items-center gap-1 text-zinc-700 dark:text-zinc-300" title="Vapor Pressure Deficit">
+              {rhFormatted}
+            </span>
+
+            <span>|</span>
+
+            <span className="flex items-center gap-1">
               <Wind className="size-3.5 text-emerald-500" />
-              <span>{vpdFormatted}</span>
-            </div>
+              {vpdFormatted}
+            </span>
+
           </div>
 
-          {/* Right side: Log a Reading + Hamburger */}
+
+          {/* Actions */}
           <div className="flex items-center gap-2">
+
             <Link
               href="/"
-              className="hidden sm:inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-3 py-2 text-xs font-bold text-white shadow-md shadow-emerald-950/20 transition-all"
+              className="hidden sm:inline-flex rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white"
             >
               Log a Reading
             </Link>
+
+
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="grid size-10 place-items-center rounded-md border border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800"
-              aria-label="Toggle navigation menu"
+              className="grid size-10 place-items-center rounded-md border border-[#d9e2dc] dark:border-zinc-800"
             >
-              {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+              {mobileMenuOpen ? (
+                <X className="size-5" />
+              ) : (
+                <Menu className="size-5" />
+              )}
             </button>
+
           </div>
+
         </div>
+
       </header>
 
-      {/* Dropdown Drawer */}
+
+
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)}>
-          <nav 
-            className="absolute top-[73px] left-0 right-0 border-b border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 flex flex-col gap-2 shadow-lg animate-in slide-in-from-top-2 duration-150"
-            onClick={(e) => e.stopPropagation()}
+
+        <div
+          className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm"
+          onClick={() => {
+            setMobileMenuOpen(false);
+            setSettingsExpanded(false);
+          }}
+        >
+
+          <nav
+            className="absolute top-[73px] left-0 right-0 bg-white dark:bg-zinc-900 p-4 shadow-lg"
+            onClick={(e)=>e.stopPropagation()}
           >
+
             <Link
               href="/"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-base font-bold text-white shadow-lg mb-2"
+              className="block rounded-xl bg-emerald-600 px-4 py-3 text-center font-bold text-white"
             >
               Log a Reading
             </Link>
-            {tabs.map((tab) => {
+
+
+            {tabs.map((tab)=>{
+
               const Icon = tab.icon;
-              const isActive = pathname === tab.href;
+
+              const isActive = tab.match.some(
+                route =>
+                  pathname === route ||
+                  pathname.startsWith(route + "/")
+              );
+
+
               return (
                 <Link
                   key={tab.name}
                   href={tab.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 rounded-md px-4 py-3 text-base font-medium transition-colors ${
+                  onClick={()=>setMobileMenuOpen(false)}
+                  className={`mt-2 flex items-center gap-3 rounded-md px-4 py-3 ${
                     isActive
-                      ? "bg-[#ebd2c1]/20 dark:bg-zinc-800 text-graphite dark:text-zinc-100"
-                      : "text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800/50"
+                      ? "bg-zinc-800 text-white"
+                      : "text-zinc-600 dark:text-zinc-400"
                   }`}
                 >
                   <Icon className={`size-5 ${tab.color}`} />
-                  <span>{tab.name}</span>
+                  {tab.name}
                 </Link>
               );
+
             })}
 
-            <div className="border-t border-[#d9e2dc] dark:border-zinc-800 my-2" />
+
+            <div className="my-3 border-t border-zinc-200 dark:border-zinc-800"/>
+
 
             <div className="flex items-center justify-between px-4 py-3">
-              <span className="text-base font-medium text-zinc-600 dark:text-zinc-400">Theme</span>
+              <span>
+                Theme
+              </span>
+
               <ThemeToggle />
             </div>
 
-            {/* Settings Disclosure */}
+
             <button
-              onClick={() => setSettingsExpanded(!settingsExpanded)}
-              className={`flex items-center justify-between rounded-md px-4 py-3 text-base font-medium w-full transition ${
-                pathname.startsWith("/settings")
-                  ? "bg-zinc-800 text-white"
-                  : "text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800/50"
-              }`} 
-              >
-              <div className="flex items-center gap-3">
-                <Settings className="size-5 text-clay dark:text-orange-400" />
-                <span>Settings</span>
-              </div>
+              onClick={()=>setSettingsExpanded(!settingsExpanded)}
+              className="flex w-full items-center justify-between rounded-md px-4 py-3"
+            >
+
+              <span className="flex items-center gap-3">
+                <Settings className="size-5"/>
+                Settings
+              </span>
 
               <ChevronDown
-                className={`size-5 transition-transform ${
+                className={`transition-transform ${
                   settingsExpanded ? "rotate-180" : ""
                 }`}
               />
+
             </button>
 
 
             {settingsExpanded && (
-            <div className="ml-8 mt-1 space-y-1 border-l border-zinc-800 pl-3">
 
-            {settingsLinks.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`block rounded-md px-3 py-2 text-sm transition ${
-                    isActive
-                      ? "bg-zinc-800 text-white"
-                      : "text-zinc-500 hover:text-white hover:bg-zinc-800"
-                  }`}
-                >
-                  {item.name}
-                </Link>
-              );
-            })}
+              <div className="ml-8 space-y-1">
+
+                {settingsLinks.map((item)=>{
+
+                  const isActive = pathname === item.href;
+
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={()=>setMobileMenuOpen(false)}
+                      className={`block rounded-md px-3 py-2 text-sm ${
+                        isActive
+                          ? "bg-emerald-600 text-white"
+                          : "text-zinc-500"
+                      }`}
+                    >
+                      {item.name}
+                    </Link>
+                  );
+
+                })}
+
               </div>
+
             )}
+
 
             <button
               onClick={handleLogout}
-              className="flex items-center gap-3 rounded-md px-4 py-3 text-base font-medium text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800/50 w-full transition-colors"
+              className="mt-3 flex w-full items-center gap-3 rounded-md px-4 py-3 text-red-400"
             >
-              <LogOut className="size-5 text-red-400" />
-              <span>Logout</span>
+              <LogOut className="size-5"/>
+              Logout
             </button>
+
+
           </nav>
+
         </div>
+
       )}
 
-      {/* Main content */}
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+
+
+      <main>
         {children}
-      </div>
-    </main>
+      </main>
+
+
+    </>
   );
 }

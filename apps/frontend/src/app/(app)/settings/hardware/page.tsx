@@ -1,17 +1,14 @@
 "use client";
-
 import { useState, useEffect, useCallback } from "react";
 import { Plus, X, Trash2, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { SectionPanel } from "@/components/layout/SectionPanel";
 import { getSensors, createSensor, toggleSensor, deleteSensor, regenerateApiKey } from "@/app/actions/sensorconfig";
-
 export default function HardwareSettingsPage() {
   const [sensors, setSensors] = useState<any[]>([]);
   const [showAddSensor, setShowAddSensor] = useState(false);
   const [newSensorName, setNewSensorName] = useState('');
   const [newSensorType, setNewSensorType] = useState('custom-http');
   const [loadingSensors, setLoadingSensors] = useState(false);
-
   const loadSensors = useCallback(async () => {
     setLoadingSensors(true);
     try {
@@ -23,11 +20,9 @@ export default function HardwareSettingsPage() {
       setLoadingSensors(false);
     }
   }, []);
-
   useEffect(() => {
     loadSensors();
   }, [loadSensors]);
-
   async function handleAddSensor() {
     if (!newSensorName) {
       alert("Sensor name is required.");
@@ -43,7 +38,6 @@ export default function HardwareSettingsPage() {
       alert('Failed to add sensor.');
     }
   }
-
   async function handleToggleSensor(id: string, isActive: boolean) {
     try {
       await toggleSensor(id, isActive);
@@ -52,7 +46,6 @@ export default function HardwareSettingsPage() {
       console.error('Failed to toggle sensor:', error);
     }
   }
-
   async function handleDeleteSensor(id: string) {
     if (!confirm("Are you sure you want to remove this sensor integration?")) return;
     try {
@@ -62,7 +55,6 @@ export default function HardwareSettingsPage() {
       console.error('Failed to delete sensor:', error);
     }
   }
-
   async function handleRegenerateKey(id: string) {
     if (!confirm("Regenerating the API key will break active telemetry streams until updated on your hardware. Continue?")) return;
     try {
@@ -72,7 +64,6 @@ export default function HardwareSettingsPage() {
       console.error('Failed to regenerate key:', error);
     }
   }
-
   return (
     <SectionPanel title="Hardware & Sensor Controller API Keys">
       <div className="space-y-4">
@@ -82,7 +73,6 @@ export default function HardwareSettingsPage() {
             <Plus className="w-4 h-4" /> Add Sensor Integration
           </button>
         </div>
-
         {loadingSensors ? (
           <div className="text-xs text-zinc-500 py-8 text-center animate-pulse">Syncing telemetry key registry...</div>
         ) : sensors.length === 0 ? (

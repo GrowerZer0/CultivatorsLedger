@@ -1,9 +1,6 @@
 "use client";
-
 import dynamicImport from "next/dynamic";
-
 export const dynamic = "force-dynamic";
-
 const BatchCompareContent = dynamicImport(
   () => import("./CompareContent"),
   {
@@ -15,7 +12,6 @@ const BatchCompareContent = dynamicImport(
     ),
   }
 );
-
 export default function BatchComparePage() {
   return <BatchCompareContent />;
 }

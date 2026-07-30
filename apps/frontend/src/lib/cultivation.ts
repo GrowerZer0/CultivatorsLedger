@@ -10,12 +10,10 @@ export type DryBackLog = {
   loggedAt: string;
   source?: string; 
 };
-
 export type NutrientDose = {
   product: string;
   mlPerGallon: number;
 };
-
 export type FeedSchedule = {
   id: string;
   brand: string;
@@ -25,7 +23,6 @@ export type FeedSchedule = {
   targetPh: number;
   doses: NutrientDose[];
 };
-
 export type ReservoirInput = {
   reservoirGallons: number;
   leftoverGallons: number;
@@ -33,7 +30,6 @@ export type ReservoirInput = {
   currentEc?: number;
   targetEc?: number; 
 };
-
 export type ReservoirDelta = {
   topOffGallons: number;
   waterPercentToAdd: number;
@@ -42,7 +38,6 @@ export type ReservoirDelta = {
   alerts: string[];          // 👈 Added Layer 3 Track
   isCriticalClamp: boolean;   // 👈 Added Layer 3 Track
 };
-
 export type EnvironmentReading = {
   id: string;
   recordedAt: string;
@@ -50,7 +45,6 @@ export type EnvironmentReading = {
   humidity: number;
   vpd: number;
 };
-
 // 2. CROP PHASE TARGET DATA MAPS (Restored & Enhanced)
 export const CROP_STAGE_TARGETS = {
   VEG: {
@@ -64,7 +58,6 @@ export const CROP_STAGE_TARGETS = {
     maxDryBack: 30
   }
 };
-
 // 3. RESTORED THERMODYNAMIC THERMAL-COUPLE EQUATIONS
 export function calculateLeafVPD(tempF: number, rh: number, offsetF: number = -2): number {
   const tempC = ((tempF - 32) * 5) / 9;
@@ -77,14 +70,12 @@ export function calculateLeafVPD(tempF: number, rh: number, offsetF: number = -2
   const vpd = esLeaf - eaAir;
   return vpd < 0 ? 0 : parseFloat(vpd.toFixed(3));
 }
-
 export function getVpdStatus(stage: 'VEG' | 'FLOWER', currentVpd: number): 'LOW' | 'IDEAL' | 'HIGH' {
   const targets = CROP_STAGE_TARGETS[stage];
   if (currentVpd < targets.targetVpdMin) return 'LOW';
   if (currentVpd > targets.targetVpdMax) return 'HIGH';
   return 'IDEAL';
 }
-
 // 4. PERSISTENT CROP-STEERING CALCULATORS WITH BIOLOGICAL GUARDRAILS
 export function calculateDryBack(log: DryBackLog) {
   const totalDrop = Math.max(log.wetWeight - log.dryTarget, 0.01);
@@ -100,11 +91,9 @@ export function calculateDryBack(log: DryBackLog) {
   if (log.weight > log.wetWeight) {
     alerts.push("Data collection mismatch: Measured mass exceeds saturation limits.");
   }
-
   const dryBackPercent = Math.max(0, Math.min(rawDryBackPercent, 100));
   const poundsUntilIrrigation = Math.max(log.weight - log.dryTarget, 0);
   const estimatedHoursUntilWater = Math.round(poundsUntilIrrigation / 0.18);
-
   return {
     dryBackPercent,
     poundsUntilIrrigation,
@@ -113,12 +102,10 @@ export function calculateDryBack(log: DryBackLog) {
     isClamped: rawDryBackPercent > 100 || log.weight > log.wetWeight
   };
 }
-
 export function calculateTriggerWeight(satWt: number, dbCoeff: number): number {
   if (satWt <= 0 || dbCoeff < 0 || dbCoeff > 1) return 0;
   return parseFloat((satWt * (1 - dbCoeff)).toFixed(2));
 }
-
 // 5. RE-ENGINEERED DILUTION ELEMENT ENGINE WITH CONCENTRATE TOXICITY INTERCEPTORS
 export function calculateReservoirDelta(input: ReservoirInput): ReservoirDelta {
   const reservoirGallons = Math.max(input.reservoirGallons, 0);
@@ -127,11 +114,9 @@ export function calculateReservoirDelta(input: ReservoirInput): ReservoirDelta {
   
   const currentEc = input.currentEc ?? 0;
   const targetEc = input.targetEc ?? 0;
-
   let multiplier = 1.0;
   const alerts: string[] = [];
   let isCriticalClamp = false;
-
   if (topOffGallons > 0 && reservoirGallons > 0 && currentEc > 0 && targetEc > 0) {
     const totalTargetIons = reservoirGallons * targetEc;
     const currentResidualIons = leftoverGallons * currentEc;
@@ -140,9 +125,7 @@ export function calculateReservoirDelta(input: ReservoirInput): ReservoirDelta {
     const theoreticalStraightTopOffIons = topOffGallons * targetEc;
     multiplier = requiredTopOffIons / theoreticalStraightTopOffIons;
   }
-
   let theoreticalEcOutput = targetEc * multiplier;
-
   // ⚠️ Osmotic Shock Interceptor Clamping Loop
   if (theoreticalEcOutput > 3.5) {
     multiplier = 3.5 / targetEc; 
@@ -154,9 +137,7 @@ export function calculateReservoirDelta(input: ReservoirInput): ReservoirDelta {
   if (theoreticalEcOutput < 0.2 && currentEc > targetEc) {
     alerts.push("Excessive baseline salts: Residual tank EC is already above target thresholds. Fill with pure water.");
   }
-
   const adjustedTopOffEc = Number((theoreticalEcOutput).toFixed(2));
-
   return {
     topOffGallons,
     waterPercentToAdd: reservoirGallons === 0 ? 0 : Number(((topOffGallons / reservoirGallons) * 100).toFixed(1)),
@@ -169,12 +150,10 @@ export function calculateReservoirDelta(input: ReservoirInput): ReservoirDelta {
     isCriticalClamp
   };
 }
-
 export function averageVpd(readings: EnvironmentReading[]) {
   if (readings.length === 0) return 0;
   return Number((readings.reduce((sum, reading) => sum + reading.vpd, 0) / readings.length).toFixed(2));
 }
-
 // 6. FACTORY PRESET FEED LIBRARY (Retained)
 export const commercialFeedSchedules: FeedSchedule[] = [
   {

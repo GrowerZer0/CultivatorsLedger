@@ -2,12 +2,10 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { TelemetryProvider } from "@/lib/telemetry-context";
-
 export const metadata: Metadata = {
   title: "Cultivator's Ledger",
   description: "Cultivation telemetry dashboard",
 };
-
 export default function RootLayout({
   children
 }: Readonly<{

@@ -1,15 +1,11 @@
 "use server";
-
 import { db, prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getUserId } from "@/lib/session";
 import { supabase } from "@/lib/supabase";
-
-
 // ==========================================
 // FACILITY MANAGEMENT (ROOMS / TENTS)
 // ==========================================
-
 export async function getRooms() {
   const userId = await getUserId();
   return await db.room.findMany({
@@ -17,7 +13,6 @@ export async function getRooms() {
     orderBy: { createdAt: "asc" },
   });
 }
-
 export async function createRoom(data: { name: string; type?: string }) {
   try {
     const userId = await getUserId();
@@ -36,7 +31,6 @@ export async function createRoom(data: { name: string; type?: string }) {
     return { success: false, error: "Failed to create room." };
   }
 }
-
 export async function updateRoom(
   roomId: string,
   data: { name?: string; type?: string }
@@ -55,7 +49,6 @@ export async function updateRoom(
     return { success: false, error: "Failed to update room." };
   }
 }
-
 export async function deleteRoom(roomId: string) {
   try {
     const userId = await getUserId();
@@ -70,7 +63,6 @@ export async function deleteRoom(roomId: string) {
     return { success: false, error: "Failed to delete room." };
   }
 }
-
 export async function fetchRooms() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");

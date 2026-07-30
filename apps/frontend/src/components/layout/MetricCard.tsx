@@ -1,12 +1,10 @@
 import type { LucideIcon } from "lucide-react";
-
 type MetricCardProps = {
   icon: LucideIcon;
   label: string;
   value: string;
   detail: string;
 };
-
 export function MetricCard({ icon: Icon, label, value, detail }: MetricCardProps) {
   return (
     <section className="rounded-lg border border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 shadow-sm transition-colors duration-200">

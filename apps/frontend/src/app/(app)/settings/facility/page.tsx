@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useEffect, useState } from "react";
 import { SectionPanel } from "@/components/layout/SectionPanel";
 import {
@@ -13,14 +12,12 @@ import {
   fetchRooms,
 } from "@/app/actions/facility-mgmt";
 import { fetchBatches } from "@/app/actions/batch-mgmt";
-
 // Types (keep as you have)
 interface RoomData {
   id: string;
   name: string;
   type: string;
 }
-
 interface BatchData {
   id: string;
   name: string;
@@ -30,7 +27,6 @@ interface BatchData {
   wetWeight?: number | null;
   dryTarget?: number | null;
 }
-
 interface PlantData {
   id: string;
   name: string;
@@ -41,22 +37,18 @@ interface PlantData {
   wetWeight?: number | null;
   dryTarget?: number | null;
 }
-
 export default function FacilityManagementPage() {  // renamed; no props
   const [rooms, setRooms] = useState<RoomData[]>([]);
   const [batches, setBatches] = useState<BatchData[]>([]);
   const [plants, setPlants] = useState<PlantData[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [activeTab, setActiveTab] = useState<"rooms" | "batches" | "plants">("plants");
-
   const [newRoomName, setNewRoomName] = useState("");
   const [newPlantName, setNewPlantName] = useState("");
   const [newPlantStrain, setNewPlantStrain] = useState("");
   const [selectedRoomId, setSelectedRoomId] = useState("");
   const [newPlantWet, setNewPlantWet] = useState("");
   const [newPlantDry, setNewPlantDry] = useState("");
-
   // Load data on mount
   useEffect(() => {
     async function loadData() {
@@ -84,7 +76,6 @@ export default function FacilityManagementPage() {  // renamed; no props
     }
     loadData();
   }, []);
-
   // Handlers (same as yours)
   const handleAddRoom = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,7 +86,6 @@ export default function FacilityManagementPage() {  // renamed; no props
       setNewRoomName("");
     }
   };
-
   const handleDeleteRoom = async (id: string) => {
     if (!confirm("Delete this space? All associated plants will unbind.")) return;
     const res = await deleteRoom(id);
@@ -103,7 +93,6 @@ export default function FacilityManagementPage() {  // renamed; no props
       setRooms(rooms.filter((r) => r.id !== id));
     }
   };
-
   const handleAddPlant = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPlantName) return;
@@ -122,7 +111,6 @@ export default function FacilityManagementPage() {  // renamed; no props
       setNewPlantDry("");
     }
   };
-
   const handleDeletePlant = async (id: string) => {
     if (!confirm("Are you sure you want to delete this plant?")) return;
     const res = await deletePlant(id);
@@ -130,11 +118,9 @@ export default function FacilityManagementPage() {  // renamed; no props
       setPlants(plants.filter((p) => p.id !== id));
     }
   };
-
   if (loading) {
     return <div className="text-xs text-zinc-500 py-8 text-center animate-pulse">Loading facility data...</div>;
   }
-
   return (
     <SectionPanel title="Facility Management">
       <div className="space-y-6">
@@ -170,7 +156,6 @@ export default function FacilityManagementPage() {  // renamed; no props
             Plants ({plants.length})
           </button>
         </div>
-
         {/* PLANTS TAB */}
         {activeTab === "plants" && (
           <div className="space-y-6">
@@ -206,7 +191,6 @@ export default function FacilityManagementPage() {  // renamed; no props
             </div>
           </div>
         )}
-
         {/* ROOMS TAB – same as yours */}
         {activeTab === "rooms" && (
           <div className="space-y-4">

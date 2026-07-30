@@ -1,5 +1,4 @@
 'use client';
-
 interface MorningBriefProps {
   snapshot: string | null;
   attention: string[];
@@ -8,7 +7,6 @@ interface MorningBriefProps {
   isRefreshing: boolean;
   onRefresh: () => void;
 }
-
 export function MorningBrief({ snapshot, attention, actions, lastBriefingTime, isRefreshing, onRefresh }: MorningBriefProps) {
   return (
     <div className="bg-white dark:bg-zinc-900 rounded-2xl p-6 shadow-xl border border-gray-200 dark:border-zinc-800">
@@ -30,7 +28,6 @@ export function MorningBrief({ snapshot, attention, actions, lastBriefingTime, i
           {isRefreshing ? 'Refreshing...' : 'Refresh AI'}
         </button>
       </div>
-
       {isRefreshing ? (
         <p className="text-sm text-gray-500 dark:text-zinc-400 animate-pulse">Generating briefing...</p>
         ) : snapshot ? (
@@ -43,7 +40,6 @@ export function MorningBrief({ snapshot, attention, actions, lastBriefingTime, i
                 </ol>
               </div>
             )}
-
             {attention.length > 0 && (
               <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-xl border border-amber-200 dark:border-amber-900/40">
                 <h3 className="text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Attention Needed</h3>
@@ -52,7 +48,6 @@ export function MorningBrief({ snapshot, attention, actions, lastBriefingTime, i
                 </ul>
               </div>
             )}
-
             <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-xl border border-emerald-200 dark:border-emerald-900/40">
               <h3 className="text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">Facility Snapshot</h3>
               <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">{snapshot}</p>

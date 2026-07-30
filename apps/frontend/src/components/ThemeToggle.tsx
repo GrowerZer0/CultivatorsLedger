@@ -1,25 +1,19 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
 import { Sun, Moon } from "lucide-react";
-
 export function ThemeToggle() {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-
   // Prevent hydration layout shift by waiting for client-side execution
   useEffect(() => {
     setMounted(true);
   }, []);
-
   if (!mounted) {
     // Exact sizing placeholder to avoid flickering or pushing your header items around
     return <div className="size-9 rounded-md bg-zinc-200/50 dark:bg-zinc-800/50" />;
   }
-
   const isDark = resolvedTheme === "dark";
-
   return (
     <button
       type="button"

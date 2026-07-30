@@ -1,10 +1,8 @@
 "use server";
-
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getUserId } from "@/lib/session";
 import type { DryBackLog as PrismaDryBackLog } from "@prisma/client";
-
 // Helper: compute VPD (kPa) from temp (°C) and RH (%)
 function computeVPD(tempC: number, rh: number): number {
   const es = 0.6108 * Math.exp((17.27 * tempC) / (tempC + 237.3));
@@ -12,11 +10,9 @@ function computeVPD(tempC: number, rh: number): number {
   const vpd = es - ea;
   return Math.round(vpd * 100) / 100;
 }
-
 // ==========================================
 // LOGGING & DASHBOARD READINGS
 // ==========================================
-
 export async function addDryBackLog(data: {
   cultivar: string;
   containerGallons: number;
@@ -31,7 +27,6 @@ export async function addDryBackLog(data: {
   const userId = await getUserId();
   const dryBackPercent = ((data.wetWeight - data.weight) / (data.wetWeight - data.dryTarget)) * 100;
   const clampedPercent = Math.max(0, Math.min(100, dryBackPercent));
-
   const result = await db.dryBackLog.create({
     data: {
       containerGallons: data.containerGallons,
@@ -48,11 +43,9 @@ export async function addDryBackLog(data: {
       unit: data.unit || "lbs",
     },
   });
-
   revalidatePath("/");
   return { success: true, id: result.id };
 }
-
 export async function logIrrigation(data: {
   batchId?: string;
   plantId?: string;
@@ -60,10 +53,8 @@ export async function logIrrigation(data: {
   notes?: string;
 }) {
   const userId = await getUserId();
-
   let wetWeight: number | undefined;
   let dryTarget: number | undefined;
-
   if (data.plantId) {
     const plant = await db.plant.findUnique({
       where: { id: data.plantId, userId },
@@ -74,7 +65,6 @@ export async function logIrrigation(data: {
       dryTarget = plant.dryTarget !== null ? Number(plant.dryTarget) : undefined;
     }
   }
-
   if (data.batchId && (wetWeight === undefined || dryTarget === undefined)) {
     const batch = await db.batch.findUnique({
       where: { id: data.batchId, userId },
@@ -85,15 +75,12 @@ export async function logIrrigation(data: {
       dryTarget = dryTarget ?? (batch.dryTarget !== null ? Number(batch.dryTarget) : undefined);
     }
   }
-
   wetWeight = wetWeight ?? 18.4;
   dryTarget = dryTarget ?? 13.2;
-
   const dryBackPercent = Math.max(
     0,
     Math.min(100, ((wetWeight - data.weight) / (wetWeight - dryTarget)) * 100)
   );
-
   const dryBackLog = await db.dryBackLog.create({
     data: {
       timestamp: new Date(),
@@ -111,7 +98,6 @@ export async function logIrrigation(data: {
       source: "manual",
     },
   });
-
   const irrigation = await db.irrigationEvent.create({
     data: {
       timestamp: new Date(),
@@ -124,16 +110,13 @@ export async function logIrrigation(data: {
       plantId: data.plantId || null,
     },
   });
-
   revalidatePath("/");
-
   return {
     success: true,
     dryBackId: dryBackLog.id,
     irrigationId: irrigation.id,
   };
 }
-
 export async function addManualClimateAndWeight(data: {
   temperature: number;
   humidity: number;
@@ -145,10 +128,8 @@ export async function addManualClimateAndWeight(data: {
   batchId?: string;
 }) {
   const userId = await getUserId();
-
   let wet: number | undefined = data.wetWeight;
   let dryTarget: number | undefined = data.dryTarget;
-
   if (data.plantId) {
     const plant = await db.plant.findUnique({
       where: { id: data.plantId },
@@ -159,7 +140,6 @@ export async function addManualClimateAndWeight(data: {
       dryTarget = data.dryTarget ?? (plant.dryTarget !== null ? Number(plant.dryTarget) : undefined);
     }
   }
-
   if (data.batchId && (wet === undefined || dryTarget === undefined)) {
     const batch = await db.batch.findUnique({
       where: { id: data.batchId },
@@ -170,10 +150,8 @@ export async function addManualClimateAndWeight(data: {
       dryTarget = dryTarget ?? (batch.dryTarget !== null ? Number(batch.dryTarget) : undefined);
     }
   }
-
   wet = wet ?? 18.4;
   dryTarget = dryTarget ?? 13.2;
-
   const climateResult = await db.climateLog.create({
     data: {
       airTempC: data.temperature,
@@ -186,7 +164,6 @@ export async function addManualClimateAndWeight(data: {
       userId: userId,
     },
   });
-
   let dryBackResult = null;
   if (data.weight !== undefined && data.weight !== null) {
     const dryBackPercent = Math.max(
@@ -210,7 +187,6 @@ export async function addManualClimateAndWeight(data: {
       },
     });
   }
-
   revalidatePath("/");
   return {
     success: true,
@@ -218,14 +194,12 @@ export async function addManualClimateAndWeight(data: {
     dryBackId: dryBackResult?.id,
   };
 }
-
 export async function addManualClimateLog(data: {
   temperature: number;
   humidity: number;
   timestamp?: Date;
 }) {
   const userId = await getUserId();
-
   const result = await db.climateLog.create({
     data: {
       airTempC: data.temperature,
@@ -238,22 +212,17 @@ export async function addManualClimateLog(data: {
       userId: userId,
     },
   });
-
   revalidatePath("/");
   return { success: true, id: result.id };
 }
-
 export async function getDashboardData(batchId?: string, plantId?: string) {
   const userId = await getUserId();
-
   const climateLogs = await db.climateLog.findMany({
     where: { userId },
     orderBy: { timestamp: "desc" },
     take: 30,
   });
-
   const sortedLogs = [...climateLogs].reverse();
-
   const environmentReadings = sortedLogs.map((log) => ({
     id: String(log.id),
     temperatureF: (Number(log.airTempC) * 9) / 5 + 32,
@@ -266,7 +235,6 @@ export async function getDashboardData(batchId?: string, plantId?: string) {
     dry_back: 0,
     recordedAt: log.timestamp.toISOString(),
   }));
-
   const dryBackLogsFromDb = await db.dryBackLog.findMany({
     where: {
       userId,
@@ -276,7 +244,6 @@ export async function getDashboardData(batchId?: string, plantId?: string) {
     orderBy: { timestamp: "asc" },
     take: 30,
   });
-
   const dryBackLogs = dryBackLogsFromDb.map((log: PrismaDryBackLog) => ({
     id: String(log.id),
     cultivar: "Batch",
@@ -291,12 +258,10 @@ export async function getDashboardData(batchId?: string, plantId?: string) {
     unit: log.unit || "lbs",
     source: log.source || "manual",
   }));
-
   const latestIrrigation = await db.irrigationEvent.findFirst({
     where: { userId },
     orderBy: { timestamp: "desc" },
   });
-
   return {
     environmentReadings,
     dryBackLogs,
@@ -309,7 +274,6 @@ export async function getDashboardData(batchId?: string, plantId?: string) {
       : null,
   };
 }
-
 export async function getWaterUseData(batchId?: string, plantId?: string) {
   const userId = await getUserId();
   const logs = await db.dryBackLog.findMany({
@@ -321,30 +285,23 @@ export async function getWaterUseData(batchId?: string, plantId?: string) {
     orderBy: { timestamp: "desc" },
     take: 48,
   });
-
   if (logs.length < 2) return null;
-
   const sorted = logs.reverse();
   const now = new Date();
   const last24h = sorted.filter(
     (log) => now.getTime() - new Date(log.timestamp).getTime() < 24 * 60 * 60 * 1000
   );
-
   if (last24h.length < 2) return null;
-
   const first = last24h[0];
   const last = last24h[last24h.length - 1];
   const hoursDiff =
     (new Date(last.timestamp).getTime() - new Date(first.timestamp).getTime()) / (1000 * 60 * 60);
   if (hoursDiff < 1) return null;
-
   const weightDiff = Number(first.currentWeightLbs) - Number(last.currentWeightLbs);
   const dailyWaterUse = (weightDiff / hoursDiff) * 24;
-
   const avgDryBackPerDay = dailyWaterUse / 24;
   const remainingToDryTarget = Number(first.currentWeightLbs) - Number(first.dryTargetWeightLbs);
   const hoursUntilIrrigation = remainingToDryTarget / avgDryBackPerDay;
-
   return {
     dailyWaterUse: Math.round(dailyWaterUse * 10) / 10,
     hoursUntilIrrigation,
@@ -352,10 +309,8 @@ export async function getWaterUseData(batchId?: string, plantId?: string) {
     dryTarget: Number(first.dryTargetWeightLbs),
   };
 }
-
 export async function getTrendInsights(batchId?: string, plantId?: string) {
   const userId = await getUserId();
-
   const logs = await db.dryBackLog.findMany({
     where: {
       userId,
@@ -365,16 +320,12 @@ export async function getTrendInsights(batchId?: string, plantId?: string) {
     orderBy: { timestamp: "desc" },
     take: 30,
   });
-
   if (logs.length < 6) {
     return { drybackSpeed: null, uptakeTrend: null };
   }
-
   const sorted = [...logs].reverse();
-
   const recent = sorted.slice(-5);
   const historical = sorted.slice(-10, -5);
-
   const calcDailyRate = (segment: any[]) => {
     if (segment.length < 2) return 0;
     const first = segment[0];
@@ -386,10 +337,8 @@ export async function getTrendInsights(batchId?: string, plantId?: string) {
     const weightDiff = Number(first.currentWeightLbs) - Number(last.currentWeightLbs);
     return (weightDiff / hours) * 24;
   };
-
   const recentRate = calcDailyRate(recent);
   const historicalRate = calcDailyRate(historical);
-
   let drybackSpeed = null;
   if (recentRate > 0 && historicalRate > 0) {
     const pctChange = ((recentRate - historicalRate) / historicalRate) * 100;
@@ -398,7 +347,6 @@ export async function getTrendInsights(batchId?: string, plantId?: string) {
       direction: pctChange > 5 ? "faster" : pctChange < -5 ? "slower" : "stable",
     };
   }
-
   let uptakeTrend = null;
   if (recentRate > 0 && historicalRate > 0) {
     const pctChange = ((recentRate - historicalRate) / historicalRate) * 100;
@@ -407,13 +355,10 @@ export async function getTrendInsights(batchId?: string, plantId?: string) {
       direction: pctChange > 10 ? "increasing" : pctChange < -10 ? "decreasing" : "stable",
     };
   }
-
   return { drybackSpeed, uptakeTrend };
 }
-
 export async function getRecoveryStatus(batchId?: string, plantId?: string) {
   const userId = await getUserId();
-
   const logs = await db.dryBackLog.findMany({
     where: {
       userId,
@@ -423,7 +368,6 @@ export async function getRecoveryStatus(batchId?: string, plantId?: string) {
     },
     orderBy: { timestamp: "asc" },
   });
-
   if (logs.length < 3) {
     return {
       phase: 0,
@@ -431,18 +375,14 @@ export async function getRecoveryStatus(batchId?: string, plantId?: string) {
       recommendation: "Log more dry-back readings to track recovery.",
     };
   }
-
   const weights = logs.map((l) => Number(l.currentWeightLbs));
-
   const first = weights[0];
   const last = weights[weights.length - 1];
   const change = last - first;
   const percentChange = (change / first) * 100;
-
   let phase = 0;
   let status = "";
   let recommendation = "";
-
   if (percentChange < -15) {
     phase = 1;
     status = "🔴 Drought stress detected";
@@ -463,13 +403,10 @@ export async function getRecoveryStatus(batchId?: string, plantId?: string) {
     status = "🟢 Optimal dryback";
     recommendation = "Maintain current irrigation schedule.";
   }
-
   return { phase, status, recommendation };
 }
-
 export async function getDiagnostics(batchId?: string, plantId?: string) {
   const userId = await getUserId();
-
   const [logs, env, irrigation] = await Promise.all([
     db.dryBackLog.findMany({
       where: {
@@ -489,11 +426,9 @@ export async function getDiagnostics(batchId?: string, plantId?: string) {
       orderBy: { timestamp: "desc" },
     }),
   ]);
-
   if (logs.length < 5 || !env) {
     return { error: "Insufficient data for diagnostics" };
   }
-
   const latestLog = logs[0];
   const weight = Number(latestLog.currentWeightLbs);
   const dryback = Number(latestLog.dryBackPercent);
@@ -504,31 +439,26 @@ export async function getDiagnostics(batchId?: string, plantId?: string) {
     : computeVPD(Number(env.airTempC), Number(env.relativeHumidity));
   const moisture = irrigation ? Number(irrigation.moisturePercentage) : null;
   const ec = irrigation?.ecLevel ? Number(irrigation.ecLevel) : null;
-
   let overwaterScore = 0;
   if (weight > wetTarget * 0.95) overwaterScore += 40;
   if (dryback < 20) overwaterScore += 30;
   if (moisture !== null && moisture > 80) overwaterScore += 30;
   overwaterScore = Math.min(100, overwaterScore);
-
   let droughtScore = 0;
   if (dryback > 80) droughtScore += 50;
   if (weight < dryTarget * 0.9) droughtScore += 30;
   if (moisture !== null && moisture < 40) droughtScore += 20;
   droughtScore = Math.min(100, droughtScore);
-
   let nutrientScore = 0;
   if (ec !== null) {
     if (ec < 0.8) nutrientScore += 70;
     else if (ec < 1.2) nutrientScore += 30;
   }
-
   let lightStressScore = 0;
   if (vpd > 1.5) lightStressScore += 50;
   if (moisture !== null && moisture < 50) lightStressScore += 30;
   if (dryback > 70) lightStressScore += 20;
   lightStressScore = Math.min(100, lightStressScore);
-
   const total = overwaterScore + droughtScore + nutrientScore + lightStressScore;
   if (total === 0) {
     return {
@@ -539,9 +469,7 @@ export async function getDiagnostics(batchId?: string, plantId?: string) {
       recommendation: "All systems optimal.",
     };
   }
-
   const normalize = (score: number) => Math.round((score / total) * 100);
-
   return {
     overwater: normalize(overwaterScore),
     drought: normalize(droughtScore),

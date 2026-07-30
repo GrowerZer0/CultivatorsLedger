@@ -1,5 +1,4 @@
 'use client';
-
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Droplets,
@@ -12,7 +11,6 @@ import {
   type NutrientDose,
 } from '@/lib/cultivation';
 import { getCustomBlueprints } from '@/app/actions';
-
 // --------------------------------------------
 // DarkNumberField component
 // --------------------------------------------
@@ -21,7 +19,6 @@ type DarkNumberFieldProps = {
   value: number;
   onChange: (value: number) => void;
 };
-
 function DarkNumberField({ label, value, onChange }: DarkNumberFieldProps) {
   return (
     <label className="grid gap-1 text-xs font-bold text-gray-500 dark:text-zinc-400 tracking-wide">
@@ -37,12 +34,10 @@ function DarkNumberField({ label, value, onChange }: DarkNumberFieldProps) {
     </label>
   );
 }
-
 // --------------------------------------------
 // Main Nutrients Page
 // --------------------------------------------
 export default function NutrientsPage() {
-
   // State for feeding calculator
   const [customBlueprints, setCustomBlueprints] = useState<any[]>([]);
   const [activeLineId, setActiveLineId] = useState('ff-trio');
@@ -51,7 +46,6 @@ export default function NutrientsPage() {
   const [currentEc, setCurrentEc] = useState(1.4);
   const [isSensorDriven, setIsSensorDriven] = useState(false);
   const [loading, setLoading] = useState(true);
-
   // Load custom blueprints (nutrient recipes)
   const loadBlueprints = useCallback(async () => {
     setLoading(true);
@@ -64,11 +58,9 @@ export default function NutrientsPage() {
       setLoading(false);
     }
   }, []);
-
   useEffect(() => {
     loadBlueprints();
   }, [loadBlueprints]);
-
   // Merge commercial + custom schedules
   const combinedSchedules = useMemo<FeedSchedule[]>(() => {
     const baseMerged = commercialFeedSchedules.map(s => {
@@ -82,7 +74,6 @@ export default function NutrientsPage() {
         doses: match.doses_json as NutrientDose[],
       } : s;
     });
-
     const completelyNewCustom = customBlueprints
       .filter(cb => !commercialFeedSchedules.find(s => s.id === cb.id))
       .map(cb => ({
@@ -94,19 +85,15 @@ export default function NutrientsPage() {
         targetPh: 5.8,
         doses: cb.doses_json as NutrientDose[],
       }));
-
     return [...baseMerged, ...completelyNewCustom];
   }, [customBlueprints]);
-
   // Active schedule
   const activeSchedule = useMemo<FeedSchedule>(() => {
     return combinedSchedules.find((s) => s.id === activeLineId) || combinedSchedules[0] || commercialFeedSchedules[0];
   }, [activeLineId, combinedSchedules]);
-
   // For the effective EC (we'll use currentEc directly here, or allow manual override)
   // In the original, effectiveEc is derived from sensor or manual – we'll just use currentEc for now.
   const effectiveEc = currentEc; // you can later add sensor integration
-
   // Reservoir delta calculation
   const reservoirDelta = useMemo(() => {
     return calculateReservoirDelta({
@@ -117,14 +104,12 @@ export default function NutrientsPage() {
       targetEc: activeSchedule.targetEc,
     });
   }, [activeSchedule.doses, activeSchedule.targetEc, effectiveEc, reservoirGallons, leftoverGallons]);
-
   // Reset to defaults
   const handleResetFeeding = () => {
     setReservoirGallons(40);
     setLeftoverGallons(11.5);
     setCurrentEc(1.4);
   };
-
   // Show loading while blueprints load
   if (loading) {
     return (
@@ -133,10 +118,8 @@ export default function NutrientsPage() {
         </div>
     );
   }
-
   return (
       <div className="min-h-screen bg-white dark:bg-[#0B0F19] text-gray-900 dark:text-zinc-100 p-4">
-
         {/* Feeding Calculator */}
         <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-5 shadow-xl">
           {/* Header with Brand Selector */}
@@ -150,7 +133,6 @@ export default function NutrientsPage() {
                 </p>
               </div>
             </div>
-
             {/* Brand Schedule Selector */}
             <select
               value={activeLineId}
@@ -163,7 +145,6 @@ export default function NutrientsPage() {
                 </option>
               ))}
             </select>
-
             <div className="flex items-center gap-2 mt-2 sm:mt-0">
               <button
                 type="button"
@@ -174,7 +155,6 @@ export default function NutrientsPage() {
               </button>
             </div>
           </div>
-
           {/* Inputs */}
           <div className="grid gap-4 sm:grid-cols-3 mb-4">
             <DarkNumberField
@@ -206,7 +186,6 @@ export default function NutrientsPage() {
               )}
             </div>
           </div>
-
           {/* Nutrient Breakdown */}
           <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
             {activeSchedule.doses.map((dose: NutrientDose, index: number) => (
@@ -236,11 +215,9 @@ export default function NutrientsPage() {
               </div>
             ))}
           </div>
-
           <p className="mt-3 text-[10px] text-gray-400 dark:text-zinc-400 italic">
             Adjust ml/gallon values in <span className="font-medium">Settings → Nutrient Feed Library</span>
           </p>
-
           {/* Footer: Dynamic Output Targets */}
           <div
             className={`mt-4 rounded-xl border p-4 transition-all ${

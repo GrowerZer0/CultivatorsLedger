@@ -1,5 +1,4 @@
 'use client';
-
 import DashboardWrapper from "./DashboardWrapper";
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
@@ -22,16 +21,13 @@ import {
   type DryBackLog,
   calculateDryBack,
 } from '@/lib/cultivation';
-
 // Modular Server Actions
 import {
   getDashboardData,
 } from '@/app/actions/loggingreadings';
-
 import { generateDailyBriefing } from '@/app/actions/dailyinsights';
 import { useTelemetry } from '@/lib/telemetry-context';
 import { MorningBrief } from '@/components/MorningBrief';
-
 // Define Plant type more accurately for local use
 type Plant = {
   id: string;
@@ -44,32 +40,25 @@ type Plant = {
   stage?: string | null; // Assuming stage exists for unit logic
   containerGallons?: number | null; // Assuming containerGallons also exists on Plant
 };
-
 export default function DashboardPage() {
   const { setData } = useTelemetry();
-
   // --- STATE ---
   const [dbEnvironmentReadings, setDbEnvironmentReadings] = useState<EnvironmentReading[]>([]);
   const [dbDryBackLogs, setDbDryBackLogs] = useState<DryBackLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [latestIrrigation, setLatestIrrigation] = useState<any>(null);
-
-
   // Plants State
   const [plants, setPlants] = useState<Plant[]>([]); // Use the defined Plant type
   const [selectedPlantId, setSelectedPlantId] = useState<string | null>(null);
   
-
   // AI Briefing state
   const [briefingLoading, setBriefingLoading] = useState(false);
   const [lastBriefingTime, setLastBriefingTime] = useState<string>('Not yet generated');
   const [briefingSnapshot, setBriefingSnapshot] = useState<string | null>(null);
   const [briefingAttention, setBriefingAttention] = useState<string[]>([]);
   const [briefingActions, setBriefingActions] = useState<string[]>([]);
-
   const hasLoaded = useRef(false);
   const hasFetchedBriefingInitially = useRef(false);
-
   // --- DATA FETCH ---
   const loadData = useCallback(
     async (skipLoading = false) => {
@@ -79,7 +68,6 @@ export default function DashboardPage() {
         setDbEnvironmentReadings(data.environmentReadings || []);
         setDbDryBackLogs(data.dryBackLogs || []);
         setLatestIrrigation(data.latestIrrigation || null);
-
         // Build activeDryBack from the latest log (if any)
         let activeDryBack = undefined;
         if (data.dryBackLogs && data.dryBackLogs.length > 0) {
@@ -101,7 +89,6 @@ export default function DashboardPage() {
             poundsUntilIrrigation: calc.poundsUntilIrrigation,
           };
         }
-
         // Push data to the global telemetry context
         setData({
           latestEnvironment: data.environmentReadings?.[data.environmentReadings.length - 1],
@@ -116,13 +103,11 @@ export default function DashboardPage() {
     },
     [setData]
   );
-
   useEffect(() => {
     if (hasLoaded.current) return;
     hasLoaded.current = true;
     loadData();
   }, [loadData]);
-
   // Poll every 10 seconds
   useEffect(() => {
     const interval = setInterval(() => {
@@ -130,13 +115,10 @@ export default function DashboardPage() {
     }, 10000);
     return () => clearInterval(interval);
   }, [loadData]);
-
   // --- AI BRIEFING ---
 const loadBriefing = useCallback(async (force = false) => {
   if (!force && hasFetchedBriefingInitially.current) return;
-
   setBriefingLoading(true);
-
   try {
     const result = await generateDailyBriefing(force);
     if (result.success) {
@@ -157,13 +139,11 @@ const loadBriefing = useCallback(async (force = false) => {
     setBriefingLoading(false);
   }
 }, []);
-
 useEffect(() => {
   if (!loading && !hasFetchedBriefingInitially.current) {
     loadBriefing(false);
   }
 }, [loading, loadBriefing]);
-
   // --- COMPUTED VALUES (must be before any early return) ---
   const dryBackChartData = dbDryBackLogs.map((log) => ({
     time: new Date(log.loggedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
@@ -171,7 +151,6 @@ useEffect(() => {
     runoff_ec: log.runoff_ec ?? 0,
     source: log.source || 'manual',
   }));
-
   const weightUnit = useMemo<'lbs' | 'g'>(() => {
     if (selectedPlantId) {
       const plant = plants.find((p) => p.id === selectedPlantId);
@@ -181,7 +160,6 @@ useEffect(() => {
     }
     return 'lbs';
   }, [selectedPlantId, plants]);
-
   // --- LOADING (must be after all hooks) ---
   if (loading) {
     return (
@@ -190,7 +168,6 @@ useEffect(() => {
         </div>
     );
   }
-
 return (
       <div className="min-h-screen bg-white dark:bg-[#0B0F19] text-gray-900 dark:text-zinc-100 p-4 space-y-6">
         
@@ -205,7 +182,6 @@ return (
             onRefresh={() => loadBriefing(true)}
           />
         </div>
-
         {/* VPD Chart */}
         <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl">
           <div className="flex justify-between items-center mb-3">
@@ -234,7 +210,6 @@ return (
             </ResponsiveContainer>
           </div>
         </div>
-
         {/* Dry‑Back Trend Chart */}
         <div className="mt-6 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-4 shadow-xl">
           <div className="flex justify-between items-center mb-3">

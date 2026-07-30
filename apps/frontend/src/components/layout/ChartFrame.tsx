@@ -1,11 +1,9 @@
 import type { ReactNode } from "react";
-
 type ChartFrameProps = {
   children: ReactNode;
   title: string;
   value?: string;
 };
-
 export function ChartFrame({ children, title, value }: ChartFrameProps) {
   return (
     <section className="rounded-lg border border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 shadow-sm transition-colors duration-200">

@@ -1,20 +1,17 @@
 // src/app/api/irrigation/latest.ts
 import { db } from "@/lib/db";
 import { NextResponse } from "next/server";
-
 export async function GET() {
   try {
     const latest = await db.irrigationEvent.findFirst({
       orderBy: { timestamp: "desc" },
     });
-
     if (!latest) {
       return NextResponse.json(
         { error: "No irrigation data found" },
         { status: 404 }
       );
     }
-
     return NextResponse.json({
       id: latest.id,
       timestamp: latest.timestamp.toISOString(),

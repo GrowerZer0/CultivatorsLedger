@@ -1,18 +1,15 @@
 "use client";
-
 import { useState, useEffect, useCallback } from "react";
 import { Plus, X, Save, Trash2, Edit, ChevronLeft, ChevronRight } from "lucide-react";
 import { SectionPanel } from "@/components/layout/SectionPanel";
 import { commercialFeedSchedules } from "@/lib/cultivation";
 import { getCustomBlueprints, saveOrUpdateBlueprint, deleteCustomBlueprint } from "@/app/actions";
 import { getUserProfile, updateUserProfile } from "@/app/actions/profile";
-
 export default function NutrientsSettingsPage() {
   const [customSchedules, setCustomSchedules] = useState<any[]>([]);
   const [editingSchedule, setEditingSchedule] = useState<any | null>(null);
   const [activeFeedLine, setActiveFeedLine] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-
   const loadProfileAndBlueprints = useCallback(async () => {
     setLoading(true);
     try {
@@ -26,9 +23,7 @@ export default function NutrientsSettingsPage() {
       setLoading(false);
     }
   }, []);
-
   useEffect(() => { loadProfileAndBlueprints(); }, [loadProfileAndBlueprints]);
-
   const allSchedules = [
     ...commercialFeedSchedules.map(s => {
       const override = customSchedules.find(cs => cs.id === s.id);
@@ -36,24 +31,20 @@ export default function NutrientsSettingsPage() {
     }),
     ...customSchedules.filter(cs => !commercialFeedSchedules.find(s => s.id === cs.id)).map(cs => ({ id: cs.id, brand: cs.brand, stage: cs.stage, targetEc: cs.target_ec, doses: cs.doses_json, isCustom: cs.is_custom }))
   ];
-
   async function handleSetActiveLine(id: string, event: React.MouseEvent) {
     event.stopPropagation();
     setActiveFeedLine(id);
     await updateUserProfile({ activeFeedLine: id });
   }
-
   function handleInitCreate() {
     setEditingSchedule({ id: `custom-${crypto.randomUUID()}`, brand: "", stage: "", targetEc: 1.8, doses: [{ product: "Base Part A", mlPerGallon: 4.0 }, { product: "Base Part B", mlPerGallon: 4.0 }], isCustom: true });
   }
-
   async function handleSave() {
     if (!editingSchedule) return;
     if (!editingSchedule.brand.trim()) { alert("Please provide a manufacturer or brand name before saving."); return; }
     const result = await saveOrUpdateBlueprint({ id: editingSchedule.id, brand: editingSchedule.brand, stage: editingSchedule.stage || "All Cycles", target_ec: editingSchedule.targetEc, doses_json: editingSchedule.doses });
     if (result.success) { setEditingSchedule(null); loadProfileAndBlueprints(); } else { alert("Failed to sync recipe to cloud."); }
   }
-
   async function handleDelete(id: string) {
     if (!confirm("Are you absolutely sure you want to delete this custom nutrient profile?")) return;
     try {
@@ -61,9 +52,7 @@ export default function NutrientsSettingsPage() {
       if (result?.success) { setEditingSchedule(null); loadProfileAndBlueprints(); } else { alert("Deletion failure: Could not clear record."); }
     } catch (err) { console.error("Failed to delete blueprint:", err); alert("Deletion failure: Could not clear record."); }
   }
-
   if (loading) return <div className="text-xs text-zinc-500 py-8 text-center animate-pulse">Loading nutrient profiles...</div>;
-
   return (
     <SectionPanel title="Fertigation Schedules & Recipe Blueprints">
       <div className="space-y-4">

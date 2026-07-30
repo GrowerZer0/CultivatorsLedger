@@ -1,19 +1,15 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import { getBatches, getBatchesForComparison } from "@/app/actions/batch-mgmt";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
-
 export default function CompareContent() {
   const [batches, setBatches] = useState<any[]>([]);
   const [batchA, setBatchA] = useState<string>('');
   const [batchB, setBatchB] = useState<string>('');
   const [comparisonData, setComparisonData] = useState<any[]>([]);
-
   useEffect(() => {
     getBatches().then(setBatches);
   }, []);
-
   useEffect(() => {
     if (batchA && batchB) {
       getBatchesForComparison([batchA, batchB]).then((data) => {
@@ -28,7 +24,6 @@ export default function CompareContent() {
       });
     }
   }, [batchA, batchB]);
-
   return (
       <div className="max-w-4xl mx-auto p-4">
         <h1 className="text-2xl font-bold text-white mb-4">Batch Comparison</h1>
