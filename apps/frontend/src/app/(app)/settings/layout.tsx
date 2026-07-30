@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link";
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import {
   Cpu,
   FlaskConical,
@@ -11,77 +11,77 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { useState } from "react";
+import { usePathname } from "next/navigation";
 
-const navigation = [
-  { href: "/settings/profile", label: "Profile", icon: User },
-  { href: "/settings/facility", label: "Facility", icon: Building },
-  { href: "/settings/hardware", label: "Hardware", icon: Cpu },
-  { href: "/settings/nutrients", label: "Nutrients", icon: FlaskConical },
-  { href: "/settings/system", label: "System", icon: Sliders },
+const navigationGroups = [
+  {
+    label: "Account",
+    items: [
+      {
+        href: "/settings/profile",
+        label: "Profile",
+        icon: User,
+      },
+    ],
+  },
+  {
+    label: "Facility",
+    items: [
+      {
+        href: "/settings/facility",
+        label: "Facility",
+        icon: Building,
+      },
+      {
+        href: "/settings/hardware",
+        label: "Hardware",
+        icon: Cpu,
+      },
+    ],
+  },
+  {
+    label: "Cultivation",
+    items: [
+      {
+        href: "/settings/nutrients",
+        label: "Nutrients",
+        icon: FlaskConical,
+      },
+    ],
+  },
+  {
+    label: "System",
+    items: [
+      {
+        href: "/settings/system",
+        label: "System",
+        icon: Sliders,
+      },
+    ],
+  },
 ];
 
-export default function SettingsLayout({ children }: { children: ReactNode }) {
+
+export default function SettingsLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-return (
-  <div className="min-h-screen bg-zinc-950">
-
-    {/* Mobile Drawer */}
-    {mobileOpen && (
-      <div className="lg:hidden fixed inset-0 z-50">
-
-        <div
-          className="absolute inset-0 bg-black/50"
-          onClick={() => setMobileOpen(false)}
-        />
-
-        <aside className="absolute left-0 top-0 bottom-0 w-72 bg-zinc-900 border-r border-zinc-800 p-5">
-
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-white text-xl font-semibold">
-              Settings
-            </h2>
-
-            <button
-              onClick={() => setMobileOpen(false)}
-              className="text-zinc-400 hover:text-white"
-            >
-              ✕
-            </button>
-          </div>
-
-          <nav className="space-y-2">
-            {navigation.map((item) => {
-              const Icon = item.icon;
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-3 rounded-lg px-3 py-3 text-zinc-400 hover:text-white hover:bg-zinc-800"
-                >
-                  <Icon className="size-5" />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-
-        </aside>
-      </div>
-    )}
+  const pathname = usePathname();
 
 
-      {/* Settings Shell */}
-      <div className="flex min-h-screen">
-        
-      {/* Desktop Sidebar */}
+  return (
+
+    <div className="flex min-h-screen">
+
+
+      {/* Desktop Settings Sidebar */}
       <aside
         className="hidden lg:flex flex-col flex-shrink-0 bg-zinc-900 border-r border-zinc-800 transition-all duration-200"
         style={{
-          width: sidebarCollapsed ? "3.5rem" : "14rem"
+          width: sidebarCollapsed ? "3.5rem" : "14rem",
         }}
       >
 
@@ -90,34 +90,57 @@ return (
         </div>
 
 
-        <nav className="flex-1 space-y-2 px-3">
+        <nav className="flex-1 space-y-5 px-3">
 
-          {navigation.map((item) => {
-            const Icon = item.icon;
+          {navigationGroups.map((group) => (
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 transition ${
-                  sidebarCollapsed
-                    ? "justify-center"
-                    : "text-zinc-400 hover:text-white hover:bg-zinc-800"
-                }`}
-                title={sidebarCollapsed ? item.label : undefined}
-              >
+            <div key={group.label}>
 
-                <Icon className="size-5" />
+              {!sidebarCollapsed && (
+                <div className="px-3 mb-2 text-xs font-semibold uppercase text-zinc-500">
+                  {group.label}
+                </div>
+              )}
 
-                {!sidebarCollapsed && (
-                  <span>
-                    {item.label}
-                  </span>
-                )}
 
-              </Link>
-            );
-          })}
+              {group.items.map((item) => {
+
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
+
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    title={sidebarCollapsed ? item.label : undefined}
+                    className={`flex items-center gap-3 rounded-lg px-3 py-2 transition ${
+                      isActive
+                        ? "bg-zinc-800 text-white"
+                        : "text-zinc-400 hover:text-white hover:bg-zinc-800"
+                    } ${
+                      sidebarCollapsed
+                        ? "justify-center"
+                        : ""
+                    }`}
+                  >
+
+                    <Icon className="size-5" />
+
+                    {!sidebarCollapsed && (
+                      <span>
+                        {item.label}
+                      </span>
+                    )}
+
+                  </Link>
+                );
+
+              })}
+
+            </div>
+
+          ))}
 
         </nav>
 
@@ -125,6 +148,11 @@ return (
         <button
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
           className="m-3 flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-zinc-400 hover:text-white hover:bg-zinc-800"
+          aria-label={
+            sidebarCollapsed
+              ? "Expand sidebar"
+              : "Collapse sidebar"
+          }
         >
 
           {sidebarCollapsed ? (
@@ -138,28 +166,23 @@ return (
 
         </button>
 
+
       </aside>
 
-    {/* Main Content */}
-    <main className="flex-1 min-w-0">
-      <div className="px-4 py-6 lg:px-8 lg:py-8">
-        {/* Mobile Settings Toolbar */}
-        <div className="lg:hidden flex items-center justify-between mb-6">
-          <h1 className="text-xl font-semibold text-white">
-            Settings
-          </h1>
-          <button
-            onClick={() => setMobileOpen(true)}
-            className="rounded-lg p-2 text-zinc-400 hover:text-white hover:bg-zinc-800"
-            aria-label="Open settings menu"
-          >
-            ☰
-          </button>
+
+      {/* Settings Content */}
+      <main className="flex-1 min-w-0">
+
+        <div className="px-4 py-6 lg:px-8 lg:py-8">
+
+          {children}
+
         </div>
-        {children}
-      </div>
-    </main>
+
+      </main>
+
+
     </div>
-  </div>
-);
+
+  );
 }

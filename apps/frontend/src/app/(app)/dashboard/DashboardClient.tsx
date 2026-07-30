@@ -17,7 +17,6 @@ import {
   LineChart,
   Line
 } from 'recharts';
-import { AppShell } from '@/components/layout/AppShell';
 import {
   type EnvironmentReading,
   type DryBackLog,
@@ -186,16 +185,13 @@ useEffect(() => {
   // --- LOADING (must be after all hooks) ---
   if (loading) {
     return (
-      <AppShell>
         <div className="flex h-[75vh] items-center justify-center text-sm font-semibold text-gray-500 dark:text-zinc-400 animate-pulse">
           Loading environment data...
         </div>
-      </AppShell>
     );
   }
 
 return (
-    <AppShell>
       <div className="min-h-screen bg-white dark:bg-[#0B0F19] text-gray-900 dark:text-zinc-100 p-4 space-y-6">
         
         {/* Daily AI Briefing */}
@@ -275,6 +271,5 @@ return (
           </div>
         </div>
       </div>
-    </AppShell>
   );
 }

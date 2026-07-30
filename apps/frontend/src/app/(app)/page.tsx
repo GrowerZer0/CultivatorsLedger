@@ -1,6 +1,5 @@
 // apps/frontend/src/app/page.tsx
 import Link from 'next/link';
-import { AppShell } from '@/components/layout/AppShell';
 import { DailyCheckIn } from '@/components/dashboard/DailyCheckIn';
 import { getPlants } from '@/app/actions/plant-mgmt';
 import { BarChart3, ChevronRight } from 'lucide-react';
@@ -17,7 +16,6 @@ export default async function HomePage() {
   }));
 
   return (
-    <AppShell>
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header / Navigation Quick Link */}
         <div className="flex items-center justify-between">
@@ -38,6 +36,5 @@ export default async function HomePage() {
         {/* Primary Operational Loop Component */}
         <DailyCheckIn plants={activePlants} />
       </div>
-    </AppShell>
   );
 }

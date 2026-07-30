@@ -31,8 +31,9 @@ export function AppShell({ children, unitSystem = "imperial" }: AppShellProps) {
   const router = useRouter(); 
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [settingsExpanded, setSettingsExpanded] = useState(false);
-  const { data } = useTelemetry();
+const [settingsExpanded, setSettingsExpanded] = useState(
+  pathname.startsWith("/settings")
+);  const { data } = useTelemetry();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -43,6 +44,14 @@ export function AppShell({ children, unitSystem = "imperial" }: AppShellProps) {
     { name: "Dashboard", href: "/", icon: Gauge, color: "text-canopy dark:text-emerald-400" },
     { name: "Nutrients", href: "/nutrients", icon: Droplets, color: "text-canopy dark:text-emerald-400" },
   ];
+
+  const settingsLinks = [
+  { name: "Profile", href: "/settings/profile" },
+  { name: "Facility", href: "/settings/facility" },
+  { name: "Hardware", href: "/settings/hardware" },
+  { name: "Nutrients", href: "/settings/nutrients" },
+  { name: "System", href: "/settings/system" },
+];
 
   // --- Telemetry Data Extraction ---
   const env = data.latestEnvironment;
@@ -161,14 +170,49 @@ export function AppShell({ children, unitSystem = "imperial" }: AppShellProps) {
             </div>
 
             {/* Settings Disclosure */}
-            <Link
-            href="/settings/profile"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-3 rounded-md px-4 py-3 text-base font-medium text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800/50"
-            >
-              <Settings className="size-5 text-clay dark:text-orange-400" />
-              <span>Settings</span>
-            </Link>
+            <button
+              onClick={() => setSettingsExpanded(!settingsExpanded)}
+              className={`flex items-center justify-between rounded-md px-4 py-3 text-base font-medium w-full transition ${
+                pathname.startsWith("/settings")
+                  ? "bg-zinc-800 text-white"
+                  : "text-zinc-600 dark:text-zinc-400 hover:bg-mist dark:hover:bg-zinc-800/50"
+              }`} 
+              >
+              <div className="flex items-center gap-3">
+                <Settings className="size-5 text-clay dark:text-orange-400" />
+                <span>Settings</span>
+              </div>
+
+              <ChevronDown
+                className={`size-5 transition-transform ${
+                  settingsExpanded ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+
+            {settingsExpanded && (
+            <div className="ml-8 mt-1 space-y-1 border-l border-zinc-800 pl-3">
+
+            {settingsLinks.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`block rounded-md px-3 py-2 text-sm transition ${
+                    isActive
+                      ? "bg-zinc-800 text-white"
+                      : "text-zinc-500 hover:text-white hover:bg-zinc-800"
+                  }`}
+                >
+                  {item.name}
+                </Link>
+              );
+            })}
+              </div>
+            )}
 
             <button
               onClick={handleLogout}

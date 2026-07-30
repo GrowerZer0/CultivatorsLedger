@@ -5,7 +5,6 @@ import {
   Droplets,
   Sprout,
 } from 'lucide-react';
-import { AppShell } from '@/components/layout/AppShell';
 import {
   calculateReservoirDelta,
   commercialFeedSchedules,
@@ -129,16 +128,13 @@ export default function NutrientsPage() {
   // Show loading while blueprints load
   if (loading) {
     return (
-      <AppShell>
         <div className="flex h-[75vh] items-center justify-center text-sm font-semibold text-gray-500 dark:text-zinc-400 animate-pulse">
           Loading nutrient recipes...
         </div>
-      </AppShell>
     );
   }
 
   return (
-    <AppShell>
       <div className="min-h-screen bg-white dark:bg-[#0B0F19] text-gray-900 dark:text-zinc-100 p-4">
 
         {/* Feeding Calculator */}
@@ -290,6 +286,5 @@ export default function NutrientsPage() {
           </div>
         </div>
       </div>
-    </AppShell>
   );
 }
