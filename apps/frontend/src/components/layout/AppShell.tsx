@@ -13,6 +13,7 @@ import {
   Droplet,
   Wind,
   ChevronDown,
+  Layers
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -48,7 +49,7 @@ export function AppShell({
 
   const tabs = [
     {
-      name: "Dashboard",
+      name: "Grow Dashboard",
       href: "/",
       match: ["/", "/dashboard"],
       icon: Gauge,
@@ -60,6 +61,12 @@ export function AppShell({
       match: ["/nutrients"],
       icon: Droplets,
       color: "text-canopy dark:text-emerald-400",
+    },
+    {
+    name: "Batches",
+    href: "/batches",
+    match: ["/batches"],
+    icon: Layers,
     },
   ];
 
@@ -219,7 +226,7 @@ export function AppShell({
                   onClick={()=>setMobileMenuOpen(false)}
                   className={`mt-2 flex items-center gap-3 rounded-md px-4 py-3 ${
                     isActive
-                      ? "bg-zinc-800 text-white"
+                      ? "bg-emerald-600/20 text-emerald-400 border border-emerald-500/30"
                       : "text-zinc-600 dark:text-zinc-400"
                   }`}
                 >
