@@ -2,17 +2,43 @@
 import { useState, useEffect } from "react";
 import { getBatches, getBatchesForComparison } from "@/app/actions/batch-mgmt";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
+
+type BatchDTO = {
+  id: string;
+  name: string;
+  cultivar?: string | null;
+  dryBackLogs?: DryBackLogDTO[];
+};
+
+type DryBackLogDTO = {
+  timestamp: string | Date;
+  dryBackPercent: number;
+};
+
+type BatchComparisonDTO = {
+  id: string;
+  dryBackLogs: DryBackLogDTO[];
+};
+
 export default function CompareContent() {
-  const [batches, setBatches] = useState<any[]>([]);
+  const [batches, setBatches] = useState<BatchDTO[]>([]);
   const [batchA, setBatchA] = useState<string>('');
   const [batchB, setBatchB] = useState<string>('');
-  const [comparisonData, setComparisonData] = useState<any[]>([]);
+  const [comparisonData, setComparisonData] = useState<
+    {
+      date: string;
+      [key: string]: string | number | null;
+    }[]
+  >([]);
   useEffect(() => {
-    getBatches().then(setBatches);
+    getBatches().then((data: BatchDTO[]) => {
+      setBatches(data);
+    });
   }, []);
   useEffect(() => {
     if (batchA && batchB) {
-      getBatchesForComparison([batchA, batchB]).then((data) => {
+      getBatchesForComparison([batchA, batchB]).then(
+        (data: BatchComparisonDTO[]) => {
         const logsA = data.find(b => b.id === batchA)?.dryBackLogs || [];
         const logsB = data.find(b => b.id === batchB)?.dryBackLogs || [];
         const combined = logsA.map((log, i) => ({

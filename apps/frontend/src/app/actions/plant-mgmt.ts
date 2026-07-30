@@ -2,7 +2,8 @@
 import { db, prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getUserId } from "@/lib/session";
-import { supabase } from "@/lib/supabase";
+import { serializePrisma } from "@/lib/serializePrisma";
+
 // ==========================================
 // PLANT MANAGEMENT
 // ==========================================
@@ -100,10 +101,9 @@ export async function deletePlant(plantId: string) {
   }
 }
 export async function fetchPlants() {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthorized");
+  const userId = await getUserId();
   const plants = await prisma.plant.findMany({
-    where: { userId: user.id },
+    where: { userId },
     select: {
       id: true,
       name: true,
@@ -115,10 +115,5 @@ export async function fetchPlants() {
       dryTarget: true,
     },
   });
-  return plants.map(p => ({
-    ...p,
-    containerGallons: p.containerGallons ? Number(p.containerGallons) : null,
-    wetWeight: p.wetWeight ? Number(p.wetWeight) : null,
-    dryTarget: p.dryTarget ? Number(p.dryTarget) : null,
-  }));
+  return serializePrisma(plants);
 }

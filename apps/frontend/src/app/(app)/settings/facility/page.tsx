@@ -37,6 +37,7 @@ interface PlantData {
   wetWeight?: number | null;
   dryTarget?: number | null;
 }
+
 export default function FacilityManagementPage() {  // renamed; no props
   const [rooms, setRooms] = useState<RoomData[]>([]);
   const [batches, setBatches] = useState<BatchData[]>([]);
@@ -60,10 +61,17 @@ export default function FacilityManagementPage() {  // renamed; no props
         ]);
         setRooms(roomsData);
         setBatches(
-          batchesData.map((batch) => ({
+          batchesData.map((batch: BatchData) => ({
             ...batch,
-            wetWeight: batch.wetWeight ? Number(batch.wetWeight) : null,
-            dryTarget: batch.dryTarget ? Number(batch.dryTarget) : null,
+          wetWeight:
+            batch.wetWeight !== null && batch.wetWeight !== undefined
+              ? Number(batch.wetWeight)
+              : null,
+
+          dryTarget:
+            batch.dryTarget !== null && batch.dryTarget !== undefined
+              ? Number(batch.dryTarget)
+              : null,
           }))
         );
         setPlants(plantsData);

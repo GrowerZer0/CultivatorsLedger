@@ -2,7 +2,8 @@
 import { db, prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getUserId } from "@/lib/session";
-import { supabase } from "@/lib/supabase";
+import { serializePrisma } from "@/lib/serializePrisma";
+
 // ==========================================
 // FACILITY MANAGEMENT (ROOMS / TENTS)
 // ==========================================
@@ -64,10 +65,12 @@ export async function deleteRoom(roomId: string) {
   }
 }
 export async function fetchRooms() {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthorized");
-  return prisma.room.findMany({
-    where: { userId: user.id },
+  const userId = await getUserId();
+  const rooms = await prisma.room.findMany({
+    where: { userId },
     select: { id: true, name: true, type: true },
+
   });
+
+  return serializePrisma(rooms);
 }

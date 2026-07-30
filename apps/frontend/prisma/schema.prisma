@@ -32,6 +32,8 @@ model User {
   irrigationEvents IrrigationEvent[]
   batchHarvests    BatchHarvest[]
   plants           Plant[]
+
+  @@map("users")
 }
 model SystemSetting {
   id                 Int      @id @default(autoincrement())
@@ -164,11 +166,11 @@ model SensorConfig {
   id         String    @id @default(cuid())
   name       String
   type       String // e.g., 'vivosun', 'custom-http', 'mqtt'
-  apiKeyHash String    @unique // hashed version of the key
-  isActive   Boolean   @default(true)
-  lastPingAt DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  apiKeyHash String    @unique @map("api_key_hash")
+  isActive   Boolean   @default(true) @map("is_active")
+  lastPingAt DateTime? @map("last_ping_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
   userId     String    @map("user_id")
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@map("sensor_configs")
@@ -202,7 +204,7 @@ model PlantInsight {
   plant                  Plant     @relation(fields: [plantId], references: [id], onDelete: Cascade)
   createdAt              DateTime  @default(now()) @map("created_at")
   date                   DateTime  @default(now()) @db.Date
-  lastBriefingAt         DateTime  @default(now())
+  lastBriefingAt         DateTime  @default(now()) @map("lastBriefingAt")
   // Overnight Summary
   overnightWeightLoss    Decimal?  @map("overnight_weight_loss") @db.Decimal(5, 2)
   overnightVpdAvg        Decimal?  @map("overnight_vpd_avg") @db.Decimal(4, 2)

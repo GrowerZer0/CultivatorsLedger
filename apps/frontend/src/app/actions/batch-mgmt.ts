@@ -2,19 +2,8 @@
 import { db, prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getUserId } from "@/lib/session";
-import { supabase } from "@/lib/supabase";
+import { serializePrisma } from "@/lib/serializePrisma";
 
-function serializePrisma<T>(data: T): T {
-  return JSON.parse(
-    JSON.stringify(data, (_, value) =>
-      typeof value === "object" && value !== null && "toNumber" in value
-        ? value.toNumber()
-        : value instanceof Date
-        ? value.toISOString()
-        : value
-    )
-  );
-}
 // ==========================================
 // BATCH MANAGEMENT
 // ==========================================
@@ -163,10 +152,9 @@ export async function setActiveBatch(batchId: string) {
   // Frontend state handling placeholder
 }
 export async function fetchBatches() {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthorized");
+  const userId = await getUserId();
   const batches = await prisma.batch.findMany({
-    where: { userId: user.id },
+    where: { userId: userId },
     select: {
       id: true,
       name: true,

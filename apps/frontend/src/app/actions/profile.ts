@@ -1,8 +1,10 @@
-// src/app/actions/profile.ts
 "use server";
+
 import { prisma } from "@/lib/db";
-import { supabase } from "@/lib/supabase";
 import { revalidatePath } from "next/cache";
+import { getUserId } from "@/lib/session";
+import { serializePrisma } from "@/lib/serializePrisma";
+
 export type UserProfile = {
   id: string;
   email: string;
@@ -12,15 +14,15 @@ export type UserProfile = {
   preferredTempUnit: "C" | "F";
   activeFeedLine: string | null;
 };
+
 /**
  * Get the current user's profile.
- * Returns null if not authenticated.
  */
 export async function getUserProfile(): Promise<UserProfile | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+  const userId = await getUserId();
+
   const profile = await prisma.user.findUnique({
-    where: { id: user.id },
+    where: { id: userId },
     select: {
       id: true,
       email: true,
@@ -31,58 +33,34 @@ export async function getUserProfile(): Promise<UserProfile | null> {
       activeFeedLine: true,
     },
   });
+
   if (!profile) {
-    // Create default profile if none exists
-    const newProfile = await prisma.user.create({
-      data: {
-        id: user.id,
-        email: user.email!,
-        displayName: user.user_metadata?.full_name || user.email?.split('@')[0] || '',
-        timezone: "UTC",
-        language: "en",
-        preferredTempUnit: "C",
-        activeFeedLine: null,
-      },
-      select: {
-        id: true,
-        email: true,
-        displayName: true,
-        timezone: true,
-        language: true,
-        preferredTempUnit: true,
-        activeFeedLine: true,
-      },
-    });
-    // Cast the preferredTempUnit to union type
-    return {
-      ...newProfile,
-      preferredTempUnit: newProfile.preferredTempUnit as "C" | "F",
-    };
+    return null;
   }
-  // Cast for existing profile
+
   return {
     ...profile,
     preferredTempUnit: profile.preferredTempUnit as "C" | "F",
   };
 }
+
+
 /**
  * Update the current user's profile.
- * Returns the updated profile.
  */
 export async function updateUserProfile(
   data: Partial<Omit<UserProfile, "id" | "email">>
-): Promise<UserProfile> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
-  const { displayName, timezone, language, preferredTempUnit, activeFeedLine } = data;
+) {
+  const userId = await getUserId();
+
   const updated = await prisma.user.update({
-    where: { id: user.id },
+    where: { id: userId },
     data: {
-      displayName,
-      timezone,
-      language,
-      preferredTempUnit,
-      activeFeedLine,
+      displayName: data.displayName,
+      timezone: data.timezone,
+      language: data.language,
+      preferredTempUnit: data.preferredTempUnit,
+      activeFeedLine: data.activeFeedLine,
     },
     select: {
       id: true,
@@ -94,9 +72,10 @@ export async function updateUserProfile(
       activeFeedLine: true,
     },
   });
+
   revalidatePath("/settings/profile");
   revalidatePath("/settings/system");
-  // Cast before returning
+
   return {
     ...updated,
     preferredTempUnit: updated.preferredTempUnit as "C" | "F",
