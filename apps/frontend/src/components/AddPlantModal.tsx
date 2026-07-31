@@ -130,7 +130,7 @@ export function AddPlantModal({
               <option value="">
                 No Room
               </option>
-              {rooms.map(room=>(
+              {rooms.map((room:RoomOption)=>(
                 <option key={room.id} value={room.id}>
                   {room.name}
                 </option>

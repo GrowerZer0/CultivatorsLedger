@@ -6,10 +6,12 @@ export const revalidate = 0; // Fresh data on every load (Server Component segme
 export default async function HomePage() {
   const plantsRaw = await getPlants();
   // Transform Prisma plants into the shape expected by DailyCheckIn
-  const activePlants = plantsRaw.map((plant) => ({
-    id: plant.id,
-    name: plant.name,
-  }));
+const activePlants = plantsRaw.map((plant) => ({
+  id: plant.id,
+  name: plant.name,
+  currentWeight: plant.currentWeight,
+  strain: plant.strain,
+}));
   return (
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header / Navigation Quick Link */}

@@ -216,7 +216,7 @@ export default function FacilityManagementPage() {  // renamed; no props
               </button>
             </form>
             <div className="divide-y divide-zinc-200 dark:divide-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
-              {rooms.map((room) => (
+              {rooms.map((room:RoomData) => (
                 <div key={room.id} className="p-4 flex justify-between items-center bg-white dark:bg-zinc-900">
                   <div>
                     <h4 className="font-bold text-sm text-zinc-900 dark:text-zinc-100">{room.name}</h4>

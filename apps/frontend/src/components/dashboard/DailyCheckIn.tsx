@@ -31,8 +31,16 @@ export interface RoomOption {
   name: string;
 }
 interface DailyCheckInProps {
-  rooms?: RoomOption[];
-  plants?: PlantOption[];
+ plants: {
+   id:string;
+   name:string;
+   currentWeight:any;
+   strain:string|null;
+ }[];
+   rooms: {
+    id: string;
+    name: string;
+  }[];
 }
 const TRAINING_EVENTS: TrainingEvent[] = [
   "None",
@@ -72,6 +80,13 @@ const [showAddPlant, setShowAddPlant] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState<string>(
     rooms[0]?.id || ""
   );
+  const [selectedPlantId, setSelectedPlantId] = useState(
+  plants[0]?.id || ""
+);
+
+const selectedPlant = plants.find(
+  (plant)=>plant.id === selectedPlantId
+);
   // 2. Room Telemetry State
   const [temp, setTemp] = useState<string>("");
   const [rh, setRh] = useState<string>("");
@@ -237,6 +252,49 @@ const handleSubmit = (e: React.FormEvent) => {
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="rounded-xl border p-4 space-y-3">
+
+<h2 className="font-bold">
+Today's Plant
+</h2>
+
+<select
+value={selectedPlantId}
+onChange={(e)=>setSelectedPlantId(e.target.value)}
+className="w-full rounded border p-2"
+>
+
+{plants.map((plant)=>(
+<option key={plant.id} value={plant.id}>
+{plant.name}
+</option>
+))}
+
+</select>
+
+{selectedPlant && (
+<div className="rounded-lg bg-zinc-100 dark:bg-zinc-900 p-3">
+
+<h3 className="font-bold">
+{selectedPlant.name}
+</h3>
+
+<p>
+Strain:
+{selectedPlant.strain || "Unknown"}
+</p>
+
+<p>
+Current Weight:
+{selectedPlant.currentWeight
+? `${selectedPlant.currentWeight} lbs`
+: "No weight logged"}
+</p>
+
+</div>
+)}
+
+</div>
           {/* Section 1: Room Selector */}
           <div>
             <label
@@ -257,7 +315,7 @@ const handleSubmit = (e: React.FormEvent) => {
                   No rooms defined
                 </option>
               ) : (
-                rooms.map((room) => (
+                rooms.map((room: RoomOption) => (
                   <option key={room.id} value={room.id}>
                     {room.name}
                   </option>
