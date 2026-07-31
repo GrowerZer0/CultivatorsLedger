@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { SectionPanel } from "@/components/layout/SectionPanel";
-import { getUserProfile, updateUserProfile } from "@/app/actions/profile";
+import { getUserProfile, updateUserProfile } from "@/server/actions/profile";
 import { supabase } from "@/lib/supabase";
 export default function ProfileSettingsPage() {
   const [profile, setProfile] = useState<any>(null);

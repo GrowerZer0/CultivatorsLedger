@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { getBatches, getBatchesForComparison } from "@/app/actions/batch-mgmt";
+import { getBatches, getBatchesForComparison } from "@/server/actions/batch-mgmt";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 type BatchDTO = {

@@ -5,13 +5,13 @@ import {
   createPlant,
   deletePlant,
   fetchPlants,
-} from "@/app/actions/plant-mgmt";
+} from "@/server/actions/plant-mgmt";
 import {
   createRoom,
   deleteRoom,
   fetchRooms,
-} from "@/app/actions/facility-mgmt";
-import { fetchBatches } from "@/app/actions/batch-mgmt";
+} from "@/server/actions/facility-mgmt";
+import { fetchBatches } from "@/server/actions/batch-mgmt";
 // Types (keep as you have)
 interface RoomData {
   id: string;
@@ -43,7 +43,7 @@ export default function FacilityManagementPage() {  // renamed; no props
   const [batches, setBatches] = useState<BatchData[]>([]);
   const [plants, setPlants] = useState<PlantData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"rooms" | "batches" | "plants">("plants");
+  const [activeTab, setActiveTab] = useState<"rooms" | "batches" | "plants">("rooms");
   const [newRoomName, setNewRoomName] = useState("");
   const [newPlantName, setNewPlantName] = useState("");
   const [newPlantStrain, setNewPlantStrain] = useState("");

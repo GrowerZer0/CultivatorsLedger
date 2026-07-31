@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { SectionPanel } from "@/components/layout/SectionPanel";                
 import { ThemeToggle } from "@/components/ThemeToggle";                         
 import { getSystemSettings, updateTempUnitPreference } from                     
-"@/app/actions/system-settings";      
+"@/server/actions/system-settings";      
                                                                                 
 export default function SystemSettingsPage() {                                  
   const [preferredTempUnit, setPreferredTempUnit] = useState<"C" | "F">("C");   

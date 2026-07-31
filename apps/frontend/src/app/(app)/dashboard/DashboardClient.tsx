@@ -24,8 +24,8 @@ import {
 // Modular Server Actions
 import {
   getDashboardData,
-} from '@/app/actions/loggingreadings';
-import { generateDailyBriefing } from '@/app/actions/dailyinsights';
+} from '@/server/actions/loggingreadings';
+import { generateDailyBriefing } from '@/server/actions/dailyinsights';
 import { useTelemetry } from '@/lib/telemetry-context';
 import { MorningBrief } from '@/components/MorningBrief';
 // Define Plant type more accurately for local use

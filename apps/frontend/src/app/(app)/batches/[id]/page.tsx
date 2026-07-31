@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { getBatch } from "@/app/actions/batch-mgmt";
+import { getBatch } from "@/server/actions/batch-mgmt";
 import {
   LineChart,
   Line,

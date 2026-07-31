@@ -4,7 +4,7 @@ import { Plus, X, Save, Trash2, Edit, ChevronLeft, ChevronRight } from "lucide-r
 import { SectionPanel } from "@/components/layout/SectionPanel";
 import { commercialFeedSchedules } from "@/lib/cultivation";
 import { getCustomBlueprints, saveOrUpdateBlueprint, deleteCustomBlueprint } from "@/app/actions";
-import { getUserProfile, updateUserProfile } from "@/app/actions/profile";
+import { getUserProfile, updateUserProfile } from "@/server/actions/profile";
 export default function NutrientsSettingsPage() {
   const [customSchedules, setCustomSchedules] = useState<any[]>([]);
   const [editingSchedule, setEditingSchedule] = useState<any | null>(null);

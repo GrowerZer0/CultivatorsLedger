@@ -2,7 +2,7 @@
 import { db } from "@/lib/db";
 import { getUserId } from "@/lib/session";
 import { GoogleGenAI } from "@google/genai";
-import { getDiagnostics, getTrendInsights, getRecoveryStatus } from '@/app/actions/loggingreadings';
+import { getDiagnostics, getTrendInsights, getRecoveryStatus } from '@/server/actions/loggingreadings';
 // ==========================================
 // HELPERS & CACHE GLOBALS
 // ==========================================

@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useTransition, useMemo } from "react";
-import { recordDailyCheckInLog, DailyCheckInFormData } from "@/app/actions/check-in";
+import { recordDailyCheckInLog, DailyCheckInFormData } from "@/server/actions/check-in";
 import { useRouter } from "next/navigation";
 import {
   FileSpreadsheet,
@@ -17,7 +17,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { CSVImportModal } from "@/components/CSVImportModal";
-import { addManualClimateAndWeight } from "@/app/actions/loggingreadings";
+import { addManualClimateAndWeight } from "@/server/actions/loggingreadings";
 import { AddPlantModal } from "@/components/AddPlantModal";
 
 type TrainingEvent = DailyCheckInFormData["trainingEvent"];
@@ -62,13 +62,11 @@ interface PlantEntryState {
   isRecording: boolean;
 }
 export function DailyCheckIn({
-  rooms = [
-    { id: "room-1", name: "Veg Room" },
-    { id: "room-2", name: "Flower Tent 1" },
-  ],
+  rooms = [],
   plants = [],
 }: DailyCheckInProps) {
-const [plantList, setPlantList] = useState<PlantOption[]>(plants);  const [showAddPlant, setShowAddPlant] = useState(false);
+const [plantList, setPlantList] = useState<PlantOption[]>(plants);  
+const [showAddPlant, setShowAddPlant] = useState(false);
   const router = useRouter();
   // 1. Room State
   const [selectedRoomId, setSelectedRoomId] = useState<string>(
@@ -359,9 +357,55 @@ const handleSubmit = (e: React.FormEvent) => {
               </button>
             </div>
             {roomPlants.length === 0 ? (
-              <p className="text-xs text-zinc-400 italic text-center py-6 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
-                No active plants found for this room.
+          <div
+            className="
+              border
+              border-dashed
+              border-zinc-300
+              dark:border-zinc-700
+              rounded-xl
+              py-10
+              px-6
+              text-center
+              bg-white
+              dark:bg-zinc-900/70
+              space-y-4
+            "
+          >
+            <div className="text-4xl">
+              🌱
+            </div>
+
+            <div>
+              <h3 className="text-base font-bold text-graphite dark:text-white">
+                No plants assigned
+              </h3>
+
+              <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+                Add your first plant to begin today's check-in.
               </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowAddPlant(true)}
+              className="
+                inline-flex
+                items-center
+                gap-2
+                rounded-lg
+                bg-canopy
+                px-4
+                py-2
+                text-sm
+                font-semibold
+                text-white
+                hover:opacity-90
+              "
+            >
+              + Add Plant
+            </button>
+          </div>
             ) : (
               roomPlants.map((plant) => {
                 const st = getPlantState(plant.id);

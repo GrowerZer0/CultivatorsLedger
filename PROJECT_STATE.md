@@ -1,11 +1,20 @@
-cat << 'EOF' > PROJECT_STATE.md
-# Current Focus: Phase 1 - Grower Tier ($12.99/mo)
+## Current Functional Status
 
-## Active Micro-Task
-- [ ] Fix Plant import error in page.tsx
-- [ ] Test Morning Brief flow with real plant logs
+### Complete
+- Authentication
+- Database schema
+- Dashboard shell
+- Daily Check-In
+- Plant creation
+- Sensor ingestion foundation
 
-## System Architecture State
-- Framework: Next.js 15 (App Router)
-- DB/Auth: Supabase
-EOF
+### Partial
+- Facility management
+- Batch management
+- Hardware setup
+- Insights
+
+### Not Started
+- Local-first sync
+- AI recommendations
+- Facility billing

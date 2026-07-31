@@ -32,6 +32,18 @@ export async function createPlant(data: {
 }) {
   try {
     const userId = await getUserId();
+    if (data.roomId) {
+  const roomExists = await db.room.findFirst({
+    where: {
+      id: data.roomId,
+      userId,
+    },
+  });
+
+  if (!roomExists) {
+    throw new Error("Invalid room assignment");
+  }
+}
     const plant = await db.plant.create({
       data: {
         name: data.name,

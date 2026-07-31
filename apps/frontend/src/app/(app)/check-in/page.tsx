@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { DailyCheckIn } from '@/components/dashboard/DailyCheckIn';
-import { getPlants } from '@/app/actions/plant-mgmt';
+import { getPlants } from '@/server/actions/plant-mgmt';
 import { BarChart3, ChevronRight } from 'lucide-react';
 export const revalidate = 0; // Fresh data on every load (Server Component segment config)
 export default async function HomePage() {

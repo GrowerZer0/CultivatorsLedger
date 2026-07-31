@@ -148,9 +148,7 @@ export async function getBatchesForComparison(batchIds: string[]) {
 
   return serializePrisma(batches);
 }
-export async function setActiveBatch(batchId: string) {
-  // Frontend state handling placeholder
-}
+
 export async function fetchBatches() {
   const userId = await getUserId();
   const batches = await prisma.batch.findMany({

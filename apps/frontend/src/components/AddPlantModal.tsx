@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { X, Plus, Loader2 } from "lucide-react";
-import { createPlant } from "@/app/actions/plant-mgmt";
+import { createPlant } from "@/server/actions/plant-mgmt";
 
 interface RoomOption {
   id: string;
@@ -29,43 +29,43 @@ export function AddPlantModal({
   onPlantCreated,
 }: AddPlantModalProps) {
   const [isPending, startTransition] = useTransition();
-
   const [name, setName] = useState("");
   const [strain, setStrain] = useState("");
-  const [roomId, setRoomId] = useState(defaultRoomId || "");
-
+  const [roomId, setRoomId] = useState(
+    defaultRoomId && rooms.some(r => r.id === defaultRoomId)
+      ? defaultRoomId
+      : ""
+  );
   if (!open) return null;
-
   function handleSubmit() {
     if (!name.trim()) return;
-
     startTransition(async () => {
+      console.log("Creating plant with:", {
+  name,
+  strain,
+  roomId,
+});
       const result = await createPlant({
         name: name.trim(),
         strain: strain.trim() || undefined,
         roomId: roomId || undefined,
       });
-
       if (!result.success || !result.plant) {
         alert(result.error || "Failed to create plant");
         return;
       }
-
       onPlantCreated({
         id: result.plant.id,
         name: result.plant.name,
         roomId: result.plant.roomId,
       });
-
       setName("");
       setStrain("");
       onClose();
     });
   }
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-
       <div className="
         w-full max-w-md
         rounded-xl
@@ -75,12 +75,10 @@ export function AddPlantModal({
         shadow-xl
         space-y-5
       ">
-
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold">
             Add Plant
           </h2>
-
           <button
             onClick={onClose}
             className="text-zinc-400 hover:text-zinc-700"
@@ -88,15 +86,11 @@ export function AddPlantModal({
             <X size={20}/>
           </button>
         </div>
-
-
         <div className="space-y-3">
-
           <div>
             <label className="text-xs font-bold uppercase text-zinc-500">
               Plant Name
             </label>
-
             <input
               value={name}
               onChange={(e)=>setName(e.target.value)}
@@ -107,13 +101,10 @@ export function AddPlantModal({
               "
             />
           </div>
-
-
           <div>
             <label className="text-xs font-bold uppercase text-zinc-500">
               Strain
             </label>
-
             <input
               value={strain}
               onChange={(e)=>setStrain(e.target.value)}
@@ -124,13 +115,10 @@ export function AddPlantModal({
               "
             />
           </div>
-
-
           <div>
             <label className="text-xs font-bold uppercase text-zinc-500">
               Room
             </label>
-
             <select
               value={roomId}
               onChange={(e)=>setRoomId(e.target.value)}
@@ -139,23 +127,17 @@ export function AddPlantModal({
               dark:bg-zinc-800
               "
             >
-
               <option value="">
                 No Room
               </option>
-
               {rooms.map(room=>(
                 <option key={room.id} value={room.id}>
                   {room.name}
                 </option>
               ))}
-
             </select>
           </div>
-
         </div>
-
-
         <button
           onClick={handleSubmit}
           disabled={isPending}
@@ -170,7 +152,6 @@ export function AddPlantModal({
           disabled:opacity-50
           "
         >
-
           {isPending ? (
             <>
               <Loader2 className="animate-spin" size={18}/>
@@ -182,12 +163,8 @@ export function AddPlantModal({
               Add Plant
             </>
           )}
-
         </button>
-
-
       </div>
-
     </div>
   );
 }

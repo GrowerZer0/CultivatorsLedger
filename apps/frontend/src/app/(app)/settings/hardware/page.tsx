@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Plus, X, Trash2, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { SectionPanel } from "@/components/layout/SectionPanel";
-import { getSensors, createSensor, toggleSensor, deleteSensor, regenerateApiKey } from "@/app/actions/sensorconfig";
+import { getSensors, createSensor, toggleSensor, deleteSensor, regenerateApiKey } from "@/server/actions/sensorconfig";
 export default function HardwareSettingsPage() {
   const [sensors, setSensors] = useState<any[]>([]);
   const [showAddSensor, setShowAddSensor] = useState(false);
