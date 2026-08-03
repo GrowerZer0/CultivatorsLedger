@@ -17,10 +17,12 @@ import {
   Wind,
   Layers,
   Sparkles,
+  FlaskConical,
 } from "lucide-react";
 import { CSVImportModal } from "@/components/CSVImportModal";
 import { addManualClimateAndWeight } from "@/server/actions/loggingreadings";
 import { AddPlantModal } from "@/components/facility/AddPlantModal";
+import { NutrientCalculatorModal } from "../nutrients/NutrientCalculatorModal";
 
 type TrainingEvent = DailyCheckInFormData["trainingEvent"];
 export interface PlantOption {
@@ -85,6 +87,9 @@ const [showAddPlant, setShowAddPlant] = useState(false);
   const [selectedPlantId, setSelectedPlantId] = useState(
   plants[0]?.id || ""
 );
+
+const [isNutrientModalOpen, setIsNutrientModalOpen] = useState(false);
+const [selectedPlantForNutrient, setSelectedPlantForNutrient] = useState<any>(null);
 
 const selectedPlant = plants.find(
   (plant)=>plant.id === selectedPlantId
@@ -487,23 +492,32 @@ const handleSubmit = (e: React.FormEvent) => {
                           <span className="block text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
                             Fed
                           </span>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => updatePlantState(plant.id, { fed: !st.fed })}
+                                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                                  st.fed
+                                    ? "bg-canopy dark:bg-emerald-600 text-white"
+                                    : "bg-mist dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"
+                                }`}
+                              >
+                                {st.fed ? "Yes" : "No"}
+                              </button>
                           <button
                             type="button"
-                            onClick={() =>
-                              updatePlantState(plant.id, { fed: !st.fed })
-                            }
-                            className={`w-full py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                              st.fed
-                                ? "bg-canopy dark:bg-emerald-600 text-white"
-                                : "bg-mist dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"
-                            }`}
+                            onClick={() => {
+                              setSelectedPlantForNutrient(plant);
+                              setIsNutrientModalOpen(true);
+                            }}
+                            className="p-1.5 rounded-lg hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 transition-colors"
+                            title="Open nutrient calculator"
                           >
-                            {st.fed ? "Yes" : "No"}
+                            <FlaskConical className="size-4" />
                           </button>
                         </div>
                       </div>
                     </div>
-                    <div>
                       <span className="block text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
                         Training Event
                       </span>
@@ -630,7 +644,6 @@ const handleSubmit = (e: React.FormEvent) => {
       rooms={rooms}
       defaultRoomId={selectedRoomId}
       onPlantCreated={(plant)=>{
-
         setPlantList(prev=>[
           ...prev,
           {
@@ -639,9 +652,19 @@ const handleSubmit = (e: React.FormEvent) => {
             roomId: plant.roomId ?? undefined,
           }
         ]);
-
       }}
     />
+
+    <NutrientCalculatorModal
+  isOpen={isNutrientModalOpen}
+  onClose={() => {
+    setIsNutrientModalOpen(false);
+    setSelectedPlantForNutrient(null);
+  }}
+  plantStage={selectedPlantForNutrient?.stage}
+  plantStrain={selectedPlantForNutrient?.strain}
+  plantWeight={selectedPlantForNutrient?.currentWeight}
+/>
     </>
   );
 }
