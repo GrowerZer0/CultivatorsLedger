@@ -1,10 +1,13 @@
+//src/app/(app)/rooms/[id]/page.tsx
+
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { fetchRooms, updateRoom } from "@/server/actions/facility-mgmt";
-import { fetchPlants } from "@/server/actions/plant-mgmt";
-import { AddPlantModal } from "@/components/facility/AddPlantModal"; // fixed import path
+import { fetchPlants, updatePlant } from "@/server/actions/plant-mgmt";
+import { fetchBatches } from "@/server/actions/batch-mgmt";
+import { AddPlantModal } from "@/components/facility/AddPlantModal";
 import {
   Pencil,
   Check,
@@ -32,10 +35,22 @@ type Plant = {
   batchId: string | null;
 };
 
+type Batch = {
+  id: string;
+  name: string;
+};
+
+type RoomOption = {
+  id: string;
+  name: string;
+};
+
 export default function RoomDetailPage() {
   const params = useParams<{ id: string }>();
   const [room, setRoom] = useState<Room | null>(null);
   const [plants, setPlants] = useState<Plant[]>([]);
+  const [allRooms, setAllRooms] = useState<RoomOption[]>([]);
+  const [allBatches, setAllBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isAddPlantModalOpen, setIsAddPlantModalOpen] = useState(false);
@@ -44,13 +59,18 @@ export default function RoomDetailPage() {
   const loadData = useCallback(async () => {
     if (!params?.id) return;
     try {
-      const [roomsData, plantsData] = await Promise.all([
+      const [roomsData, plantsData, batchesData] = await Promise.all([
         fetchRooms(),
         fetchPlants(),
+        fetchBatches(),
       ]);
+      
+      // Store all rooms and batches for dropdowns
+      setAllRooms(roomsData);
+      setAllBatches(batchesData);
+
       const foundRoom = roomsData.find((r: any) => r.id === params.id);
       if (foundRoom) {
-        // Convert Decimal → number for all numeric fields
         const roomForState: Room = {
           id: foundRoom.id,
           name: foundRoom.name,
@@ -90,7 +110,6 @@ export default function RoomDetailPage() {
 
   const handleSaveTargets = async () => {
     if (!room) return;
-    // Prepare data to send – we only send the editable fields
     const updateData = {
       name: room.name,
       type: room.type,
@@ -104,7 +123,6 @@ export default function RoomDetailPage() {
     };
     const result = await updateRoom(room.id, updateData);
     if (result.success && result.room) {
-      // Convert returned room (Prisma Decimal) to our Room type
       const updatedRoom: Room = {
         id: result.room.id,
         name: result.room.name,
@@ -126,6 +144,20 @@ export default function RoomDetailPage() {
 
   const handlePlantCreated = useCallback((newPlant: any) => {
     setPlants((prev) => [...prev, newPlant]);
+  }, []);
+
+  const handleDeletePlant = useCallback(async (plantId: string) => {
+    if (!confirm("Remove this plant from the room?")) return;
+    // We just set roomId to null (unassign from room)
+    const res = await updatePlant({
+      id: plantId,
+      roomId: null,
+    });
+    if (res.success) {
+      setPlants((prev) => prev.filter((p) => p.id !== plantId));
+    } else {
+      alert("Failed to remove plant.");
+    }
   }, []);
 
   if (loading) {
@@ -337,14 +369,71 @@ export default function RoomDetailPage() {
         ) : (
           <div className="divide-y divide-zinc-800">
             {plants.map((plant) => (
-              <div key={plant.id} className="py-3 flex justify-between items-center">
+              <div key={plant.id} className="py-3 flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <p className="font-medium text-white">{plant.name}</p>
-                  <p className="text-xs text-zinc-400">{plant.strain || "Unknown strain"}</p>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-400">
+                    <span>{plant.strain || "Unknown strain"}</span>
+                    {/* Move Room Dropdown */}
+                    <select
+                      value={plant.roomId || ""}
+                      onChange={async (e) => {
+                        const newRoomId = e.target.value || null;
+                        const res = await updatePlant({
+                          id: plant.id,
+                          roomId: newRoomId,
+                        });
+                        if (res.success) {
+                          setPlants((prev) =>
+                            prev.map((p) =>
+                              p.id === plant.id ? { ...p, roomId: newRoomId } : p
+                            )
+                          );
+                        } else {
+                          alert("Failed to move plant.");
+                        }
+                      }}
+                      className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-xs text-white"
+                    >
+                      <option value="">No Room</option>
+                      {allRooms.map((r: RoomOption) => (
+                        <option key={r.id} value={r.id}>{r.name}</option>
+                      ))}
+                    </select>
+                    {/* Move Batch Dropdown */}
+                    <select
+                      value={plant.batchId || ""}
+                      onChange={async (e) => {
+                        const newBatchId = e.target.value || null;
+                        const res = await updatePlant({
+                          id: plant.id,
+                          batchId: newBatchId,
+                        });
+                        if (res.success) {
+                          setPlants((prev) =>
+                            prev.map((p) =>
+                              p.id === plant.id ? { ...p, batchId: newBatchId } : p
+                            )
+                          );
+                        } else {
+                          alert("Failed to move batch.");
+                        }
+                      }}
+                      className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-xs text-white"
+                    >
+                      <option value="">No Batch</option>
+                      {allBatches.map((b: Batch) => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
-                <span className="text-xs text-zinc-500">
-                  {plant.batchId ? "In batch" : "No batch"}
-                </span>
+                <button
+                  onClick={() => handleDeletePlant(plant.id)}
+                  className="text-xs text-red-400 hover:text-red-300 transition-colors"
+                >
+                  Remove
+                </button>
               </div>
             ))}
           </div>

@@ -3,8 +3,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { getBatch } from "@/server/actions/batch-mgmt";
-import { getPlantsForBatch, deletePlant } from "@/server/actions/plant-mgmt";
+import { getBatch, updateBatch } from "@/server/actions/batch-mgmt";
+import { getPlantsForBatch, deletePlant, updatePlant } from "@/server/actions/plant-mgmt";
 import { fetchRooms } from "@/server/actions/facility-mgmt";
 import { AddPlantModal } from "@/components/facility/AddPlantModal";
 import {
@@ -29,11 +29,21 @@ type RoomOption = {
   name: string;
 };
 
+type Batch = {
+  id: string;
+  name: string;
+  cultivar: string | null;
+  roomId: string | null;
+  startDate: string | Date;
+  dryBackLogs: any[];
+};
+
 export default function BatchPage() {
   const params = useParams<{ id: string }>();
-  const [batch, setBatch] = useState<any>(null);
+  const [batch, setBatch] = useState<Batch | null>(null);
   const [plants, setPlants] = useState<Plant[]>([]);
   const [rooms, setRooms] = useState<RoomOption[]>([]);
+  const [allRooms, setAllRooms] = useState<RoomOption[]>([]); // For dropdown
   const [loading, setLoading] = useState(true);
   const [isAddPlantModalOpen, setIsAddPlantModalOpen] = useState(false);
 
@@ -48,6 +58,7 @@ export default function BatchPage() {
       setBatch(batchData);
       setPlants(plantsData);
       setRooms(roomsData);
+      setAllRooms(roomsData); // Store all rooms for dropdown
     } catch (err) {
       console.error("Failed to load batch data:", err);
     } finally {
@@ -61,19 +72,22 @@ export default function BatchPage() {
 
   const handlePlantCreated = useCallback((newPlant: any) => {
     setPlants((prev) => [...prev, newPlant]);
-    // Optionally re-fetch to get full data
     if (params?.id) {
       getPlantsForBatch(params.id).then(setPlants);
     }
   }, [params?.id]);
 
   const handleDeletePlant = useCallback(async (plantId: string) => {
-    if (!confirm("Delete this plant from the batch?")) return;
-    const res = await deletePlant(plantId);
+    if (!confirm("Remove this plant from the batch?")) return;
+    // Instead of deleting, we set batchId to null (unassign)
+    const res = await updatePlant({
+      id: plantId,
+      batchId: null,
+    });
     if (res.success) {
       setPlants((prev) => prev.filter((p) => p.id !== plantId));
     } else {
-      alert("Failed to delete plant.");
+      alert("Failed to remove plant.");
     }
   }, []);
 
@@ -134,6 +148,24 @@ export default function BatchPage() {
         <p className="text-zinc-400 flex items-center gap-3 flex-wrap">
           {batch.cultivar && <span>{batch.cultivar}</span>}
           {batch.roomId && <span>• Room: {batch.roomId}</span>}
+          <select
+            value={batch.roomId || ""}
+            onChange={async (e) => {
+              const newRoomId = e.target.value || null;
+              const res = await updateBatch(batch.id, { roomId: newRoomId });
+              if (res.success && res.batch) {
+                setBatch((prev) => prev ? { ...prev, roomId: newRoomId } : null);
+              } else {
+                alert("Failed to move batch.");
+              }
+            }}
+            className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-xs text-white ml-2"
+          >
+            <option value="">No Room</option>
+            {allRooms.map((r) => (
+              <option key={r.id} value={r.id}>{r.name}</option>
+            ))}
+          </select>
           <button
             onClick={exportCSV}
             className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-full transition-colors"
