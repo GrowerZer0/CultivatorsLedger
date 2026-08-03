@@ -477,3 +477,30 @@ export async function getDiagnostics(batchId?: string, plantId?: string) {
     lightStress: normalize(lightStressScore),
   };
 }
+
+export async function getLatestRoomReadings() {
+  const userId = await getUserId();
+  
+  // Get the latest ClimateLog per room
+  const latestLogs = await db.$queryRaw`
+    SELECT DISTINCT ON (room_id) 
+      room_id as "roomId",
+      air_temp_c as "temperatureF",
+      relative_humidity as "humidity",
+      calculated_vpd_kpa as "vpd"
+    FROM climate_logs
+    WHERE user_id = ${userId}
+    ORDER BY room_id, timestamp DESC
+  `;
+
+  // Transform into a map: roomId -> reading
+  const map: Record<string, any> = {};
+  (latestLogs as any[]).forEach((log: any) => {
+    map[log.roomId] = {
+      temperatureF: log.temperatureF ? Number(log.temperatureF) : null,
+      humidity: log.humidity ? Number(log.humidity) : null,
+      vpd: log.vpd ? Number(log.vpd) : null,
+    };
+  });
+  return map;
+}

@@ -1,3 +1,4 @@
+//src/app/(app)/batches/compare/page.tsx
 "use client";
 import dynamicImport from "next/dynamic";
 export const dynamic = "force-dynamic";

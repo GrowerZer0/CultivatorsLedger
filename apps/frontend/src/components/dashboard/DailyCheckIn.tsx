@@ -1,3 +1,5 @@
+// apps/frontend/src/components/dashboard/DailyCheckIn.tsx
+
 "use client";
 import React, { useState, useTransition, useMemo } from "react";
 import { recordDailyCheckInLog, DailyCheckInFormData } from "@/server/actions/check-in";
@@ -18,7 +20,7 @@ import {
 } from "lucide-react";
 import { CSVImportModal } from "@/components/CSVImportModal";
 import { addManualClimateAndWeight } from "@/server/actions/loggingreadings";
-import { AddPlantModal } from "@/components/AddPlantModal";
+import { AddPlantModal } from "@/components/facility/AddPlantModal";
 
 type TrainingEvent = DailyCheckInFormData["trainingEvent"];
 export interface PlantOption {
@@ -252,49 +254,7 @@ const handleSubmit = (e: React.FormEvent) => {
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="rounded-xl border p-4 space-y-3">
 
-<h2 className="font-bold">
-Today's Plant
-</h2>
-
-<select
-value={selectedPlantId}
-onChange={(e)=>setSelectedPlantId(e.target.value)}
-className="w-full rounded border p-2"
->
-
-{plants.map((plant)=>(
-<option key={plant.id} value={plant.id}>
-{plant.name}
-</option>
-))}
-
-</select>
-
-{selectedPlant && (
-<div className="rounded-lg bg-zinc-100 dark:bg-zinc-900 p-3">
-
-<h3 className="font-bold">
-{selectedPlant.name}
-</h3>
-
-<p>
-Strain:
-{selectedPlant.strain || "Unknown"}
-</p>
-
-<p>
-Current Weight:
-{selectedPlant.currentWeight
-? `${selectedPlant.currentWeight} lbs`
-: "No weight logged"}
-</p>
-
-</div>
-)}
-
-</div>
           {/* Section 1: Room Selector */}
           <div>
             <label

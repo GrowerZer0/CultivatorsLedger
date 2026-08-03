@@ -1,3 +1,5 @@
+// apps/frontend/src/lib/cultivation.ts
+
 // 1. DATA TYPE DEFINITIONS (UI-Synced) - UPDATED
 export type DryBackLog = {
   id: string;

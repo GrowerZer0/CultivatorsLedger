@@ -220,16 +220,25 @@ model PlantInsight {
   @@map("plant_insights")
 }
 model Room {
-  id        String   @id @default(cuid())
-  name      String   @db.VarChar(100) // e.g., "Main Tent", "Veg Room B"
-  type      String   @default("tent") // 'tent', 'room', 'greenhouse'
-  userId    String   @map("user_id")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id              String   @id @default(cuid())
+  name            String   @db.VarChar(100) // e.g., "Main Tent", "Veg Room B"
+  type            String   @default("tent") // 'tent', 'room', 'greenhouse'
+  userId          String   @map("user_id")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  targetTempF     Decimal?  @map("target_temp_f") @db.Decimal(4,1)
+  targetRH        Decimal?  @map("target_rh") @db.Decimal(4,1)
+  targetVPD       Decimal?  @map("target_vpd") @db.Decimal(3,2)
+  lightOnTime     String?   @map("light_on_time")   // "HH:MM" 24h
+  lightOffTime    String?   @map("light_off_time")
+  ppfd            Int?      // PPFD target
+  lightDistance   Decimal?  @map("light_distance") @db.Decimal(3,1) // inches
+
   // Relations
   batches     Batch[]
   plants      Plant[]
   climateLogs ClimateLog[]
+
   @@map("rooms")
 }

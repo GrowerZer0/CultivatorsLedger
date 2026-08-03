@@ -1,3 +1,4 @@
+//src/app/(app)/batches/compare/CompareContent.tsx
 "use client";
 import { useState, useEffect } from "react";
 import { getBatches, getBatchesForComparison } from "@/server/actions/batch-mgmt";

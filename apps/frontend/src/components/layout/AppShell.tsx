@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Leaf,
   Menu,
@@ -13,7 +13,9 @@ import {
   Droplet,
   Wind,
   ChevronDown,
-  Layers
+  Layers,
+  Plus,
+  Home,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -31,7 +33,11 @@ export function AppShell({
   children,
   unitSystem = "imperial",
 }: AppShellProps) {
+
   const pathname = usePathname();
+    useEffect(() => {
+  setMobileMenuOpen(false);
+}, [pathname]);
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -49,10 +55,17 @@ export function AppShell({
 
   const tabs = [
     {
-      name: "Grow Dashboard",
+      name: "Dashboard",
       href: "/dashboard",
       match: ["/dashboard"],
       icon: Gauge,
+      color: "text-canopy dark:text-emerald-400",
+    },
+    {
+      name: "Rooms",
+      href: "/rooms",
+      match: ["/rooms"],
+      icon: Home,
       color: "text-canopy dark:text-emerald-400",
     },
     {
@@ -63,10 +76,10 @@ export function AppShell({
       color: "text-canopy dark:text-emerald-400",
     },
     {
-    name: "Batches",
-    href: "/batches",
-    match: ["/batches"],
-    icon: Layers,
+      name: "Batches",
+      href: "/batches",
+      match: ["/batches"],
+      icon: Layers,
     },
   ];
 
@@ -140,6 +153,7 @@ export function AppShell({
             <Link
               href="/check-in"
               className="hidden sm:inline-flex rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white"
+                onClick={() => setMobileMenuOpen(false)}
             >
               Log a Reading
             </Link>
@@ -171,6 +185,7 @@ export function AppShell({
             <Link
               href="/check-in"
               className="block rounded-xl bg-emerald-600 px-4 py-3 text-center font-bold text-white"
+              onClick={() => setMobileMenuOpen(false)}
             >
               Log a Reading
             </Link>
@@ -248,6 +263,16 @@ export function AppShell({
             </button>
           </nav>
         </div>
+      )}
+      {/* Floating Action Button - always visible when logged in */}
+      {!mobileMenuOpen && (
+        <Link
+          href="/check-in"
+          className="fixed bottom-6 right-6 z-20 flex items-center justify-center gap-2 rounded-full bg-emerald-600 px-5 py-3.5 shadow-lg transition hover:bg-emerald-700 active:scale-95 sm:hidden"
+        >
+          <Plus className="size-5 text-white" />
+          <span className="text-sm font-bold text-white">Log</span>
+        </Link>
       )}
       <main>
         {children}
