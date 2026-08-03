@@ -1,3 +1,4 @@
+//apps/frontend/src/app/(app)/nutrients/page.tsx
 'use client';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
