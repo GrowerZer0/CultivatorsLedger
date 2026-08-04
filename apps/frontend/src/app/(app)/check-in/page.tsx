@@ -10,7 +10,7 @@ export const revalidate = 0;
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ roomId?: string }> | { roomId?: string };
+  searchParams: Promise<{ roomId?: string }>;
 }) {
   const params = await searchParams;
   const roomId = params?.roomId;
