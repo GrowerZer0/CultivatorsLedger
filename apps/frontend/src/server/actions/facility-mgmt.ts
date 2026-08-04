@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { getUserId } from "@/lib/session";
 import { serializePrisma } from "@/lib/serializePrisma";
 import { z } from "zod";
-import { roomSchema } from "@/lib/validation";
+import { formatZodError, roomSchema } from "@/lib/validation";
+import error from "next/error";
 
 // ==========================================
 // FACILITY MANAGEMENT (ROOMS / TENTS)
@@ -42,7 +43,7 @@ export async function createRoom(data: unknown) {
   } catch (error) {
     console.error("Failed to create room:", error);
     if (error instanceof z.ZodError) {
-      return { success: false, error: error.errors.map(e => e.message).join(", ") };
+      return { success: false, error: formatZodError(error) };
     }
     return { success: false, error: "Failed to create room." };
   }
@@ -75,7 +76,7 @@ export async function updateRoom(roomId: unknown, data: unknown) {
   } catch (error) {
     console.error("Failed to update room:", error);
     if (error instanceof z.ZodError) {
-      return { success: false, error: error.errors.map(e => e.message).join(", ") };
+      return { success: false, error: formatZodError(error) };
     }
     return { success: false, error: "Failed to update room." };
   }
@@ -110,7 +111,7 @@ export async function deleteRoom(roomId: unknown) {
   } catch (error) {
     console.error("Failed to delete room:", error);
     if (error instanceof z.ZodError) {
-      return { success: false, error: error.errors.map(e => e.message).join(", ") };
+      return { success: false, error: formatZodError(error) };
     }
     return { success: false, error: "Failed to delete room." };
   }

@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getUserId } from "@/lib/session";
 import { z } from "zod";
-import { checkInSchema } from "@/lib/validation";
+import { checkInSchema, formatZodError } from "@/lib/validation";
 
 export interface DailyCheckInFormData {
   plantId: string;
@@ -118,7 +118,7 @@ export async function recordDailyCheckInLog(data: unknown) {
   } catch (error: any) {
     console.error("recordDailyCheckInLog Error:", error);
     if (error instanceof z.ZodError) {
-      return { success: false, error: error.errors.map(e => e.message).join(", ") };
+      return { success: false, error: formatZodError(error) };
     }
     return {
       success: false,

@@ -1,5 +1,6 @@
 //apps/frontend/src/app/%28app%29/settings/profile/page.tsx
 "use client";
+
 import { useState, useEffect } from "react";
 import { SectionPanel } from "@/components/layout/SectionPanel";
 import { getUserProfile, updateUserProfile } from "@/server/actions/profile";
@@ -18,9 +19,9 @@ export default function ProfileSettingsPage() {
 
   // Change Password States
   const [changePassword, setChangePassword] = useState(false);
-const [currentPassword, setCurrentPassword] = useState('');
-const [newPassword, setNewPassword] = useState('');
-const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
 
   // Load user profile on component mount
   useEffect(() => {
@@ -66,6 +67,7 @@ const [confirmNewPassword, setConfirmNewPassword] = useState('');
     window.location.href = "/auth/login";
   }
   if (loading) return <div className="text-xs text-zinc-500 py-8 text-center animate-pulse">Loading profile...</div>;
+
   return (
     <SectionPanel title="Profile & Account">
       <div className="space-y-6 max-w-xl">

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getUserId } from "@/lib/session";
 import { serializePrisma } from "@/lib/serializePrisma";
 import { z } from "zod";
-import { plantSchema } from "@/lib/validation";
+import { formatZodError, plantSchema } from "@/lib/validation";
 
 // ==========================================
 // PLANT MANAGEMENT
@@ -29,7 +29,7 @@ export async function getPlantsForBatch(batchId: unknown) {
   } catch (error) {
     console.error("getPlantsForBatch error:", error);
     if (error instanceof z.ZodError) {
-      return { success: false, error: error.errors.map(e => e.message).join(", ") };
+      return { success: false, error: formatZodError(error) };
     }
     return { success: false, error: "Failed to fetch plants for batch." };
   }
@@ -69,7 +69,7 @@ export async function createPlant(data: unknown) {
   } catch (error) {
     console.error("createPlant error:", error);
     if (error instanceof z.ZodError) {
-      return { success: false, error: error.errors.map(e => e.message).join(", ") };
+      return { success: false, error: formatZodError(error) };
     }
     return { success: false, error: "Failed to create plant." };
   }
@@ -101,7 +101,7 @@ export async function updatePlant(data: unknown) {
   } catch (error) {
     console.error("updatePlant error:", error);
     if (error instanceof z.ZodError) {
-      return { success: false, error: error.errors.map(e => e.message).join(", ") };
+      return { success: false, error: formatZodError(error) };
     }
     return { success: false, error: "Failed to update plant." };
   }
@@ -120,7 +120,7 @@ export async function deletePlant(plantId: unknown) {
   } catch (error) {
     console.error("deletePlant error:", error);
     if (error instanceof z.ZodError) {
-      return { success: false, error: error.errors.map(e => e.message).join(", ") };
+      return { success: false, error: formatZodError(error) };
     }
     return { success: false, error: "Failed to delete plant." };
   }
