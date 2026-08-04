@@ -1,3 +1,4 @@
+//app frontend/src/app/auth/login/page.tsx
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -71,6 +72,11 @@ export default function LoginPage() {
               className="mt-1 w-full rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-2 text-gray-900 dark:text-white outline-none focus:border-emerald-500"
             />
           </div>
+          <div className="text-right">
+          <Link href="/auth/forgot-password" className="text-sm text-emerald-600 dark:text-emerald-400 hover:underline">
+            Forgot password?
+          </Link>
+        </div>
           <button
             type="submit"
             disabled={loading}

@@ -1,3 +1,5 @@
+//apps/frontend/src/app/auth/signup/page.tsx
+
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
