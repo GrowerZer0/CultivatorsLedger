@@ -154,88 +154,81 @@ const [confirmNewPassword, setConfirmNewPassword] = useState('');
             <button className="mt-3 px-3 py-1.5 text-xs font-semibold rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition">Manage Billing</button>
           </div>
         </div>
-        // Add state
-const [changePassword, setChangePassword] = useState(false);
-const [currentPassword, setCurrentPassword] = useState('');
-const [newPassword, setNewPassword] = useState('');
-const [confirmNewPassword, setConfirmNewPassword] = useState('');
-
-// In the JSX, add a new section below the subscription section:
-<div className="border-t border-zinc-800 pt-4 space-y-4">
-  <h4 className="text-sm font-semibold text-white">Change Password</h4>
-  {!changePassword ? (
-    <button
-      onClick={() => setChangePassword(true)}
-      className="px-4 py-2 text-sm font-semibold rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition"
-    >
-      Change Password
-    </button>
-  ) : (
-    <div className="space-y-3">
-      <input
-        type="password"
-        placeholder="Current password"
-        value={currentPassword}
-        onChange={(e) => setCurrentPassword(e.target.value)}
-        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-xs text-white focus:border-emerald-500 outline-none"
-      />
-      <input
-        type="password"
-        placeholder="New password (min 6 chars)"
-        value={newPassword}
-        onChange={(e) => setNewPassword(e.target.value)}
-        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-xs text-white focus:border-emerald-500 outline-none"
-      />
-      <input
-        type="password"
-        placeholder="Confirm new password"
-        value={confirmNewPassword}
-        onChange={(e) => setConfirmNewPassword(e.target.value)}
-        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-xs text-white focus:border-emerald-500 outline-none"
-      />
-      <div className="flex gap-2">
-        <button
-          onClick={async () => {
-            if (newPassword !== confirmNewPassword) {
-              alert('Passwords do not match');
-              return;
-            }
-            if (newPassword.length < 6) {
-              alert('Password must be at least 6 characters');
-              return;
-            }
-            // Re-authenticate with current password first (optional but recommended)
-            // For simplicity, we'll directly update. Supabase requires session.
-            const { error } = await supabase.auth.updateUser({ password: newPassword });
-            if (error) {
-              alert(error.message);
-            } else {
-              alert('Password updated successfully.');
-              setChangePassword(false);
-              setCurrentPassword('');
-              setNewPassword('');
-              setConfirmNewPassword('');
-            }
-          }}
-          className="px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition"
-        >
-          Save Password
-        </button>
-        <button
-          onClick={() => {
-            setChangePassword(false);
-            setCurrentPassword('');
-            setNewPassword('');
-            setConfirmNewPassword('');
-          }}
-          className="px-4 py-2 text-sm font-semibold rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition"
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  )}
-</div>
+        <div className="border-t border-zinc-800 pt-4 space-y-4">
+          <h4 className="text-sm font-semibold text-white">Change Password</h4>
+          {!changePassword ? (
+            <button
+              onClick={() => setChangePassword(true)}
+              className="px-4 py-2 text-sm font-semibold rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition"
+            >
+              Change Password
+            </button>
+          ) : (
+            <div className="space-y-3">
+              <input
+                type="password"
+                placeholder="Current password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-xs text-white focus:border-emerald-500 outline-none"
+              />
+              <input
+                type="password"
+                placeholder="New password (min 6 chars)"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-xs text-white focus:border-emerald-500 outline-none"
+              />
+              <input
+                type="password"
+                placeholder="Confirm new password"
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-xs text-white focus:border-emerald-500 outline-none"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    if (newPassword !== confirmNewPassword) {
+                      alert('Passwords do not match');
+                      return;
+                    }
+                    if (newPassword.length < 6) {
+                      alert('Password must be at least 6 characters');
+                      return;
+                    }
+                    // Re-authenticate with current password first (optional but recommended)
+                    // For simplicity, we'll directly update. Supabase requires session.
+                    const { error } = await supabase.auth.updateUser({ password: newPassword });
+                    if (error) {
+                      alert(error.message);
+                    } else {
+                      alert('Password updated successfully.');
+                      setChangePassword(false);
+                      setCurrentPassword('');
+                      setNewPassword('');
+                      setConfirmNewPassword('');
+                    }
+                  }}
+                  className="px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition"
+                >
+                  Save Password
+                </button>
+                <button
+                  onClick={() => {
+                    setChangePassword(false);
+                    setCurrentPassword('');
+                    setNewPassword('');
+                    setConfirmNewPassword('');
+                  }}
+                  className="px-4 py-2 text-sm font-semibold rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
         <div className="pt-4">
           <button onClick={handleSave} disabled={saving} className="w-full px-4 py-2 text-sm font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white transition">
             {saving ? "Saving..." : "Save Changes"}
