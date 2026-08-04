@@ -3,17 +3,18 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useParams } from "next/navigation";
-import { fetchRooms, updateRoom } from "@/server/actions/facility-mgmt";
+import { useParams, useRouter } from "next/navigation";
+import { fetchRooms, updateRoom, deleteRoom } from "@/server/actions/facility-mgmt";
 import { fetchPlants, updatePlant } from "@/server/actions/plant-mgmt";
 import { fetchBatches } from "@/server/actions/batch-mgmt";
 import { AddPlantModal } from "@/components/facility/AddPlantModal";
+import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
+import { EditPlantModal } from "@/components/facility/EditPlantModal";
 import {
   Pencil,
   Check,
   X,
 } from "lucide-react";
-import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 
 type Room = {
   id: string;
@@ -34,6 +35,10 @@ type Plant = {
   strain: string | null;
   roomId: string | null;
   batchId: string | null;
+  wetWeight: number | null;
+  dryTarget: number | null;
+  containerGallons: number | null;
+  currentWeight: number | null;
 };
 
 type Batch = {
@@ -53,10 +58,13 @@ export default function RoomDetailPage() {
   const [allRooms, setAllRooms] = useState<RoomOption[]>([]);
   const [allBatches, setAllBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [isAddPlantModalOpen, setIsAddPlantModalOpen] = useState(false);
   const [editForm, setEditForm] = useState<Partial<Room>>({});
-
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingPlant, setEditingPlant] = useState<Plant | null>(null);
+  
   const loadData = useCallback(async () => {
     if (!params?.id) return;
     try {
@@ -190,14 +198,34 @@ export default function RoomDetailPage() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white">{room.name}</h1>
-          <p className="text-zinc-400 text-sm">{room.type}</p>
+          <p className="text-xs text-zinc-500 mt-1 text-left">
+            {plants.length} plant{plants.length !== 1 ? "s" : ""}
+          </p>
+          <p>
+          <button
+            onClick={() => setIsAddPlantModalOpen(true)}
+            className="rounded-xl bg-emerald-600 px-3 py-1 text-xs font-bold text-white hover:bg-emerald-700 transition-colors"
+          >
+            + Add Plant
+          </button>
+          </p>
         </div>
+        <div>
         <button
-          onClick={() => setIsAddPlantModalOpen(true)}
-          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700 transition-colors"
+          onClick={async () => {
+            if (!confirm(`Delete room "${room.name}"? All plants and batches will be unassigned.`)) return;
+            const res = await deleteRoom(room.id);
+            if (res.success) {
+              router.push("/rooms");
+            } else {
+              alert(res.error || "Failed to delete room.");
+            }
+          }}
+            className=" bg-red-600 px-3 py-1 text-xs font-bold text-white hover:bg-red-700 rounded-full transition-colors ml-2"
         >
-          + Add Plant
+          Delete Room
         </button>
+        </div>
       </div>
 
       {/* Environmental Targets */}
@@ -382,6 +410,16 @@ export default function RoomDetailPage() {
                   <p className="font-medium text-white">{plant.name}</p>
                   <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-400">
                     <span>{plant.strain || "Unknown strain"}</span>
+                    <button
+                      onClick={() => {
+                        setEditingPlant(plant);
+                        setIsEditModalOpen(true);
+                      }}
+                      className="text-zinc-400 hover:text-white transition-colors"
+                      title="Edit plant details"
+                    >
+                      <Pencil className="size-3.5" />
+                    </button>
                     {/* Move Room Dropdown */}
                     <select
                       value={plant.roomId || ""}
@@ -455,6 +493,23 @@ export default function RoomDetailPage() {
         rooms={[{ id: room.id, name: room.name }]}
         defaultRoomId={room.id}
         onPlantCreated={handlePlantCreated}
+      />
+
+      {/* Edit Plant Modal */}
+      <EditPlantModal
+        open={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingPlant(null);
+        }}
+        plant={editingPlant}
+        rooms={allRooms}
+        batches={allBatches}
+        onPlantUpdated={(updated) => {
+          setPlants((prev) =>
+            prev.map((p) => (p.id === updated.id ? updated : p))
+          );
+        }}
       />
     </div>
   );

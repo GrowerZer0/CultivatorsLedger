@@ -1,4 +1,4 @@
-//src/server/actions/batch-mgmt.ts
+//src/server/actions/plant-mgmt.ts
 "use server";
 import { db, prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
@@ -17,11 +17,13 @@ export async function getPlants() {
 }
 export async function getPlantsForBatch(batchId: string) {
   const userId = await getUserId();
-  return await db.plant.findMany({
+  const plants = await db.plant.findMany({
     where: { batchId, userId },
     orderBy: { createdAt: "asc" },
   });
+  return serializePrisma(plants);
 }
+
 export async function createPlant(data: {
   name: string;
   strain?: string;

@@ -15,7 +15,17 @@ export async function getRooms() {
     orderBy: { createdAt: "asc" },
   });
 }
-export async function createRoom(data: { name: string; type?: string }) {
+export async function createRoom(data: { 
+  name: string;
+  type?: string;
+  targetTempF?: number;
+  targetRH?: number;
+  targetVPD?: number;
+  lightOnTime?: string;
+  lightOffTime?: string;
+  ppfd?: number;
+  lightDistance?: number;
+}) {
   try {
     const userId = await getUserId();
     const room = await db.room.create({
@@ -23,10 +33,18 @@ export async function createRoom(data: { name: string; type?: string }) {
         name: data.name,
         type: data.type || "tent",
         userId,
+        targetTempF: data.targetTempF ?? null,
+        targetRH: data.targetRH ?? null,
+        targetVPD: data.targetVPD ?? null,
+        lightOnTime: data.lightOnTime ?? null,
+        lightOffTime: data.lightOffTime ?? null,
+        ppfd: data.ppfd ?? null,
+        lightDistance: data.lightDistance ?? null,
       },
     });
     revalidatePath("/settings");
     revalidatePath("/");
+    revalidatePath("/rooms");
     return { success: true, room };
   } catch (error) {
     console.error("Failed to create room:", error);
@@ -35,7 +53,17 @@ export async function createRoom(data: { name: string; type?: string }) {
 }
 export async function updateRoom(
   roomId: string,
-  data: { name?: string; type?: string }
+  data: {
+    name?: string;
+    type?: string;
+    targetTempF?: number | null;
+    targetRH?: number | null;
+    targetVPD?: number | null;
+    lightOnTime?: string | null;
+    lightOffTime?: string | null;
+    ppfd?: number | null;
+    lightDistance?: number | null;
+  }
 ) {
   try {
     const userId = await getUserId();
@@ -45,6 +73,7 @@ export async function updateRoom(
     });
     revalidatePath("/settings");
     revalidatePath("/");
+    revalidatePath("/rooms");
     return { success: true, room };
   } catch (error) {
     console.error("Failed to update room:", error);
@@ -54,17 +83,34 @@ export async function updateRoom(
 export async function deleteRoom(roomId: string) {
   try {
     const userId = await getUserId();
+    
+    // 1. Unassign all plants in this room (set roomId null)
+    await db.plant.updateMany({
+      where: { roomId, userId },
+      data: { roomId: null },
+    });
+    
+    // 2. Unassign all batches in this room (set roomId null)
+    await db.batch.updateMany({
+      where: { roomId, userId },
+      data: { roomId: null },
+    });
+    
+    // 3. Delete the room
     await db.room.delete({
       where: { id: roomId, userId },
     });
+    
     revalidatePath("/settings");
     revalidatePath("/");
+    revalidatePath("/rooms");
     return { success: true };
   } catch (error) {
     console.error("Failed to delete room:", error);
     return { success: false, error: "Failed to delete room." };
   }
 }
+
 export async function fetchRooms() {
   const userId = await getUserId();
   const rooms = await prisma.room.findMany({

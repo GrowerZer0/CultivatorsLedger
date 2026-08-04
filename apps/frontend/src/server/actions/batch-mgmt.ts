@@ -107,17 +107,34 @@ export async function updateBatchTargets(data: {
 export async function deleteBatch(batchId: string) {
   try {
     const userId = await getUserId();
+    
+    // 1. Unassign all plants in this batch (set batchId null)
+    await db.plant.updateMany({
+      where: { batchId, userId },
+      data: { batchId: null },
+    });
+    
+    // 2. Unassign all dryBackLogs in this batch (set batchId null)
+    await db.dryBackLog.updateMany({
+      where: { batchId, userId },
+      data: { batchId: null },
+    });
+    
+    // 3. Delete the batch
     await db.batch.delete({
       where: { id: batchId, userId },
     });
+    
     revalidatePath("/settings");
     revalidatePath("/");
+    revalidatePath("/batches");
     return { success: true };
   } catch (error) {
     console.error("Failed to delete batch:", error);
     return { success: false, error: "Failed to delete batch." };
   }
 }
+
 export async function exportAllBatches() {
   const userId = await getUserId();
   const batches = await db.batch.findMany({
