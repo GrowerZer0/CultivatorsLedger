@@ -91,6 +91,47 @@ useEffect(() => {
   }
 }, [searchParams]);
 
+const recentActivity = useMemo<ActivityItem[]>(() => {
+  const items: ActivityItem[] = [];
+
+  // Plant logs (dryback logs)
+  dbDryBackLogs.forEach((log) => {
+    const plant = plants.find((p) => p.id === log.plantId);
+    if (!plant) return;
+    items.push({
+      id: log.id,
+      type: "plant",
+      timestamp: log.loggedAt,
+      label: plant.name,
+      detail: `Weight: ${log.weight.toFixed(1)} lbs · ${log.source || "manual"}`,
+      metadata: {
+        weight: log.weight,
+        watered: log.watered || false,
+        fed: log.fed || false,
+        training: log.trainingEvent || undefined,
+      },
+    });
+  });
+
+  // Climate logs
+  dbEnvironmentReadings.forEach((reading) => {
+    items.push({
+      id: reading.id,
+      type: "climate",
+      timestamp: reading.recordedAt,
+      label: "Room Climate",
+      detail: `${Math.round(reading.temperatureF)}°F · ${Math.round(reading.humidity)}% · ${reading.vpd.toFixed(2)} kPa`,
+      metadata: {
+        temperatureF: Math.round(reading.temperatureF),
+        humidity: Math.round(reading.humidity),
+        vpd: reading.vpd,
+      },
+    });
+  });
+
+  return items;
+}, [dbDryBackLogs, dbEnvironmentReadings, plants]);
+
   // --- DATA FETCH ---
   const loadData = useCallback(
     async (skipLoading = false) => {
@@ -232,48 +273,6 @@ useEffect(() => {
     );
   }
 
-  // Inside DashboardClient, after state declarations and before return
-const recentActivity = useMemo<ActivityItem[]>(() => {
-  const items: ActivityItem[] = [];
-
-  // Plant logs (dryback logs)
-  dbDryBackLogs.forEach((log) => {
-    const plant = plants.find((p) => p.id === log.plantId);
-    if (!plant) return;
-    items.push({
-      id: log.id,
-      type: "plant",
-      timestamp: log.loggedAt,
-      label: plant.name,
-      detail: `Weight: ${log.weight.toFixed(1)} lbs · ${log.source || "manual"}`,
-      metadata: {
-        weight: log.weight,
-        watered: log.watered || false,
-        fed: log.fed || false,
-        training: log.trainingEvent || undefined,
-      },
-    });
-  });
-
-  // Climate logs
-  dbEnvironmentReadings.forEach((reading) => {
-    items.push({
-      id: reading.id,
-      type: "climate",
-      timestamp: reading.recordedAt,
-      label: "Room Climate",
-      detail: `${Math.round(reading.temperatureF)}°F · ${Math.round(reading.humidity)}% · ${reading.vpd.toFixed(2)} kPa`,
-      metadata: {
-        temperatureF: Math.round(reading.temperatureF),
-        humidity: Math.round(reading.humidity),
-        vpd: reading.vpd,
-      },
-    });
-  });
-
-  return items;
-}, [dbDryBackLogs, dbEnvironmentReadings, plants]);
-
   return (
     <div className="min-h-screen bg-white dark:bg-[#0B0F19] text-gray-900 dark:text-zinc-100 p-4 space-y-6">
       
@@ -323,9 +322,6 @@ const recentActivity = useMemo<ActivityItem[]>(() => {
           onRefresh={() => loadBriefing(true)}
         />
       </div>
-
-      {/* Recent Activity */}
-<RecentActivity items={recentActivity} maxItems={5} />
 
       {/* VPD Chart */}
       <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl">
@@ -391,6 +387,10 @@ const recentActivity = useMemo<ActivityItem[]>(() => {
           </ResponsiveContainer>
         </div>
       </div>
+
+      {/* Recent Activity */}
+<RecentActivity items={recentActivity} maxItems={5} />
+
     </div>
   );
 }
