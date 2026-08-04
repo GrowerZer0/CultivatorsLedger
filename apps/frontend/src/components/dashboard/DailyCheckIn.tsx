@@ -45,6 +45,7 @@ interface DailyCheckInProps {
     id: string;
     name: string;
   }[];
+  defaultRoomId?: string;
 }
 const TRAINING_EVENTS: TrainingEvent[] = [
   "None",
@@ -76,13 +77,16 @@ interface PlantEntryState {
 export function DailyCheckIn({
   rooms = [],
   plants = [],
+  defaultRoomId,
 }: DailyCheckInProps) {
 const [plantList, setPlantList] = useState<PlantOption[]>(plants);  
 const [showAddPlant, setShowAddPlant] = useState(false);
   const router = useRouter();
   // 1. Room State
   const [selectedRoomId, setSelectedRoomId] = useState<string>(
-    rooms[0]?.id || ""
+    (defaultRoomId && rooms.some((r: { id: string }) => r.id === defaultRoomId))
+      ? defaultRoomId
+      : rooms[0]?.id || ""
   );
   const [selectedPlantId, setSelectedPlantId] = useState(
   plants[0]?.id || ""

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Leaf,
   Menu,
@@ -39,6 +39,17 @@ export function AppShell({
   setMobileMenuOpen(false);
 }, [pathname]);
 
+const checkInHref = useMemo(() => {
+  if (pathname.startsWith('/rooms/')) {
+    const segments = pathname.split('/');
+    const roomId = segments[2]; // e.g., 'abc123'
+    if (roomId) {
+      return `/check-in?roomId=${roomId}`;
+    }
+  }
+  return '/check-in';
+}, [pathname]);
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [settingsExpanded, setSettingsExpanded] = useState(
@@ -69,17 +80,18 @@ export function AppShell({
       color: "text-canopy dark:text-emerald-400",
     },
     {
+      name: "Batches",
+      href: "/batches",
+      match: ["/batches"],
+      icon: Layers,
+      color: "text-canopy dark:text-emerald-400",
+    },
+    {
       name: "Nutrients",
       href: "/nutrients",
       match: ["/nutrients"],
       icon: Droplets,
       color: "text-canopy dark:text-emerald-400",
-    },
-    {
-      name: "Batches",
-      href: "/batches",
-      match: ["/batches"],
-      icon: Layers,
     },
   ];
 
@@ -151,7 +163,7 @@ export function AppShell({
           {/* Actions */}
           <div className="flex items-center gap-2">
             <Link
-              href="/check-in"
+              href={checkInHref}
               className="hidden sm:inline-flex rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white"
                 onClick={() => setMobileMenuOpen(false)}
             >
@@ -183,7 +195,7 @@ export function AppShell({
             onClick={(e)=>e.stopPropagation()}
           >
             <Link
-              href="/check-in"
+              href={checkInHref}
               className="block rounded-xl bg-emerald-600 px-4 py-3 text-center font-bold text-white"
               onClick={() => setMobileMenuOpen(false)}
             >

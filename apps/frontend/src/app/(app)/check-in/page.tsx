@@ -7,7 +7,14 @@ import { BarChart3, ChevronRight } from 'lucide-react';
 
 export const revalidate = 0;
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ roomId?: string }> | { roomId?: string };
+}) {
+  const params = await searchParams;
+  const roomId = params?.roomId;
+
   const [plantsRaw, rooms] = await Promise.all([
     getPlants(),
     fetchRooms(),
@@ -36,7 +43,7 @@ export default async function HomePage() {
           <ChevronRight className="w-4 h-4" />
         </Link>
       </div>
-      <DailyCheckIn plants={activePlants} rooms={rooms} />
+      <DailyCheckIn plants={activePlants} rooms={rooms} defaultRoomId={roomId} />
     </div>
   );
 }
