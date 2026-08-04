@@ -1,9 +1,10 @@
-//src/server/actions/plant-mgmt.ts
 "use server";
 import { db, prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getUserId } from "@/lib/session";
 import { serializePrisma } from "@/lib/serializePrisma";
+import { z } from "zod";
+import { plantSchema } from "@/lib/validation";
 
 // ==========================================
 // PLANT MANAGEMENT
@@ -15,106 +16,116 @@ export async function getPlants() {
     orderBy: { createdAt: "asc" },
   });
 }
-export async function getPlantsForBatch(batchId: string) {
-  const userId = await getUserId();
-  const plants = await db.plant.findMany({
-    where: { batchId, userId },
-    orderBy: { createdAt: "asc" },
-  });
-  return serializePrisma(plants);
-}
 
-export async function createPlant(data: {
-  name: string;
-  strain?: string;
-  roomId?: string;
-  batchId?: string;
-  containerGallons?: number;
-  wetWeight?: number;
-  dryTarget?: number;
-}) {
+export async function getPlantsForBatch(batchId: unknown) {
   try {
+    const validatedBatchId = z.string().parse(batchId);
     const userId = await getUserId();
-    if (data.roomId) {
-  const roomExists = await db.room.findFirst({
-    where: {
-      id: data.roomId,
-      userId,
-    },
-  });
-
-  if (!roomExists) {
-    throw new Error("Invalid room assignment");
+    const plants = await db.plant.findMany({
+      where: { batchId: validatedBatchId, userId },
+      orderBy: { createdAt: "asc" },
+    });
+    return serializePrisma(plants);
+  } catch (error) {
+    console.error("getPlantsForBatch error:", error);
+    if (error instanceof z.ZodError) {
+      return { success: false, error: error.errors.map(e => e.message).join(", ") };
+    }
+    return { success: false, error: "Failed to fetch plants for batch." };
   }
 }
+
+export async function createPlant(data: unknown) {
+  try {
+    const validated = plantSchema.parse(data);
+    const userId = await getUserId();
+    if (validated.roomId) {
+      const roomExists = await db.room.findFirst({
+        where: {
+          id: validated.roomId,
+          userId,
+        },
+      });
+
+      if (!roomExists) {
+        throw new Error("Invalid room assignment");
+      }
+    }
     const plant = await db.plant.create({
       data: {
-        name: data.name,
-        strain: data.strain || null,
-        roomId: data.roomId || null,
-        batchId: data.batchId || null,
-        containerGallons: data.containerGallons || null,
-        wetWeight: data.wetWeight ?? null,
-        dryTarget: data.dryTarget ?? null,
+        name: validated.name,
+        strain: validated.strain || null,
+        roomId: validated.roomId || null,
+        batchId: validated.batchId || null,
+        containerGallons: validated.containerGallons || null,
+        wetWeight: validated.wetWeight ?? null,
+        dryTarget: validated.dryTarget ?? null,
         userId,
       },
     });
     revalidatePath("/settings");
     revalidatePath("/");
-    return { success: true, plant };
+    return { success: true, plant: serializePrisma(plant) };
   } catch (error) {
     console.error("createPlant error:", error);
+    if (error instanceof z.ZodError) {
+      return { success: false, error: error.errors.map(e => e.message).join(", ") };
+    }
     return { success: false, error: "Failed to create plant." };
   }
 }
-export async function updatePlant(data: {
-  id: string;
-  name?: string;
-  strain?: string | null;
-  roomId?: string | null;
-  batchId?: string | null;
-  containerGallons?: number | null;
-  wetWeight?: number | null;
-  dryTarget?: number | null;
-  currentWeight?: number | null;
-}) {
+
+export async function updatePlant(data: unknown) {
   try {
+    // We assume plantSchema has all fields optional except name? But update requires id and allows partial.
+    // We'll create a partial schema with required id.
+    const updatePlantSchema = plantSchema.partial().extend({ id: z.string() });
+    const validated = updatePlantSchema.parse(data);
     const userId = await getUserId();
     const plant = await db.plant.update({
-      where: { id: data.id, userId },
+      where: { id: validated.id, userId },
       data: {
-        name: data.name,
-        strain: data.strain !== undefined ? data.strain : undefined,
-        roomId: data.roomId !== undefined ? data.roomId : undefined,
-        batchId: data.batchId !== undefined ? data.batchId : undefined,
-        containerGallons: data.containerGallons !== undefined ? data.containerGallons : undefined,
-        wetWeight: data.wetWeight !== undefined ? data.wetWeight : undefined,
-        dryTarget: data.dryTarget !== undefined ? data.dryTarget : undefined,
-        currentWeight: data.currentWeight !== undefined ? data.currentWeight : undefined,
+        name: validated.name,
+        strain: validated.strain !== undefined ? validated.strain : undefined,
+        roomId: validated.roomId !== undefined ? validated.roomId : undefined,
+        batchId: validated.batchId !== undefined ? validated.batchId : undefined,
+        containerGallons: validated.containerGallons !== undefined ? validated.containerGallons : undefined,
+        wetWeight: validated.wetWeight !== undefined ? validated.wetWeight : undefined,
+        dryTarget: validated.dryTarget !== undefined ? validated.dryTarget : undefined,
+        currentWeight: validated.currentWeight !== undefined ? validated.currentWeight : undefined,
       },
     });
     revalidatePath("/settings");
     revalidatePath("/");
-    return { success: true, plant };
+    return { success: true, plant: serializePrisma(plant) };
   } catch (error) {
     console.error("updatePlant error:", error);
+    if (error instanceof z.ZodError) {
+      return { success: false, error: error.errors.map(e => e.message).join(", ") };
+    }
     return { success: false, error: "Failed to update plant." };
   }
 }
-export async function deletePlant(plantId: string) {
+
+export async function deletePlant(plantId: unknown) {
   try {
+    const validatedPlantId = z.string().parse(plantId);
     const userId = await getUserId();
     await db.plant.delete({
-      where: { id: plantId, userId },
+      where: { id: validatedPlantId, userId },
     });
     revalidatePath("/settings");
     revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("deletePlant error:", error);
+    if (error instanceof z.ZodError) {
+      return { success: false, error: error.errors.map(e => e.message).join(", ") };
+    }
     return { success: false, error: "Failed to delete plant." };
   }
 }
+
 export async function fetchPlants() {
   const userId = await getUserId();
   const plants = await prisma.plant.findMany({
