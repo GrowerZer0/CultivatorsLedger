@@ -5,6 +5,7 @@ import { getUserId } from "@/lib/session";
 import { serializePrisma } from "@/lib/serializePrisma";
 import { z } from "zod";
 import { batchSchema, formatZodError } from "@/lib/validation";
+import { defaultRatelimit } from "@/lib/rate-limit";
 
 // ==========================================
 // BATCH MANAGEMENT
@@ -47,7 +48,11 @@ export async function createBatch(data: unknown) {
     // Validate using batchSchema (which requires name, cultivar)
     const validated = batchSchema.parse(data);
     const userId = await getUserId();
-
+    // Rate limit: 10 creations per hour
+    const { success } = await defaultRatelimit.limit(userId);
+    if (!success) {
+      return { success: false, error: "Too many batch creations. Please wait." };
+    }
     // Additional fields not in schema (wetWeight, dryTarget, startDate, isActive)
     // We'll accept them as optional extras
     const extras = data as {

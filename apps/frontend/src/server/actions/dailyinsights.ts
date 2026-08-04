@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getUserId } from "@/lib/session";
 import { GoogleGenAI } from "@google/genai";
 import { getDiagnostics, getTrendInsights, getRecoveryStatus } from '@/server/actions/loggingreadings';
+import { ratelimit } from "@/lib/rate-limit";
 // ==========================================
 // HELPERS & CACHE GLOBALS
 // ==========================================
@@ -47,6 +48,19 @@ export async function generateDailyBriefing(forceRefresh: boolean = false, plant
       return { success: true as const, ...cachedBriefingResponse.data, cached: true };
     }
     const userId = await getUserId();
+    // Rate limit: 5 requests per 10 minutes per user
+    const { success, limit, reset, remaining } = await ratelimit.limit(userId);
+    
+    if (!success) {
+      const resetDate = new Date(reset).toLocaleTimeString();
+      return {
+        success: false,
+        error: `Rate limit exceeded. Please try again after ${resetDate}.`,
+        snapshot: null,
+        attention: [],
+        actions: [],
+      };
+    }
     const now = new Date();
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const [activePlants, climateLogs, rooms, irrigationEvents, systemSettings] = await Promise.all([
@@ -293,3 +307,5 @@ export async function generateDailyInsight(plantId: string) {
     },
   });
 }
+
+

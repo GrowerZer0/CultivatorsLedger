@@ -8,6 +8,9 @@ export const ratelimit = new Ratelimit({
   analytics: true,
 });
 
-// Usage in a server action:
-// const { success } = await ratelimit.limit(userId);
-// if (!success) throw new Error("Rate limit exceeded");
+// Optional: a more permissive limiter for non-AI endpoints
+export const defaultRatelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(50, "1 h"),
+  analytics: true,
+});

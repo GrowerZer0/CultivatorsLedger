@@ -5,7 +5,8 @@ import { getUserId } from "@/lib/session";
 import { serializePrisma } from "@/lib/serializePrisma";
 import { z } from "zod";
 import { formatZodError, plantSchema } from "@/lib/validation";
-
+import { defaultRatelimit } from "@/lib/rate-limit";
+  
 // ==========================================
 // PLANT MANAGEMENT
 // ==========================================
@@ -37,9 +38,17 @@ export async function getPlantsForBatch(batchId: unknown) {
 
 export async function createPlant(data: unknown) {
   try {
+    // Validate using plantSchema
     const validated = plantSchema.parse(data);
+    // Get User ID for authorization
     const userId = await getUserId();
-    if (validated.roomId) {
+    // Rate limit: 10 creations per hour
+    const { success } = await defaultRatelimit.limit(userId);
+    if (!success) {
+      return { success: false, error: "Too many plant creations. Please wait." };
+    }
+    // Validate roomId if provided
+      if (validated.roomId) {
       const roomExists = await db.room.findFirst({
         where: {
           id: validated.roomId,
@@ -51,7 +60,8 @@ export async function createPlant(data: unknown) {
         throw new Error("Invalid room assignment");
       }
     }
-    const plant = await db.plant.create({
+    // Create Plant
+        const plant = await db.plant.create({
       data: {
         name: validated.name,
         strain: validated.strain || null,
@@ -63,6 +73,7 @@ export async function createPlant(data: unknown) {
         userId,
       },
     });
+
     revalidatePath("/settings");
     revalidatePath("/");
     return { success: true, plant: serializePrisma(plant) };

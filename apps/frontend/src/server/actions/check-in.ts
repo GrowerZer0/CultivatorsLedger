@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getUserId } from "@/lib/session";
 import { z } from "zod";
 import { checkInSchema, formatZodError } from "@/lib/validation";
+import { defaultRatelimit } from "@/lib/rate-limit";
 
 export interface DailyCheckInFormData {
   plantId: string;
@@ -21,6 +22,11 @@ export async function recordDailyCheckInLog(data: unknown) {
     const userId = await getUserId();
     if (!userId) {
       return { success: false, error: "Unauthorized access." };
+    }
+    // Rate limit: 50 requests per hour per user
+    const { success } = await defaultRatelimit.limit(userId);
+    if (!success) {
+      return { success: false, error: "Too many check-in requests. Please slow down." };
     }
     // 1. Fetch plant targets
     const plant = await db.plant.findUnique({
@@ -126,3 +132,4 @@ export async function recordDailyCheckInLog(data: unknown) {
     };
   }
 }
+
