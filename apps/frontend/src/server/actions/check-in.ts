@@ -1,3 +1,4 @@
+//apps/frontend/src/server/actions/check-in.ts
 "use server";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
@@ -61,22 +62,25 @@ export async function recordDailyCheckInLog(data: DailyCheckInFormData) {
       let dryBackLogId = null;
       // **Only create DryBackLog if weight is provided**
       if (hasWeight) {
-        const dryBackLog = await tx.dryBackLog.create({
-          data: {
-            timestamp: new Date(),
-            userId,
-            plantId: data.plantId,
-            batchId: plant.batchId || null,
-            containerGallons,
-            wetWeightLbs: wet,
-            dryTargetWeightLbs: dryTarget,
-            currentWeightLbs: data.weight as number, 
-            dryBackPercent,
-            notes: compiledNotes,
-            unit: "lbs",
-            source: "daily_checkin",
-          },
-        });
+      const dryBackLog = await tx.dryBackLog.create({
+        data: {
+          timestamp: new Date(),
+          userId,
+          plantId: data.plantId,
+          batchId: plant.batchId || null,
+          containerGallons,
+          wetWeightLbs: wet,
+          dryTargetWeightLbs: dryTarget,
+          currentWeightLbs: data.weight as number, 
+          dryBackPercent,
+          notes: compiledNotes,
+          unit: "lbs",
+          source: "daily_checkin",
+          watered: data.watered ?? false,
+          fed: data.fed ?? false,
+          trainingEvent: data.trainingEvent ?? null,
+        },
+      });
         dryBackLogId = dryBackLog.id;
         // Update plant current weight
         await tx.plant.update({

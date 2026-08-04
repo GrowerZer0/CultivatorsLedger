@@ -1,8 +1,11 @@
+//apps/frontend/src/server/actions/loggingreadings.ts
+
 "use server";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getUserId } from "@/lib/session";
 import type { DryBackLog as PrismaDryBackLog } from "@prisma/client";
+import { TrainingEvent } from "@/lib/cultivation";
 // Helper: compute VPD (kPa) from temp (°C) and RH (%)
 function computeVPD(tempC: number, rh: number): number {
   const es = 0.6108 * Math.exp((17.27 * tempC) / (tempC + 237.3));
@@ -23,6 +26,9 @@ export async function addDryBackLog(data: {
   unit: string;
   batchId?: string;
   plantId?: string;
+  watered?: boolean;
+  fed?: boolean;
+  trainingEvent?: string;
 }) {
   const userId = await getUserId();
   const dryBackPercent = ((data.wetWeight - data.weight) / (data.wetWeight - data.dryTarget)) * 100;
@@ -41,6 +47,9 @@ export async function addDryBackLog(data: {
       plantId: data.plantId || null,
       userId: userId,
       unit: data.unit || "lbs",
+      watered: data.watered || false,
+      fed: data.fed || false,
+      trainingEvent: data.trainingEvent ?? null,
     },
   });
   revalidatePath("/");
@@ -247,16 +256,17 @@ export async function getDashboardData(batchId?: string, plantId?: string) {
   const dryBackLogs = dryBackLogsFromDb.map((log: PrismaDryBackLog) => ({
     id: String(log.id),
     cultivar: "Batch",
-    stage: "Main",
     containerGallons: Number(log.containerGallons),
     wetWeight: Number(log.wetWeightLbs),
     dryTarget: Number(log.dryTargetWeightLbs),
     weight: Number(log.currentWeightLbs),
-    dryBackPercent: Number(log.dryBackPercent),
-    runoff_ec: log.runoffEc ? Number(log.runoffEc) : 0,
+    runoff_ec: log.runoffEc ? Number(log.runoffEc) : undefined,
     loggedAt: log.timestamp.toISOString(),
-    unit: log.unit || "lbs",
     source: log.source || "manual",
+    plantId: log.plantId ?? null,
+    watered: log.watered ?? false,
+    fed: log.fed ?? false,
+    trainingEvent: log.trainingEvent as TrainingEvent | null ?? null,
   }));
   const latestIrrigation = await db.irrigationEvent.findFirst({
     where: { userId },

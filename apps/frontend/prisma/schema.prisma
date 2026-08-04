@@ -106,6 +106,9 @@ model DryBackLog {
   plantId            String?  @map("plant_id")
   plant              Plant?   @relation(fields: [plantId], references: [id], onDelete: SetNull)
   source             String   @default("manual") // 'manual' or 'irrigation'
+  watered            Boolean  @default(false)
+  fed                Boolean  @default(false)
+  trainingEvent      String?  @map("training_event") // 'None', 'Top', 'Defoliate', etc.
   @@map("dry_back_logs")
 }
 model Batch {

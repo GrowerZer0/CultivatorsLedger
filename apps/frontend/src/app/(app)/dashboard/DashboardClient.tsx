@@ -2,6 +2,7 @@
 
 'use client';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useSearchParams } from "next/navigation";
 import {
   Layers,
 } from 'lucide-react';
@@ -32,6 +33,7 @@ import { MorningBrief } from '@/components/MorningBrief';
 import { RoomCard } from '@/components/facility/RoomCard';
 import { fetchRooms } from '@/server/actions/facility-mgmt';
 import { fetchPlants } from '@/server/actions/plant-mgmt';
+import { ActivityItem, RecentActivity } from "@/components/dashboard/RecentActivity";
 
 type Plant = {
   id: string;
@@ -68,6 +70,26 @@ export default function DashboardPage() {
   const [briefingActions, setBriefingActions] = useState<string[]>([]);
   const hasLoaded = useRef(false);
   const hasFetchedBriefingInitially = useRef(false);
+
+  const [toast, setToast] = useState<{ type: "success"; message: string } | null>(null);
+
+  const searchParams = useSearchParams();
+
+useEffect(() => {
+  if (searchParams.get("logged") === "true") {
+    setToast({
+      type: "success",
+      message: "✅ Check-in logged successfully! Your data is saved.",
+    });
+    // Clear the query param without refreshing
+    const url = new URL(window.location.href);
+    url.searchParams.delete("logged");
+    window.history.replaceState({}, "", url.toString());
+    // Auto-dismiss after 5 seconds
+    const timer = setTimeout(() => setToast(null), 5000);
+    return () => clearTimeout(timer);
+  }
+}, [searchParams]);
 
   // --- DATA FETCH ---
   const loadData = useCallback(
@@ -113,6 +135,9 @@ export default function DashboardPage() {
             dryTarget: dry,
             weight: Number(latest.weight),
             loggedAt: new Date().toISOString(),
+            watered: false,
+            fed: false,
+            trainingEvent: null,
           });
           activeDryBack = {
             dryBackPercent: calc.dryBackPercent,
@@ -207,9 +232,62 @@ export default function DashboardPage() {
     );
   }
 
+  // Inside DashboardClient, after state declarations and before return
+const recentActivity = useMemo<ActivityItem[]>(() => {
+  const items: ActivityItem[] = [];
+
+  // Plant logs (dryback logs)
+  dbDryBackLogs.forEach((log) => {
+    const plant = plants.find((p) => p.id === log.plantId);
+    if (!plant) return;
+    items.push({
+      id: log.id,
+      type: "plant",
+      timestamp: log.loggedAt,
+      label: plant.name,
+      detail: `Weight: ${log.weight.toFixed(1)} lbs · ${log.source || "manual"}`,
+      metadata: {
+        weight: log.weight,
+        watered: log.watered || false,
+        fed: log.fed || false,
+        training: log.trainingEvent || undefined,
+      },
+    });
+  });
+
+  // Climate logs
+  dbEnvironmentReadings.forEach((reading) => {
+    items.push({
+      id: reading.id,
+      type: "climate",
+      timestamp: reading.recordedAt,
+      label: "Room Climate",
+      detail: `${Math.round(reading.temperatureF)}°F · ${Math.round(reading.humidity)}% · ${reading.vpd.toFixed(2)} kPa`,
+      metadata: {
+        temperatureF: Math.round(reading.temperatureF),
+        humidity: Math.round(reading.humidity),
+        vpd: reading.vpd,
+      },
+    });
+  });
+
+  return items;
+}, [dbDryBackLogs, dbEnvironmentReadings, plants]);
+
   return (
     <div className="min-h-screen bg-white dark:bg-[#0B0F19] text-gray-900 dark:text-zinc-100 p-4 space-y-6">
       
+      {/* Toast */}
+        {toast && (
+          <div className="fixed top-20 right-4 z-50 max-w-sm animate-slide-in-right">
+            <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/95 dark:bg-emerald-950/90 px-4 py-3 shadow-lg backdrop-blur-sm">
+              <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+                {toast.message}
+              </p>
+            </div>
+          </div>
+        )}
+
       {/* Room Cards */}
       <div>
         <h2 className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400 mb-3">
@@ -245,6 +323,9 @@ export default function DashboardPage() {
           onRefresh={() => loadBriefing(true)}
         />
       </div>
+
+      {/* Recent Activity */}
+<RecentActivity items={recentActivity} maxItems={5} />
 
       {/* VPD Chart */}
       <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl">

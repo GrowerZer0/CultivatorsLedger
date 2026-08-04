@@ -1,5 +1,7 @@
 // apps/frontend/src/lib/cultivation.ts
 
+export type TrainingEvent = "None" | "Top" | "Defoliate" | "LST" | "Flip" | "Harvest";
+
 // 1. DATA TYPE DEFINITIONS (UI-Synced) - UPDATED
 export type DryBackLog = {
   id: string;
@@ -10,7 +12,11 @@ export type DryBackLog = {
   weight: number;
   runoff_ec?: number;
   loggedAt: string;
-  source?: string; 
+  source?: string;
+  plantId?: string | null;
+  watered: boolean;
+  fed: boolean;
+  trainingEvent?: TrainingEvent | null;
 };
 export type NutrientDose = {
   product: string;

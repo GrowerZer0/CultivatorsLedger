@@ -226,7 +226,7 @@ const handleSubmit = (e: React.FormEvent) => {
       setTemp("");
       setRh("");
       setIsCsvSynced(false);
-      router.push("/dashboard");
+      router.push("/dashboard?logged=true");
       router.refresh();
     } catch (err: any) {
       setFeedback({
