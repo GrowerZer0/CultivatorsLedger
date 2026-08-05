@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache";
 import { getUserId } from "@/lib/session";
 import type { DryBackLog as PrismaDryBackLog } from "@prisma/client";
 import { TrainingEvent } from "@/lib/cultivation";
+import { trackEvent } from "@/lib/analytics/server";
+
 // Helper: compute VPD (kPa) from temp (°C) and RH (%)
 function computeVPD(tempC: number, rh: number): number {
   const es = 0.6108 * Math.exp((17.27 * tempC) / (tempC + 237.3));
@@ -52,9 +54,23 @@ export async function addDryBackLog(data: {
       trainingEvent: data.trainingEvent ?? null,
     },
   });
+
+  // Track log entry
+  await trackEvent('log_entered', {
+    logType: 'dry_back',
+    batchId: data.batchId || null,
+    plantId: data.plantId || null,
+    dryBackPercent: clampedPercent,
+    weight: data.weight,
+    watered: data.watered || false,
+    fed: data.fed || false,
+    trainingEvent: data.trainingEvent || null,
+  }, userId);
+
   revalidatePath("/");
   return { success: true, id: result.id };
 }
+
 export async function logIrrigation(data: {
   batchId?: string;
   plantId?: string;
@@ -107,6 +123,14 @@ export async function logIrrigation(data: {
       source: "manual",
     },
   });
+
+    await trackEvent('log_entered', {
+    logType: 'irrigation',
+    batchId: data.batchId || null,
+    plantId: data.plantId || null,
+    weight: data.weight,
+  }, userId);
+
   const irrigation = await db.irrigationEvent.create({
     data: {
       timestamp: new Date(),
@@ -119,6 +143,7 @@ export async function logIrrigation(data: {
       plantId: data.plantId || null,
     },
   });
+
   revalidatePath("/");
   return {
     success: true,
@@ -173,6 +198,14 @@ export async function addManualClimateAndWeight(data: {
       userId: userId,
     },
   });
+
+  // Track climate log entry
+  await trackEvent('log_entered', {
+    logType: 'climate',
+    temperature: data.temperature,
+    humidity: data.humidity,
+  }, userId);
+
   let dryBackResult = null;
   if (data.weight !== undefined && data.weight !== null) {
     const dryBackPercent = Math.max(
@@ -195,7 +228,16 @@ export async function addManualClimateAndWeight(data: {
         userId: userId,
       },
     });
+
+        // Also track the weight log (if weight was provided)
+    await trackEvent('log_entered', {
+      logType: 'weight',
+      batchId: data.batchId || null,
+      plantId: data.plantId || null,
+      weight: data.weight,
+    }, userId);
   }
+
   revalidatePath("/");
   return {
     success: true,
@@ -203,6 +245,7 @@ export async function addManualClimateAndWeight(data: {
     dryBackId: dryBackResult?.id,
   };
 }
+
 export async function addManualClimateLog(data: {
   temperature: number;
   humidity: number;
@@ -221,9 +264,17 @@ export async function addManualClimateLog(data: {
       userId: userId,
     },
   });
+
+      await trackEvent('log_entered', {
+      logType: 'climate',
+      temperature: data.temperature,
+      humidity: data.humidity,
+    }, userId);
+
   revalidatePath("/");
   return { success: true, id: result.id };
 }
+
 export async function getDashboardData(batchId?: string, plantId?: string) {
   const userId = await getUserId();
   const climateLogs = await db.climateLog.findMany({

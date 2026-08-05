@@ -5,6 +5,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { trackClientEvent, identifyClientUser } from '@/lib/analytics/client';
+
 export default function SignUpPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -18,21 +20,35 @@ export default function SignUpPage() {
     const redirectTo = process.env.NODE_ENV === 'production'
     ? 'https://cultivators-ledger-omega.vercel.app/auth/login'
     : 'http://localhost:3000/auth/login';
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: redirectTo,
-    },
-  });
-    if (error) {
-      console.error('Signup error details:', error);
-      setError(error.message);
-    } else {
-      router.push('/auth/login?message=Check your email to confirm your account');
-    }
-    setLoading(false);
-  };
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectTo,
+        },
+      });
+
+      if (error) {
+        console.error('Signup error details:', error);
+        setError(error.message);
+      } else {
+        const userId = data.user?.id;
+        if (userId) {
+          // Identify the user in PostHog client
+          identifyClientUser(userId, { email });
+          // Track the signup event
+          trackClientEvent('user_signed_up', {
+            email,
+            method: 'email',
+          });
+        }
+        router.push('/auth/login?message=Check your email to confirm your account');
+      }
+      setLoading(false);
+    };
+
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-950 px-4">
       <div className="w-full max-w-md space-y-8">

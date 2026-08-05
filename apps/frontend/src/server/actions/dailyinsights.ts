@@ -1,14 +1,17 @@
+//apps/frontend/src/server/actions/dailyinsights.ts
 "use server";
 import { db } from "@/lib/db";
 import { getUserId } from "@/lib/session";
 import { GoogleGenAI } from "@google/genai";
 import { getDiagnostics, getTrendInsights, getRecoveryStatus } from '@/server/actions/loggingreadings';
 import { ratelimit } from "@/lib/rate-limit";
+import { trackEvent } from "@/lib/analytics/server";
 // ==========================================
 // HELPERS & CACHE GLOBALS
 // ==========================================
 let cachedBriefingResponse: { data: { actions: string[]; attention: string[]; snapshot: string }; timestamp: number } | null = null;
 const ONE_HOUR_MS = 60 * 60 * 1000;
+
 function computeVPD(tempC: number, rh: number): number {
   const es = 0.6108 * Math.exp((17.27 * tempC) / (tempC + 237.3));
   const ea = (rh / 100) * es;
@@ -232,6 +235,13 @@ export async function generateDailyBriefing(forceRefresh: boolean = false, plant
       attention: parsed.attention || [],
       actions: parsed.actions || [],
     };
+
+          // Track AI recommendation generated
+      await trackEvent('ai_recommendation_viewed', {
+        hasActions: data.actions.length > 0,
+        hasAttention: data.attention.length > 0,
+        snapshotLength: data.snapshot.length,
+      }, userId);
     cachedBriefingResponse = { data, timestamp: Date.now() };
     return { success: true as const, ...data, cached: false };
   } catch (error) {

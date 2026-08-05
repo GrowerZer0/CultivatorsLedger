@@ -1,3 +1,5 @@
+//apps/frontend/src/server/actions/plant-mgmt.ts
+
 "use server";
 import { db, prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
@@ -6,7 +8,7 @@ import { serializePrisma } from "@/lib/serializePrisma";
 import { z } from "zod";
 import { formatZodError, plantSchema } from "@/lib/validation";
 import { defaultRatelimit } from "@/lib/rate-limit";
-  
+import { trackEvent } from '@/lib/analytics/server';
 // ==========================================
 // PLANT MANAGEMENT
 // ==========================================
@@ -38,30 +40,21 @@ export async function getPlantsForBatch(batchId: unknown) {
 
 export async function createPlant(data: unknown) {
   try {
-    // Validate using plantSchema
     const validated = plantSchema.parse(data);
-    // Get User ID for authorization
     const userId = await getUserId();
-    // Rate limit: 10 creations per hour
     const { success } = await defaultRatelimit.limit(userId);
     if (!success) {
       return { success: false, error: "Too many plant creations. Please wait." };
     }
-    // Validate roomId if provided
-      if (validated.roomId) {
+    if (validated.roomId) {
       const roomExists = await db.room.findFirst({
-        where: {
-          id: validated.roomId,
-          userId,
-        },
+        where: { id: validated.roomId, userId },
       });
-
       if (!roomExists) {
         throw new Error("Invalid room assignment");
       }
     }
-    // Create Plant
-        const plant = await db.plant.create({
+    const plant = await db.plant.create({
       data: {
         name: validated.name,
         strain: validated.strain || null,
@@ -73,6 +66,18 @@ export async function createPlant(data: unknown) {
         userId,
       },
     });
+
+    // ✅ Single correct trackEvent call
+    await trackEvent('plant_added', {
+      plantId: plant.id,
+      name: plant.name,
+      strain: plant.strain || undefined,
+      roomId: plant.roomId || undefined,
+      batchId: plant.batchId || undefined,
+      containerGallons: plant.containerGallons || undefined,
+      wetWeight: plant.wetWeight || undefined,
+      dryTarget: plant.dryTarget || undefined,
+    }, userId);
 
     revalidatePath("/settings");
     revalidatePath("/");
