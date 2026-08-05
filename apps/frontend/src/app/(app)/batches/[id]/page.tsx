@@ -1,15 +1,15 @@
 'use client';
 
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { getBatch, updateBatch, deleteBatch } from "@/server/actions/batch-mgmt";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { getBatch, updateBatch, deleteBatch, fetchBatches } from "@/server/actions/batch-mgmt";
 import { getPlantsForBatch, updatePlant } from "@/server/actions/plant-mgmt";
 import { fetchRooms } from "@/server/actions/facility-mgmt";
-import { fetchBatches } from "@/server/actions/batch-mgmt";
 import { AddPlantModal } from "@/components/facility/AddPlantModal";
 import { EditPlantModal } from "@/components/facility/EditPlantModal";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
-import { Pencil } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -52,6 +52,10 @@ type Batch = {
 
 export default function BatchPage() {
   const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
+  const isNewBatch = searchParams.get("new") === "true";
+  const router = useRouter();
+
   const [batch, setBatch] = useState<Batch | null>(null);
   const [plants, setPlants] = useState<Plant[]>([]);
   const [rooms, setRooms] = useState<RoomOption[]>([]);
@@ -61,28 +65,37 @@ export default function BatchPage() {
   const [isAddPlantModalOpen, setIsAddPlantModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingPlant, setEditingPlant] = useState<Plant | null>(null);
-  const router = useRouter();
-const loadData = useCallback(async () => {
-  if (!params?.id) return;
-  try {
-    const [batchData, plantsData, roomsData, batchesData] = await Promise.all([
-      getBatch(params.id),
-      getPlantsForBatch(params.id),
-      fetchRooms(),
-      fetchBatches(),
-    ]);
+  const [isEditingStartDate, setIsEditingStartDate] = useState(false);
+  const [editStartDate, setEditStartDate] = useState<string | Date | null>(null);
 
-    setBatch(batchData);
-    setPlants(plantsData);  // <-- now serialized
-    setRooms(roomsData);
-    setAllRooms(roomsData);
-    setAllBatches(batchesData);
-  } catch (err) {
-    console.error("Failed to load batch data:", err);
-  } finally {
-    setLoading(false);
-  }
-}, [params?.id]);
+  const loadData = useCallback(async () => {
+    if (!params?.id) return;
+    try {
+      const [batchData, plantsData, roomsData, batchesData] = await Promise.all([
+        getBatch(params.id),
+        getPlantsForBatch(params.id),
+        fetchRooms(),
+        fetchBatches(),
+      ]);
+
+      setBatch(batchData);
+      setPlants(plantsData);
+      setRooms(roomsData);
+      setAllRooms(roomsData);
+      setAllBatches(batchesData);
+    } catch (err) {
+      console.error("Failed to load batch data:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [params?.id]);
+
+  // Update editStartDate when batch changes
+  useEffect(() => {
+    if (batch) {
+      setEditStartDate(batch.startDate || null);
+    }
+  }, [batch]);
 
   useEffect(() => {
     loadData();
@@ -166,55 +179,136 @@ const loadData = useCallback(async () => {
           { label: batch.name, href: null },
         ]}
       />
-      {/* Header */}
+
+      {/* ===== ONBOARDING PROMPT FOR NEW BATCH ===== */}
+      {isNewBatch && plants.length === 0 && (
+        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-6 mb-4">
+          <h3 className="text-lg font-bold text-white">🌱 Batch created!</h3>
+          <p className="text-sm text-zinc-400 mt-1">
+            Now add plants to this batch to start tracking.
+          </p>
+          <div className="flex flex-wrap gap-3 mt-4">
+            <button
+              onClick={() => setIsAddPlantModalOpen(true)}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-sm transition-colors flex items-center gap-2"
+            >
+              <Plus className="size-4" />
+              Add Plant
+            </button>
+            <Link
+              href={`/rooms/${batch.roomId || ""}`}
+              className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 text-white font-bold rounded-lg text-sm transition-colors"
+            >
+              Go to Room
+            </Link>
+          </div>
+          <p className="text-xs text-zinc-500 mt-3">
+            💡 You can add multiple plants to this batch. Each plant will share the same harvest cycle.
+          </p>
+        </div>
+      )}
+
+      {/* ===== HEADER ===== */}
       <div>
-        <h1 className="text-3xl font-bold text-white mb-1">{batch.name}</h1>
-        <p className="text-zinc-400 flex items-center gap-3 flex-wrap">
-          {batch.cultivar && <span>{batch.cultivar}</span>}
-          {batch.roomId && <span>• Room: {batch.roomId}</span>}
-          <select
-            value={batch.roomId || ""}
-            onChange={async (e) => {
-              const newRoomId = e.target.value || null;
-              const res = await updateBatch(batch.id, { roomId: newRoomId });
-              if (res.success && res.batch) {
-                setBatch((prev) => prev ? { ...prev, roomId: newRoomId } : null);
-              } else {
-                alert("Failed to move batch.");
-              }
-            }}
-            className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-xs text-white ml-2"
-          >
-            <option value="">No Room</option>
-            {allRooms.map((r) => (
-              <option key={r.id} value={r.id}>{r.name}</option>
-            ))}
-          </select>
-          <button
-            onClick={exportCSV}
-            className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-full transition-colors"
-          >
-            Export CSV
-          </button>
-        </p>
-        <p className="text-zinc-500 text-sm">
-          Started on: {new Date(batch.startDate).toLocaleDateString()}
-          
-          <button
-            onClick={async () => {
-              if (!confirm(`Delete batch "${batch.name}"? All plants and logs will be unassigned.`)) return;
-              const res = await deleteBatch(batch.id);
-              if (res.success) {
-                router.push("/batches");
-              } else {
-                alert(res.error || "Failed to delete batch.");
-              }
-            }}
-            className=" bg-red-600 px-3 py-1 text-xs font-bold text-white hover:bg-red-700 rounded-full transition-colors ml-2"
-          >
-            Delete Batch
-          </button>
-        </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-1">{batch.name}</h1>
+            <p className="text-zinc-400 flex items-center gap-3 flex-wrap">
+              {batch.cultivar && <span>{batch.cultivar}</span>}
+              {batch.roomId && <span>• Room: {batch.roomId}</span>}
+
+              {/* Move Room Dropdown */}
+              <select
+                value={batch.roomId || ""}
+                onChange={async (e) => {
+                  const newRoomId = e.target.value || null;
+                  const res = await updateBatch(batch.id, { roomId: newRoomId });
+                  if (res.success && res.batch) {
+                    setBatch((prev) => prev ? { ...prev, roomId: newRoomId } : null);
+                  } else {
+                    alert("Failed to move batch.");
+                  }
+                }}
+                className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-xs text-white"
+              >
+                <option value="">No Room</option>
+                {allRooms.map((r) => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
+              </select>
+
+              {/* Export CSV */}
+              <button
+                onClick={exportCSV}
+                className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-full transition-colors"
+              >
+                Export CSV
+              </button>
+
+              {/* Delete Batch */}
+              <button
+                onClick={async () => {
+                  if (!confirm(`Delete batch "${batch.name}"? All plants and logs will be unassigned.`)) return;
+                  const res = await deleteBatch(batch.id);
+                  if (res.success) {
+                    router.push("/batches");
+                  } else {
+                    alert(res.error || "Failed to delete batch.");
+                  }
+                }}
+                className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 text-xs font-bold rounded-full transition-colors"
+              >
+                Delete Batch
+              </button>
+            </p>
+          </div>
+        </div>
+
+        {/* ===== START DATE EDIT ===== */}
+        <div className="flex items-center gap-2 text-sm text-zinc-400 mt-1">
+          <span>Started:</span>
+          {isEditingStartDate ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={editStartDate ? new Date(editStartDate).toISOString().split('T')[0] : ''}
+                onChange={(e) => setEditStartDate(e.target.value ? new Date(e.target.value) : null)}
+                className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-sm text-white"
+              />
+              <button
+                onClick={async () => {
+                  const res = await updateBatch(batch.id, { startDate: editStartDate });
+                  if (res.success && res.batch) {
+                    setBatch({ ...batch, startDate: res.batch.startDate });
+                    setIsEditingStartDate(false);
+                  } else {
+                    alert("Failed to update start date.");
+                  }
+                }}
+                className="text-emerald-400 hover:text-emerald-300 text-xs"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => {
+                  setIsEditingStartDate(false);
+                  setEditStartDate(batch.startDate || null);
+                }}
+                className="text-zinc-500 hover:text-zinc-400 text-xs"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsEditingStartDate(true)}
+              className="text-white hover:text-emerald-400 transition-colors"
+            >
+              {batch.startDate ? new Date(batch.startDate).toLocaleDateString() : 'Not set'}
+              <span className="text-zinc-500 ml-1 text-xs">(edit)</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -274,7 +368,6 @@ const loadData = useCallback(async () => {
                     <div className="flex gap-3 text-xs text-zinc-400">
                       <span>{plant.strain || "Unknown strain"}</span>
                       {room && <span>• {room.name}</span>}
-                      {/* Edit button */}
                       <button
                         onClick={() => {
                           setEditingPlant(plant);
@@ -306,7 +399,9 @@ const loadData = useCallback(async () => {
         onClose={() => setIsAddPlantModalOpen(false)}
         rooms={rooms}
         defaultBatchId={batch.id}
-        onPlantCreated={handlePlantCreated}
+        onPlantCreated={(plant) => {
+          setPlants((prev) => [...prev, plant as Plant]);
+        }}
       />
 
       {/* Edit Plant Modal */}

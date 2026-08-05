@@ -30,11 +30,6 @@ const navigationGroups = [
         label: "Facility",
         icon: Building,
       },
-      {
-        href: "/settings/hardware",
-        label: "Hardware",
-        icon: Cpu,
-      },
     ],
   },
   {
@@ -48,6 +43,16 @@ const navigationGroups = [
     ],
   },
   {
+    label: "Hardware",
+    items: [
+      {
+        href: "/settings/hardware",
+        label: "Hardware",
+        icon: Cpu,
+      },
+    ],
+  },
+  {
     label: "System",
     items: [
       {
@@ -57,6 +62,16 @@ const navigationGroups = [
       },
     ],
   },
+  {
+    label: "Billing",
+    items: [
+      {
+        href: "/settings/billing",
+        label: "Billing",
+        icon: User,
+      },
+    ],
+  }
 ];
 export default function SettingsLayout({
   children,

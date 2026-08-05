@@ -1,9 +1,9 @@
-//app frontend/src/app/auth/login/page.tsx
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -11,27 +11,57 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const msg = searchParams.get('message');
     if (msg) setMessage(msg);
   }, []);
-  const handleLogin = async (e: React.SubmitEvent<HTMLFormElement>) => {
+
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+
     if (error) {
       setError(error.message);
       console.error('Login error:', error);
-    } else {
-      window.location.href = '/';    
+      setLoading(false);
+      return;
     }
+
+    // ✅ First login detection
+    if (data?.user) {
+      const userId = data.user.id;
+      
+      // Check if this is the user's first login by calling our API
+      try {
+        const response = await fetch('/api/user/first-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId }),
+        });
+        const result = await response.json();
+        
+        // If first login, redirect to dashboard with a flag
+        if (result.isFirstLogin) {
+          window.location.href = '/dashboard?first_login=true';
+          return;
+        }
+      } catch (err) {
+        console.error('Failed to check first login:', err);
+      }
+    }
+
+    window.location.href = '/dashboard';
     setLoading(false);
   };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-950 px-4">
       <div className="w-full max-w-md space-y-8">
@@ -73,10 +103,10 @@ export default function LoginPage() {
             />
           </div>
           <div className="text-right">
-          <Link href="/auth/forgot-password" className="text-sm text-emerald-600 dark:text-emerald-400 hover:underline">
-            Forgot password?
-          </Link>
-        </div>
+            <Link href="/auth/forgot-password" className="text-sm text-emerald-600 dark:text-emerald-400 hover:underline">
+              Forgot password?
+            </Link>
+          </div>
           <button
             type="submit"
             disabled={loading}

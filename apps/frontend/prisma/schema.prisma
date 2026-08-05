@@ -30,6 +30,12 @@ model User {
   trialEndsAt       DateTime?         @map("trial_ends_at")
   // ======================================
 
+  // ===== ONBOARDING FIELDS =====
+  onboardingStep       Int      @default(0) @map("onboarding_step") // 0 = not started, 1-5 = steps, 5 = complete
+  onboardingCompleted  Boolean  @default(false) @map("onboarding_completed")
+  firstLoginAt         DateTime? @map("first_login_at")
+  // =============================
+
   // Relations
   rooms            Room[]
   climateLogs      ClimateLog[]
@@ -204,7 +210,7 @@ model Plant {
   currentWeight    Decimal?          @map("current_weight") @db.Decimal(5, 2)
   notes            String?
   createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  updatedAt        DateTime          @updatedAt @map("updated_at")
   dryBackLogs      DryBackLog[]
   irrigationEvents IrrigationEvent[]
   plantInsights    PlantInsight[]

@@ -27,7 +27,7 @@ export const batchSchema = z.object({
   name: z.string().min(1, "Name is required").max(100),
   cultivar: z.string().min(1, "Cultivar is required").max(100),
   roomId: z.string().cuid().optional().nullable(),
-  startDate: z.date().optional(),
+  startDate: z.union([z.date(), z.string()]).optional().nullable(),
   isActive: z.boolean().optional(),
 });
 

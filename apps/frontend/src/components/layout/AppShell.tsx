@@ -3,29 +3,20 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   Leaf,
-  Menu,
-  X,
   Gauge,
   Droplets,
-  Settings,
-  LogOut,
   ThermometerSun,
   Droplet,
   Wind,
-  ChevronDown,
   Layers,
-  Plus,
   Home,
-  User,
-  CreditCard,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useTelemetry } from "@/lib/telemetry-context";
-import { UserMenu } from "@/components/layout/UserMenu";
+import { AvatarMenu } from "./AvatarMenu";
 
 type AppShellProps = {
   children: ReactNode;
@@ -102,8 +93,9 @@ const checkInHref = useMemo(() => {
   const settingsLinks = [
     { name: "Profile", href: "/settings/profile" },
     { name: "Facility", href: "/settings/facility" },
-    { name: "Hardware", href: "/settings/hardware" },
     { name: "Nutrients", href: "/settings/nutrients" },
+    { name: "Hardware", href: "/settings/hardware" },
+    { name: "Billing", href: "/settings/billing" },
     { name: "System", href: "/settings/system" },
   ];
 
@@ -189,152 +181,15 @@ const checkInHref = useMemo(() => {
               Log a Reading
             </Link>
 
-            {/* Desktop User Menu */}
-            <UserMenu
+            <AvatarMenu
               userEmail={user?.email}
               displayName={user?.displayName}
+              checkInHref={checkInHref}
             />
-
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="grid size-10 place-items-center rounded-md border border-[#d9e2dc] dark:border-zinc-800"
-            >
-              {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
-            </button>
           </div>
         </div>
       </header>
-      {mobileMenuOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm"
-          onClick={() => {
-            setMobileMenuOpen(false);
-            setSettingsExpanded(false);
-          }}
-        >
-          <nav
-            className="absolute top-[73px] left-0 right-0 bg-white dark:bg-zinc-900 p-4 shadow-lg"
-            onClick={(e)=>e.stopPropagation()}
-          >
-            <Link
-              href={checkInHref}
-              className="block rounded-xl bg-emerald-600 px-4 py-3 text-center font-bold text-white"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Log a Reading
-            </Link>
-            {tabs.map((tab)=>{
-              const Icon = tab.icon;
-              const isActive = tab.match?.some(
-                route =>
-                  pathname === route ||
-                  pathname.startsWith(route + "/")
-              );
-              return (
-                <Link
-                  key={tab.name}
-                  href={tab.href}
-                  onClick={()=>setMobileMenuOpen(false)}
-                  className={`mt-2 flex items-center gap-3 rounded-md px-4 py-3 ${
-                    isActive
-                      ? "bg-emerald-600/20 text-emerald-400 border border-emerald-500/30"
-                      : "text-zinc-600 dark:text-zinc-400"
-                  }`}
-                >
-                  <Icon className={`size-5 ${tab.color}`} />
-                  {tab.name}
-                </Link>
-              );
-            })}
-            <div className="my-3 border-t border-zinc-200 dark:border-zinc-800"/>
-            <div className="flex items-center justify-between px-4 py-3">
-              <span>
-                Theme
-              </span>
-              <ThemeToggle />
-            </div>
-            <button
-              onClick={()=>setSettingsExpanded(!settingsExpanded)}
-              className="flex w-full items-center justify-between rounded-md px-4 py-3"
-            >
-              <span className="flex items-center gap-3">
-                <Settings className="size-5"/>
-                Settings
-              </span>
-              <ChevronDown
-                className={`transition-transform ${
-                  settingsExpanded ? "rotate-180" : ""
-                }`}
-              />
-            </button>
-            {settingsExpanded && (
-              <div className="ml-8 space-y-1">
-                {settingsLinks.map((item)=>{
-                  const isActive = pathname === item.href;
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={()=>setMobileMenuOpen(false)}
-                      className={`block rounded-md px-3 py-2 text-sm ${
-                        isActive
-                          ? "bg-emerald-600 text-white"
-                          : "text-zinc-500"
-                      }`}
-                    >
-                      {item.name}
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-{/* User Menu Items in Mobile */}
-<div className="border-t border-zinc-200 dark:border-zinc-800 mt-3 pt-3">
-  <Link
-    href="/settings/profile"
-    onClick={() => setMobileMenuOpen(false)}
-    className="flex w-full items-center gap-3 rounded-md px-4 py-3 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-  >
-    <User className="size-5" />
-    Profile
-  </Link>
-  <Link
-    href="/settings/billing"
-    onClick={() => setMobileMenuOpen(false)}
-    className="flex w-full items-center gap-3 rounded-md px-4 py-3 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-  >
-    <CreditCard className="size-5" />
-    Billing
-  </Link>
-  <Link
-    href="/settings"
-    onClick={() => setMobileMenuOpen(false)}
-    className="flex w-full items-center gap-3 rounded-md px-4 py-3 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-  >
-    <Settings className="size-5" />
-    All Settings
-  </Link>
-  <button
-    onClick={handleLogout}
-    className="mt-1 flex w-full items-center gap-3 rounded-md px-4 py-3 text-red-400 hover:bg-red-500/10 transition-colors"
-  >
-    <LogOut className="size-5"/>
-    Logout
-  </button>
-</div>
-          </nav>
-        </div>
-      )}
-      {/* Floating Action Button - always visible when logged in */}
-      {!mobileMenuOpen && (
-        <Link
-          href="/check-in"
-          className="fixed bottom-6 right-6 z-20 flex items-center justify-center gap-2 rounded-full bg-emerald-600 px-5 py-3.5 shadow-lg transition hover:bg-emerald-700 active:scale-95 sm:hidden"
-        >
-          <Plus className="size-5 text-white" />
-          <span className="text-sm font-bold text-white">Log</span>
-        </Link>
-      )}
+
       <main>
         {children}
       </main>

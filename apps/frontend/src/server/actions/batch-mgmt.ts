@@ -62,6 +62,16 @@ export async function createBatch(data: unknown) {
       isActive?: boolean;
     };
 
+    // Parse startDate – if string, convert to Date; if undefined, use now
+    let startDate: Date;
+    if (extras.startDate) {
+      startDate = typeof extras.startDate === 'string' 
+        ? new Date(extras.startDate) 
+        : extras.startDate;
+    } else {
+      startDate = new Date();
+    }
+
     const batch = await db.batch.create({
       data: {
         name: validated.name,
@@ -70,7 +80,7 @@ export async function createBatch(data: unknown) {
         userId: userId,
         wetWeight: extras.wetWeight ?? null,
         dryTarget: extras.dryTarget ?? null,
-        startDate: extras.startDate || undefined,
+        startDate: startDate,
         isActive: extras.isActive ?? true,
       },
     });

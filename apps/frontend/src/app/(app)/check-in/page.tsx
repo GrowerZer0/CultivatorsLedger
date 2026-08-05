@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { DailyCheckIn } from '@/components/dashboard/DailyCheckIn';
 import { getPlants } from '@/server/actions/plant-mgmt';
 import { fetchRooms } from '@/server/actions/facility-mgmt';
+import type { Plant } from '@prisma/client';
 import { BarChart3, ChevronRight } from 'lucide-react';
 
 export const revalidate = 0;
@@ -20,7 +21,7 @@ export default async function HomePage({
     fetchRooms(),
   ]);
 
-  const activePlants = plantsRaw.map((plant) => ({
+  const activePlants = plantsRaw.map((plant: Plant) => ({
     id: plant.id,
     name: plant.name,
     currentWeight: plant.currentWeight,

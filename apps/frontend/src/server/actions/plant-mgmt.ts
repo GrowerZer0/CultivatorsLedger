@@ -15,10 +15,11 @@ import { canAddPlant } from "@/lib/features";
 // ==========================================
 export async function getPlants() {
   const userId = await getUserId();
-  return await db.plant.findMany({
+  const plants = await db.plant.findMany({
     where: { userId },
     orderBy: { createdAt: "asc" },
   });
+  return serializePrisma(plants);
 }
 
 export async function getPlantsForBatch(batchId: unknown) {

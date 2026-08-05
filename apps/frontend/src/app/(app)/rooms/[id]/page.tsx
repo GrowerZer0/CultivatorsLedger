@@ -3,17 +3,19 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { fetchRooms, updateRoom, deleteRoom } from "@/server/actions/facility-mgmt";
 import { fetchPlants, updatePlant } from "@/server/actions/plant-mgmt";
 import { fetchBatches } from "@/server/actions/batch-mgmt";
 import { AddPlantModal } from "@/components/facility/AddPlantModal";
+import { AddBatchModal } from "@/components/facility/AddBatchModal";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { EditPlantModal } from "@/components/facility/EditPlantModal";
 import {
   Pencil,
   Check,
   X,
+  Plus,
 } from "lucide-react";
 
 type Room = {
@@ -53,6 +55,8 @@ type RoomOption = {
 
 export default function RoomDetailPage() {
   const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
+  const isNewRoom = searchParams.get("new") === "true";
   const [room, setRoom] = useState<Room | null>(null);
   const [plants, setPlants] = useState<Plant[]>([]);
   const [allRooms, setAllRooms] = useState<RoomOption[]>([]);
@@ -64,7 +68,9 @@ export default function RoomDetailPage() {
   const [editForm, setEditForm] = useState<Partial<Room>>({});
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingPlant, setEditingPlant] = useState<Plant | null>(null);
-  
+  const [isAddBatchModalOpen, setIsAddBatchModalOpen] = useState(false);
+  const [batchExists, setBatchExists] = useState(false);
+
   const loadData = useCallback(async () => {
     if (!params?.id) return;
     try {
@@ -106,12 +112,27 @@ export default function RoomDetailPage() {
         setRoom(null);
       }
       setPlants(plantsData.filter((p: any) => p.roomId === params.id));
+
+      const plantsForRoom = plantsData.filter((p: any) => p.roomId === params.id);
+      setPlants(plantsForRoom);
+
+      const hasBatch = plantsForRoom.some((p: any) => p.batchId !== null);
+      setBatchExists(hasBatch);
+
     } catch (err) {
       console.error("Failed to load room:", err);
     } finally {
       setLoading(false);
     }
   }, [params?.id]);
+
+    // Auto-open plant modal if new room and no plants/batches exist
+  useEffect(() => {
+    if (isNewRoom && !loading && plants.length === 0) {
+      // Show the batch creation prompt instead of auto-opening
+      // The user will click the button
+    }
+  }, [isNewRoom, loading, plants.length]);
 
   useEffect(() => {
     loadData();
@@ -187,13 +208,57 @@ export default function RoomDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
-      <Breadcrumbs
+            <Breadcrumbs
         segments={[
           { label: "Dashboard", href: "/dashboard" },
           { label: "Rooms", href: "/rooms" },
           { label: room.name, href: null },
         ]}
       />
+      {/* ===== ONBOARDING PROMPT ===== */}
+      {isNewRoom && plants.length === 0 && (
+        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-6 mb-4">
+          <h3 className="text-lg font-bold text-white">🌱 Let's set up this room</h3>
+          <p className="text-sm text-zinc-400 mt-1">
+            Start by creating a batch, then add plants to it.
+          </p>
+          <div className="flex flex-wrap gap-3 mt-4">
+            <button
+              onClick={() => setIsAddBatchModalOpen(true)}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-sm transition-colors flex items-center gap-2"
+            >
+              <Plus className="size-4" />
+              Create Batch
+            </button>
+            <button
+              onClick={() => {
+                setIsAddPlantModalOpen(true);
+              }}
+              className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 text-white font-bold rounded-lg text-sm transition-colors flex items-center gap-2"
+            >
+              <Plus className="size-4" />
+              Skip – Add Plant
+            </button>
+          </div>
+          <p className="text-xs text-zinc-500 mt-3">
+            💡 A batch groups plants by harvest cycle. You can always add plants later.
+          </p>
+        </div>
+      )}
+    {/* ===== BATCH MISSING PROMPT (HAS PLANTS, NO BATCH) ===== */}
+    {!isNewRoom && plants.length > 0 && !batchExists && (
+    <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-4">
+      <p className="text-sm text-yellow-400 font-medium">
+        ⚡ Plants exist but no batch found. Create a batch to group them.
+      </p>
+      <button
+        onClick={() => setIsAddBatchModalOpen(true)}
+        className="mt-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white font-bold rounded-lg text-sm transition-colors"
+      >
+        Create Batch
+      </button>
+    </div>
+  )}
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -486,13 +551,17 @@ export default function RoomDetailPage() {
         )}
       </div>
 
+      {/* ===== MODALS ===== */}
+
       {/* Add Plant Modal */}
       <AddPlantModal
         open={isAddPlantModalOpen}
         onClose={() => setIsAddPlantModalOpen(false)}
         rooms={[{ id: room.id, name: room.name }]}
         defaultRoomId={room.id}
-        onPlantCreated={handlePlantCreated}
+        onPlantCreated={(plant) =>
+          setPlants((prev) => [...prev, plant as Plant])
+        }
       />
 
       {/* Edit Plant Modal */}
@@ -509,6 +578,17 @@ export default function RoomDetailPage() {
           setPlants((prev) =>
             prev.map((p) => (p.id === updated.id ? updated : p))
           );
+        }}
+      />
+
+      {/* Add Batch Modal */}
+        <AddBatchModal
+        open={isAddBatchModalOpen}
+        onClose={() => setIsAddBatchModalOpen(false)}
+        rooms={[{ id: room.id, name: room.name }]}
+        onBatchCreated={(batch) => {
+          // Redirect to the new batch
+          window.location.href = `/batches/${batch.id}?new=true`;
         }}
       />
     </div>

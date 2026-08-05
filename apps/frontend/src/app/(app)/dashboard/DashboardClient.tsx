@@ -34,6 +34,9 @@ import { RoomCard } from '@/components/facility/RoomCard';
 import { fetchRooms } from '@/server/actions/facility-mgmt';
 import { fetchPlants } from '@/server/actions/plant-mgmt';
 import { ActivityItem, RecentActivity } from "@/components/dashboard/RecentActivity";
+import { getOnboardingStep } from "@/server/actions/onboarding";
+import { type OnboardingStep } from "@/lib/onboarding-constants";
+import { OnboardingChecklist, } from "@/components/onboarding/OnBoardingChecklist";
 
 type Plant = {
   id: string;
@@ -70,7 +73,8 @@ export default function DashboardPage() {
   const [briefingActions, setBriefingActions] = useState<string[]>([]);
   const hasLoaded = useRef(false);
   const hasFetchedBriefingInitially = useRef(false);
-
+  const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>(0);
+  const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(true);
   const [toast, setToast] = useState<{ type: "success"; message: string } | null>(null);
 
   const searchParams = useSearchParams();
@@ -139,13 +143,16 @@ const recentActivity = useMemo<ActivityItem[]>(() => {
         if (!skipLoading) setLoading(true);
         
         // Fetch all data in parallel
-        const [dashboardData, roomsData, plantsData, readings] = await Promise.all([
+        const [dashboardData, roomsData, plantsData, readings, onboardingData] = await Promise.all([
           getDashboardData(),
           fetchRooms(),
           fetchPlants(),
           getLatestRoomReadings(),
+          getOnboardingStep(),
         ]);
 
+        setOnboardingStep(onboardingData.step);
+        setOnboardingCompleted(onboardingData.completed);
         setDbEnvironmentReadings(dashboardData.environmentReadings || []);
         setDbDryBackLogs(dashboardData.dryBackLogs || []);
         setLatestIrrigation(dashboardData.latestIrrigation || null);
@@ -286,6 +293,14 @@ const recentActivity = useMemo<ActivityItem[]>(() => {
             </div>
           </div>
         )}
+
+      {/* Onboarding Checklist */}
+      {!onboardingCompleted && (
+        <OnboardingChecklist
+          currentStep={onboardingStep}
+          completed={onboardingCompleted}
+        />
+      )}
 
       {/* Room Cards */}
       <div>
