@@ -9,6 +9,7 @@ import { z } from "zod";
 import { formatZodError, plantSchema } from "@/lib/validation";
 import { defaultRatelimit } from "@/lib/rate-limit";
 import { trackEvent } from '@/lib/analytics/server';
+import { canAddPlant } from "@/lib/features";
 // ==========================================
 // PLANT MANAGEMENT
 // ==========================================
@@ -42,6 +43,15 @@ export async function createPlant(data: unknown) {
   try {
     const validated = plantSchema.parse(data);
     const userId = await getUserId();
+
+    const { allowed, current, limit } = await canAddPlant(userId);
+    if (!allowed) {
+      return { 
+        success: false, 
+        error: `You've reached your limit of ${limit} plants. Please upgrade to add more.` 
+      };
+    }
+
     const { success } = await defaultRatelimit.limit(userId);
     if (!success) {
       return { success: false, error: "Too many plant creations. Please wait." };

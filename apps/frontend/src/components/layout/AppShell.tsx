@@ -16,6 +16,8 @@ import {
   Layers,
   Plus,
   Home,
+  User,
+  CreditCard,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -23,6 +25,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useTelemetry } from "@/lib/telemetry-context";
+import { UserMenu } from "@/components/layout/UserMenu";
 
 type AppShellProps = {
   children: ReactNode;
@@ -122,6 +125,22 @@ const checkInHref = useMemo(() => {
     env?.vpd !== undefined && env?.vpd !== null
       ? `${Number(env.vpd).toFixed(1)} kPa`
       : "--";
+
+  const [user, setUser] = useState<{ email?: string; displayName?: string } | null>(null);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (data?.user) {
+        setUser({
+          email: data.user.email || undefined,
+          displayName: data.user.user_metadata?.displayName || undefined,
+        });
+      }
+    };
+    getUser();
+  }, []);
+
   return (
     <>
       <header className="border-b border-[#d9e2dc] dark:border-zinc-800 bg-white dark:bg-zinc-950">
@@ -165,19 +184,22 @@ const checkInHref = useMemo(() => {
             <Link
               href={checkInHref}
               className="hidden sm:inline-flex rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white"
-                onClick={() => setMobileMenuOpen(false)}
+              onClick={() => setMobileMenuOpen(false)}
             >
               Log a Reading
             </Link>
+
+            {/* Desktop User Menu */}
+            <UserMenu
+              userEmail={user?.email}
+              displayName={user?.displayName}
+            />
+
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="grid size-10 place-items-center rounded-md border border-[#d9e2dc] dark:border-zinc-800"
             >
-              {mobileMenuOpen ? (
-                <X className="size-5" />
-              ) : (
-                <Menu className="size-5" />
-              )}
+              {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
             </button>
           </div>
         </div>
@@ -266,13 +288,40 @@ const checkInHref = useMemo(() => {
                 })}
               </div>
             )}
-            <button
-              onClick={handleLogout}
-              className="mt-3 flex w-full items-center gap-3 rounded-md px-4 py-3 text-red-400"
-            >
-              <LogOut className="size-5"/>
-              Logout
-            </button>
+{/* User Menu Items in Mobile */}
+<div className="border-t border-zinc-200 dark:border-zinc-800 mt-3 pt-3">
+  <Link
+    href="/settings/profile"
+    onClick={() => setMobileMenuOpen(false)}
+    className="flex w-full items-center gap-3 rounded-md px-4 py-3 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+  >
+    <User className="size-5" />
+    Profile
+  </Link>
+  <Link
+    href="/settings/billing"
+    onClick={() => setMobileMenuOpen(false)}
+    className="flex w-full items-center gap-3 rounded-md px-4 py-3 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+  >
+    <CreditCard className="size-5" />
+    Billing
+  </Link>
+  <Link
+    href="/settings"
+    onClick={() => setMobileMenuOpen(false)}
+    className="flex w-full items-center gap-3 rounded-md px-4 py-3 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+  >
+    <Settings className="size-5" />
+    All Settings
+  </Link>
+  <button
+    onClick={handleLogout}
+    className="mt-1 flex w-full items-center gap-3 rounded-md px-4 py-3 text-red-400 hover:bg-red-500/10 transition-colors"
+  >
+    <LogOut className="size-5"/>
+    Logout
+  </button>
+</div>
           </nav>
         </div>
       )}

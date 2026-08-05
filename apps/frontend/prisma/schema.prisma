@@ -21,6 +21,15 @@ model User {
   language          String            @default("en")
   preferredTempUnit String           @default("C") // "C" or "F"
   activeFeedLine    String?
+
+  // ===== SUBSCRIPTION FIELDS ============
+  subscriptionTier  String            @default("FREE") @map("subscription_tier") // "FREE" or "GROWER"
+  stripeCustomerId  String?           @unique @map("stripe_customer_id")
+  stripeSubscriptionId String?        @unique @map("stripe_subscription_id")
+  subscriptionStatus String?          @map("subscription_status") // "active", "trialing", "past_due", "canceled", "incomplete"
+  trialEndsAt       DateTime?         @map("trial_ends_at")
+  // ======================================
+
   // Relations
   rooms            Room[]
   climateLogs      ClimateLog[]
