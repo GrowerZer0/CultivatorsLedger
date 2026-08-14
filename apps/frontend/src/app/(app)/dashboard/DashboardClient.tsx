@@ -34,8 +34,7 @@ import { RoomCard } from '@/components/facility/RoomCard';
 import { fetchRooms } from '@/server/actions/facility-mgmt';
 import { fetchPlants } from '@/server/actions/plant-mgmt';
 import { ActivityItem, RecentActivity } from "@/components/dashboard/RecentActivity";
-import { getOnboardingStep } from "@/server/actions/onboarding";
-import { type OnboardingStep } from "@/lib/onboarding-constants";
+import { getOnboardingState, type OnboardingStep } from "@/server/actions/onboarding";
 import { OnboardingChecklist, } from "@/components/onboarding/OnBoardingChecklist";
 
 type Plant = {
@@ -76,6 +75,7 @@ export default function DashboardPage() {
   const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>(0);
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(true);
   const [toast, setToast] = useState<{ type: "success"; message: string } | null>(null);
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
 
   const searchParams = useSearchParams();
 
@@ -148,16 +148,17 @@ const recentActivity = useMemo<ActivityItem[]>(() => {
           fetchRooms(),
           fetchPlants(),
           getLatestRoomReadings(),
-          getOnboardingStep(),
+          getOnboardingState(),
         ]);
 
-        setOnboardingStep(onboardingData.step);
-        setOnboardingCompleted(onboardingData.completed);
-        setDbEnvironmentReadings(dashboardData.environmentReadings || []);
-        setDbDryBackLogs(dashboardData.dryBackLogs || []);
-        setLatestIrrigation(dashboardData.latestIrrigation || null);
-        setRooms(roomsData);
-        setLatestRoomReadings(readings);
+          setOnboardingStep(onboardingData.step as OnboardingStep);
+          setOnboardingCompleted(onboardingData.completed);
+          setOnboardingDismissed(onboardingData.dismissed);
+          setDbEnvironmentReadings(dashboardData.environmentReadings || []);
+          setDbDryBackLogs(dashboardData.dryBackLogs || []);
+          setLatestIrrigation(dashboardData.latestIrrigation || null);
+          setRooms(roomsData);
+          setLatestRoomReadings(readings);
 
         // Compute plant count per room
         const counts: Record<string, number> = {};
@@ -295,8 +296,8 @@ const recentActivity = useMemo<ActivityItem[]>(() => {
         )}
 
       {/* Onboarding Checklist */}
-      {!onboardingCompleted && (
-        <OnboardingChecklist
+{!onboardingCompleted && !onboardingDismissed && (
+          <OnboardingChecklist
           currentStep={onboardingStep}
           completed={onboardingCompleted}
         />

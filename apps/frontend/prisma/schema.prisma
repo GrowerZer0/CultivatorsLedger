@@ -33,6 +33,7 @@ model User {
   // ===== ONBOARDING FIELDS =====
   onboardingStep       Int      @default(0) @map("onboarding_step") // 0 = not started, 1-5 = steps, 5 = complete
   onboardingCompleted  Boolean  @default(false) @map("onboarding_completed")
+  onboardingDismissed Boolean  @default(false) @map("onboarding_dismissed")
   firstLoginAt         DateTime? @map("first_login_at")
   // =============================
 

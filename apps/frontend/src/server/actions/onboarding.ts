@@ -81,3 +81,47 @@ export async function setOnboardingStep(step: OnboardingStep, userId?: string): 
   revalidatePath("/dashboard");
   return { success: true };
 }
+
+export async function getOnboardingState(userId?: string) {
+  const id = userId || (await getUserId());
+  if (!id) {
+    return {
+      step: 0 as OnboardingStep,
+      completed: false,
+      dismissed: false,
+    };
+  }
+
+  const user = await db.user.findUnique({
+    where: { id },
+    select: {
+      onboardingStep: true,
+      onboardingCompleted: true,
+      onboardingDismissed: true,
+    },
+  });
+
+  return {
+    step: (user?.onboardingStep as OnboardingStep) || 0,
+    completed: user?.onboardingCompleted || false,
+    dismissed: user?.onboardingDismissed || false,
+  };
+}
+
+export async function setOnboardingDismissed(
+  dismissed: boolean,
+  userId?: string
+) {
+  const id = userId || (await getUserId());
+  if (!id) return { success: false };
+
+  await db.user.update({
+    where: { id },
+    data: { onboardingDismissed: dismissed },
+  });
+
+  revalidatePath("/dashboard");
+  revalidatePath("/settings/profile");
+
+  return { success: true };
+}

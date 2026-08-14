@@ -3,29 +3,31 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Check, ChevronDown, ChevronUp, Sparkles, ArrowRight } from "lucide-react";
-import { advanceOnboardingStep, type OnboardingStep } from "@/server/actions/onboarding";
+import { Check, ChevronDown, ChevronUp, Sparkles, ArrowRight, X } from "lucide-react";
+import { advanceOnboardingStep, setOnboardingDismissed, type OnboardingStep } from "@/server/actions/onboarding";
 import { ONBOARDING_STEPS } from "@/lib/onboarding-constants";
 
 interface OnboardingChecklistProps {
   currentStep: OnboardingStep;
   completed: boolean;
+  onDismiss?: () => void; 
 }
 
-export function OnboardingChecklist({ currentStep, completed }: OnboardingChecklistProps) {
+export function OnboardingChecklist({ currentStep, completed, onDismiss }: OnboardingChecklistProps) {
   const router = useRouter();
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [optimisticStep, setOptimisticStep] = useState(currentStep);
   const [optimisticCompleted, setOptimisticCompleted] = useState(completed);
+  const [isDismissing, setIsDismissing] = useState(false);
 
   // If completed, don't show the checklist
   if (optimisticCompleted) {
     return null;
   }
 
-  const handleCompleteStep = async (stepId: number) => {
-    // If this is the last step, mark as complete
+const handleCompleteStep = async (stepId: OnboardingStep) => {   
+   // If this is the last step, mark as complete
     if (stepId === 5) {
       startTransition(async () => {
         const result = await advanceOnboardingStep();
@@ -49,6 +51,16 @@ export function OnboardingChecklist({ currentStep, completed }: OnboardingCheckl
     });
   };
 
+const handleDismiss = () => {
+  startTransition(async () => {
+    const result = await setOnboardingDismissed(true);
+
+    if (result.success) {
+      router.refresh();
+    }
+  });
+};
+
   // Find the next incomplete step
   const nextIncompleteStep = ONBOARDING_STEPS.find((s) => s.id > optimisticStep);
   const currentStepData = ONBOARDING_STEPS.find((s) => s.id === optimisticStep);
@@ -71,13 +83,31 @@ export function OnboardingChecklist({ currentStep, completed }: OnboardingCheckl
             </p>
           </div>
         </div>
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors text-zinc-400"
-        >
-          {isExpanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
-        </button>
+<div className="flex items-center gap-1">
+  <button
+    onClick={() => setIsExpanded(!isExpanded)}
+    className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors text-zinc-400"
+    aria-label={isExpanded ? "Collapse onboarding" : "Expand onboarding"}
+  >
+    {isExpanded ? (
+      <ChevronUp className="size-4" />
+    ) : (
+      <ChevronDown className="size-4" />
+    )}
+  </button>
+
+  <button
+    onClick={handleDismiss}
+    disabled={isPending}
+    className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors text-zinc-400"
+    aria-label="Dismiss onboarding"
+    title="Dismiss onboarding"
+  >
+    <X className="size-4" />
+  </button>
+</div>
       </div>
+      
 
       {isExpanded && (
         <div className="mt-4 space-y-2">
