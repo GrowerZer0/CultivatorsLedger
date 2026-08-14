@@ -197,8 +197,11 @@ const handleSubmit = (e: React.FormEvent) => {
         // Check if user filled out ANY plant-specific field
         const hasWeight = typeof st.weight === "number" && st.weight > 0;
         const hasNotes = Boolean(st.notes?.trim());
-        const hasActions = st.watered || st.fed || st.trainingEvent;
-        // Skip plants that were left untouched
+const hasActions =
+  st.watered ||
+  st.fed ||
+  st.trainingEvent !== "None";
+          // Skip plants that were left untouched
         if (!hasWeight && !hasNotes && !hasActions) continue;
         const payload: DailyCheckInFormData = {
           plantId: plant.id,
