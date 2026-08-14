@@ -106,6 +106,16 @@ if (plants.length === 0) {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-end">
+  <button
+    onClick={() => setAddPlantOpen(true)}
+    className="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
+  >
+    <Plus className="size-4 mr-2" />
+    Add Plant
+  </button>
+</div>
+
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3 bg-zinc-900/50 border border-zinc-800 rounded-xl p-3">
         <div className="flex-1 min-w-[200px]">
@@ -228,6 +238,29 @@ if (plants.length === 0) {
           })}
         </div>
       )}
-    </div>
+
+    <AddPlantModal
+      open={addPlantOpen}
+      onClose={() => setAddPlantOpen(false)}
+      rooms={rooms}
+      onPlantCreated={(plant) => {
+        setPlants((current) => [
+          ...current,
+          {
+            id: plant.id,
+            name: plant.name,
+            strain: null,
+            roomId: plant.roomId ?? null,
+            batchId: null,
+            wetWeight: null,
+            dryTarget: null,
+            containerGallons: null,
+            currentWeight: null,
+          },
+        ]);
+        setAddPlantOpen(false);
+      }}
+    />
+   </div>
   );
 }
