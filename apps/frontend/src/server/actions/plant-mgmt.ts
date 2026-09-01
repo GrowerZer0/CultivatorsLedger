@@ -10,6 +10,19 @@ import { formatZodError, plantSchema } from "@/lib/validation";
 import { defaultRatelimit } from "@/lib/rate-limit";
 import { trackEvent } from '@/lib/analytics/server';
 import { canAddPlant } from "@/lib/features";
+
+interface CreatedPlant {
+  id: string;
+  name: string;
+  strain: string | null;
+  roomId: string | null;
+  batchId: string | null;
+  containerGallons: number | null;
+  wetWeight: number | null;
+  dryTarget: number | null;
+  currentWeight: number | null;
+}
+
 // ==========================================
 // PLANT MANAGEMENT
 // ==========================================
@@ -40,8 +53,12 @@ export async function getPlantsForBatch(batchId: unknown) {
   }
 }
 
-export async function createPlant(data: unknown) {
-  try {
+export async function createPlant(
+  data: unknown
+): Promise<
+  | { success: true; plant: CreatedPlant }
+  | { success: false; error: string }
+> {  try {
     const validated = plantSchema.parse(data);
     const userId = await getUserId();
 
@@ -89,10 +106,12 @@ export async function createPlant(data: unknown) {
       wetWeight: plant.wetWeight || undefined,
       dryTarget: plant.dryTarget || undefined,
     }, userId);
+    const serializedPlant = serializePrisma(plant) as CreatedPlant;
 
     revalidatePath("/settings");
     revalidatePath("/");
-    return { success: true, plant: serializePrisma(plant) };
+
+return { success: true, plant: serializedPlant };
   } catch (error) {
     console.error("createPlant error:", error);
     if (error instanceof z.ZodError) {

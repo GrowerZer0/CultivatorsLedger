@@ -2,8 +2,9 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Search, Filter, Grid, List, Plus } from "lucide-react";
+import { Search, Filter, Grid, List, Plus, Trash2 } from "lucide-react";
 import { AddPlantModal } from "@/components/facility/AddPlantModal";
+import { deletePlant } from "@/server/actions/plant-mgmt";
 
 type Plant = {
   id: string;
@@ -33,6 +34,23 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
   const [filterBatch, setFilterBatch] = useState<string>("");
   const [view, setView] = useState<"grid" | "list">("list");
   const [addPlantOpen, setAddPlantOpen] = useState(false);
+
+const handleDeletePlant = async (plantId: string, plantName: string) => {
+  const confirmed = window.confirm(
+    `Delete "${plantName}"? This will permanently delete the plant and its associated data.`
+  );
+
+  if (!confirmed) return;
+
+  const result = await deletePlant(plantId);
+
+  if (!result.success) {
+    alert(result.error);
+    return;
+  }
+
+  setPlants((current) => current.filter((plant) => plant.id !== plantId));
+};
 
   const filteredPlants = useMemo(() => {
     return plants.filter((plant) => {
@@ -199,12 +217,25 @@ if (plants.length === 0) {
                   {plant.currentWeight !== null && (
                     <span>Current: {Number(plant.currentWeight).toFixed(1)} lbs</span>
                   )}
-                  <Link
-                    href={`/rooms/${plant.roomId || ""}`}
-                    className="text-emerald-400 hover:underline"
-                  >
-                    View Room
-                  </Link>
+<div className="flex items-center gap-3">
+  {plant.roomId && (
+    <Link
+      href={`/rooms/${plant.roomId}`}
+      className="text-emerald-400 hover:underline"
+    >
+      View Room
+    </Link>
+  )}
+
+  <button
+    type="button"
+    onClick={() => handleDeletePlant(plant.id, plant.name)}
+    className="text-red-400 hover:text-red-300"
+    title="Delete plant"
+  >
+    <Trash2 className="size-4" />
+  </button>
+</div>
                 </div>
               </div>
             );
@@ -227,12 +258,25 @@ if (plants.length === 0) {
                     Current: {Number(plant.currentWeight).toFixed(1)} lbs
                   </p>
                 )}
-                <Link
-                  href={`/rooms/${plant.roomId || ""}`}
-                  className="mt-2 inline-block text-xs text-emerald-400 hover:underline"
-                >
-                  View Room →
-                </Link>
+<div className="flex items-center gap-3 mt-2">
+  {plant.roomId && (
+    <Link
+      href={`/rooms/${plant.roomId}`}
+      className="text-xs text-emerald-400 hover:underline"
+    >
+      View Room →
+    </Link>
+  )}
+
+  <button
+    type="button"
+    onClick={() => handleDeletePlant(plant.id, plant.name)}
+    className="text-red-400 hover:text-red-300"
+    title="Delete plant"
+  >
+    <Trash2 className="size-4" />
+  </button>
+</div>
               </div>
             );
           })}

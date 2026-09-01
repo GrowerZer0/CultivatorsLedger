@@ -113,14 +113,21 @@ export async function updateBatch(
     const userId = await getUserId();
     const batch = await db.batch.update({
       where: { id: batchId, userId },
-      data: {
-        name: validated.name,
-        cultivar: validated.cultivar,
-        roomId: validated.roomId ?? undefined,
-        isActive: validated.isActive !== undefined ? validated.isActive : undefined,
-        wetWeight: (data as any).wetWeight !== undefined ? (data as any).wetWeight : undefined,
-        dryTarget: (data as any).dryTarget !== undefined ? (data as any).dryTarget : undefined,
-      },
+data: {
+  name: validated.name,
+  cultivar: validated.cultivar,
+  roomId: validated.roomId ?? undefined,
+startDate: validated.startDate ?? undefined,
+  isActive: validated.isActive !== undefined
+    ? validated.isActive
+    : undefined,
+  wetWeight: (data as any).wetWeight !== undefined
+    ? (data as any).wetWeight
+    : undefined,
+  dryTarget: (data as any).dryTarget !== undefined
+    ? (data as any).dryTarget
+    : undefined,
+},
     });
     revalidatePath("/settings");
     revalidatePath("/");

@@ -247,6 +247,7 @@ export async function addManualClimateAndWeight(data: {
 }
 
 export async function addManualClimateLog(data: {
+  roomId: string;
   temperature: number;
   humidity: number;
   timestamp?: Date;
@@ -258,7 +259,7 @@ export async function addManualClimateLog(data: {
       relativeHumidity: data.humidity,
       timestamp: data.timestamp || new Date(),
       isManualEntry: true,
-      roomId: "Manual Entry",
+      roomId: data.roomId,
       zoneId: "Manual",
       leafOffsetC: 2.0,
       userId: userId,

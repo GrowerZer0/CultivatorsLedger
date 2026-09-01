@@ -2,6 +2,7 @@
 import { db, prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getUserId } from "@/lib/session";
+import { getOnboardingStep, advanceOnboardingStep } from "@/server/actions/onboarding";
 import { serializePrisma } from "@/lib/serializePrisma";
 import { z } from "zod";
 import { formatZodError, roomSchema } from "@/lib/validation";
@@ -36,6 +37,12 @@ export async function createRoom(data: unknown) {
         lightDistance: validated.lightDistance ?? null,
       },
     });
+        // Advance onboarding after the user's first room is created
+    const onboarding = await getOnboardingStep(userId);
+
+    if (!onboarding.completed && onboarding.step === 0) {
+      await advanceOnboardingStep(userId);
+    }
     revalidatePath("/settings");
     revalidatePath("/");
     revalidatePath("/rooms");

@@ -216,8 +216,8 @@ export default function RoomDetailPage() {
         ]}
       />
       {/* ===== ONBOARDING PROMPT ===== */}
-      {isNewRoom && plants.length === 0 && (
-        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-6 mb-4">
+{plants.length === 0 && (
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-6 mb-4">
           <h3 className="text-lg font-bold text-white">🌱 Let's set up this room</h3>
           <p className="text-sm text-zinc-400 mt-1">
             Start by creating a batch, then add plants to it.

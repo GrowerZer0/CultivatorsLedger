@@ -20,7 +20,7 @@ import {
   FlaskConical,
 } from "lucide-react";
 import { CSVImportModal } from "@/components/CSVImportModal";
-import { addManualClimateAndWeight } from "@/server/actions/loggingreadings";
+import { addManualClimateLog } from "@/server/actions/loggingreadings";
 import { AddPlantModal } from "@/components/facility/AddPlantModal";
 import { NutrientCalculatorModal } from "../nutrients/NutrientCalculatorModal";
 
@@ -179,14 +179,15 @@ const handleSubmit = (e: React.FormEvent) => {
       // 1. Save room-level climate telemetry, if entered
       const tempF = parseFloat(temp);
       const rhVal = parseFloat(rh);
-      const hasClimate = !isNaN(tempF) && !isNaN(rhVal);
-      if (hasClimate) {
+const hasClimate =
+  !isNaN(tempF) &&
+  !isNaN(rhVal) &&
+  Boolean(selectedRoomId);      if (hasClimate && selectedRoomId) {
         const tempC = ((tempF - 32) * 5) / 9;
-        await addManualClimateAndWeight({
+        await addManualClimateLog({
+          roomId: selectedRoomId,
           temperature: tempC,
           humidity: rhVal,
-          wetWeight: 18.4,
-          dryTarget: 13.2,
         });
       }
       // 2. Save plant check-in logs ONLY for plants that actually have data entered

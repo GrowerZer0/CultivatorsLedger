@@ -215,8 +215,11 @@ export default function BatchPage() {
             <h1 className="text-3xl font-bold text-white mb-1">{batch.name}</h1>
             <p className="text-zinc-400 flex items-center gap-3 flex-wrap">
               {batch.cultivar && <span>{batch.cultivar}</span>}
-              {batch.roomId && <span>• Room: {batch.roomId}</span>}
-
+{batch.roomId && (
+  <span>
+    • Room: {rooms.find((r) => r.id === batch.roomId)?.name || "Unknown Room"}
+  </span>
+)}
               {/* Move Room Dropdown */}
               <select
                 value={batch.roomId || ""}
