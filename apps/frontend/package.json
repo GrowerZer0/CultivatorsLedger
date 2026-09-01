@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
@@ -13,7 +13,7 @@
   "dependencies": {
     "@google/genai": "^2.13.0",
     "@prisma/adapter-pg": "^7.9.1",
-    "@prisma/client": "^7.8.0",
+    "@prisma/client": "6.0.0",
     "@sentry/nextjs": "^10.69.0",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.2",
@@ -46,7 +46,7 @@
     "autoprefixer": "^10.5.2",
     "dotenv-cli": "^11.0.0",
     "postcss": "^8.4.49",
-    "prisma": "^7.8.0",
+    "prisma": "6.0.0",
     "tailwindcss": "^3.4.19",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.2"

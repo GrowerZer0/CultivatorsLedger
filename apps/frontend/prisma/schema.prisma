@@ -4,9 +4,11 @@
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "darwin-arm64"]
+  previewFeatures = ["driverAdapters"]
 }
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 // ============================================================
 // CORE MODELS
@@ -99,6 +101,9 @@ model ClimateLog {
   user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   importId         Int?           @map("import_id")
   import           ImportHistory? @relation(fields: [importId], references: [id], onDelete: Cascade)
+  sourceType       String         @default("manual") @map("source_type")
+  sourceDevice     String?        @map("source_device")
+  sourceMetadata   Json?          @map("source_metadata")
   @@index([roomId, timestamp])
   @@index([timestamp])
   @@map("climate_logs")
@@ -125,25 +130,29 @@ model DryBackLog {
   watered            Boolean  @default(false)
   fed                Boolean  @default(false)
   trainingEvent      String?  @map("training_event") // 'None', 'Top', 'Defoliate', etc.
+  sourceType         String   @default("manual") @map("source_type")
+  sourceDevice       String?  @map("source_device")
+  sourceMetadata     Json?    @map("source_metadata")
   @@map("dry_back_logs")
 }
 model Batch {
-  id          String       @id @default(cuid())
-  name        String       @db.VarChar(100)
-  cultivar    String       @db.VarChar(100)
-  roomId      String?      @map("room_id") @db.VarChar(50)
-  room        Room?        @relation(fields: [roomId], references: [id], onDelete: SetNull)
-  startDate   DateTime     @default(now()) @map("start_date")
-  harvestDate DateTime?    @map("harvest_date")
-  isActive    Boolean      @default(true) @map("is_active")
-  wetWeight   Decimal?     @map("wet_weight") @db.Decimal(5, 2)
-  dryTarget   Decimal?     @map("dry_target") @db.Decimal(5, 2)
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
-  dryBackLogs DryBackLog[]
-  userId      String       @map("user_id")
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plants      Plant[]
+  id                String       @id @default(cuid())
+  name              String       @db.VarChar(100)
+  cultivar          String       @db.VarChar(100)
+  roomId            String?      @map("room_id") @db.VarChar(50)
+  room              Room?        @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  startDate         DateTime     @default(now()) @map("start_date")
+  harvestDate       DateTime?    @map("harvest_date")
+  isActive          Boolean      @default(true) @map("is_active")
+  wetWeight         Decimal?     @map("wet_weight") @db.Decimal(5, 2)
+  dryTarget         Decimal?     @map("dry_target") @db.Decimal(5, 2)
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+  dryBackLogs       DryBackLog[]
+  userId            String       @map("user_id")
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plants            Plant[]
+
   @@map("batches")
 }
 model IrrigationEvent {
@@ -164,6 +173,9 @@ model IrrigationEvent {
   plant              Plant?         @relation(fields: [plantId], references: [id], onDelete: SetNull)
   currentWeightLbs   Decimal?       @map("current_weight_lbs") @db.Decimal(5, 2)
   notes              String?
+  sourceType         String         @default("manual") @map("source_type")
+  sourceDevice       String?        @map("source_device")
+  sourceMetadata     Json?          @map("source_metadata")
   @@index([roomId, timestamp])
   @@map("irrigation_events")
 }

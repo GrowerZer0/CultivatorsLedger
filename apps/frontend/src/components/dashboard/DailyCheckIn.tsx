@@ -1,8 +1,9 @@
 // apps/frontend/src/components/dashboard/DailyCheckIn.tsx
 
 "use client";
-import React, { useState, useTransition, useMemo } from "react";
+import React, { useState, useTransition, useMemo, useEffect } from "react";
 import { recordDailyCheckInLog, DailyCheckInFormData } from "@/server/actions/check-in";
+import { deletePlant } from "@/server/actions/plant-mgmt";
 import { useRouter } from "next/navigation";
 import {
   FileSpreadsheet,
@@ -18,6 +19,7 @@ import {
   Layers,
   Sparkles,
   FlaskConical,
+  Trash2,
 } from "lucide-react";
 import { CSVImportModal } from "@/components/CSVImportModal";
 import { addManualClimateLog } from "@/server/actions/loggingreadings";
@@ -28,6 +30,7 @@ type TrainingEvent = DailyCheckInFormData["trainingEvent"];
 export interface PlantOption {
   id: string;
   name: string;
+  currentWeight: number | null;
   roomId?: string;
 }
 export interface RoomOption {
@@ -113,7 +116,7 @@ const selectedPlant = plants.find(
     return plantList.filter(
       (p) => !p.roomId || p.roomId === selectedRoomId || selectedRoomId === ""
     );
-  }, [plants, selectedRoomId]);
+  }, [plantList, selectedRoomId]);
   // 3. Dynamic Card State per Plant
   const [plantStates, setPlantStates] = useState<Record<string, PlantEntryState>>({});
   const getPlantState = (plantId: string): PlantEntryState => {
@@ -150,27 +153,15 @@ const selectedPlant = plants.find(
     message: string;
   } | null>(null);
   const [csvReadingTime, setCsvReadingTime] = useState<string | null>(null);
-  // CSV Autofill Handler for Telemetry
-  const handleCsvSuccess = (parsedData: any[]) => {
-    if (parsedData.length > 0) {
-      const latest = parsedData[parsedData.length - 1];
-      let imported = false;
-      const tempVal = latest.temp ?? latest.temperature;
-      const rhVal = latest.rh ?? latest.humidity;
-      if (tempVal !== undefined && tempVal !== null && tempVal !== "") {
-        setTemp(String(tempVal));
-        imported = true;
-      }
-      if (rhVal !== undefined && rhVal !== null && rhVal !== "") {
-        setRh(String(rhVal));
-        imported = true;
-      }
-      if (latest.timestamp) {
-      setCsvReadingTime(latest.timestamp);
-      }
-      if (imported) setIsCsvSynced(true);
-    }
-  };
+
+  // Refresh plants when the component mounts or when plants prop changes
+  useEffect(() => {
+    setPlantList(plants.map(p => ({
+      ...p,
+      currentWeight: p.currentWeight ? Number(p.currentWeight) : null
+    })));
+  }, [plants]);
+
 const handleSubmit = (e: React.FormEvent) => {
   e.preventDefault();
   setFeedback(null);
@@ -244,6 +235,65 @@ const hasActions =
     }
   });
 };
+
+// Delete plant handler
+const handleDeletePlant = async (plantId: string, plantName: string) => {
+  const confirmed = window.confirm(
+    `Delete "${plantName}"? This will permanently delete the plant and all its associated data (logs, weights, check-ins). This cannot be undone.`
+  );
+
+  if (!confirmed) return;
+
+  try {
+    const result = await deletePlant(plantId);
+    
+    if (!result.success) {
+      alert(result.error || "Failed to delete plant");
+      return;
+    }
+
+    // Remove from local state
+    setPlantList((prev) => prev.filter((p) => p.id !== plantId));
+    
+    // Remove from plant states
+    setPlantStates((prev) => {
+      const newState = { ...prev };
+      delete newState[plantId];
+      return newState;
+    });
+
+    // Show success feedback
+    setFeedback({
+      type: "success",
+      message: `"${plantName}" deleted successfully.`,
+    });
+
+    // Clear feedback after 3 seconds
+    setTimeout(() => setFeedback(null), 3000);
+  } catch (error) {
+    alert("Failed to delete plant. Please try again.");
+  }
+};
+
+// Refresh plants after CSV import
+const handleCsvImportSuccess = () => {
+  // Refetch plants data
+  const refreshData = async () => {
+    try {
+      const response = await fetch('/api/plants');
+      const freshPlants = await response.json();
+      setPlantList(freshPlants.map((p: any) => ({
+        ...p,
+        currentWeight: p.currentWeight ? Number(p.currentWeight) : null
+      })));
+    } catch (err) {
+      console.error("Failed to refresh plants after import:", err);
+      window.location.reload();
+    }
+  };
+  refreshData();
+};
+
   return (
     <>
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xl max-w-2xl mx-auto space-y-6">
@@ -440,18 +490,39 @@ const hasActions =
             ) : (
               roomPlants.map((plant) => {
                 const st = getPlantState(plant.id);
+                // Show current weight as a label if it exists
+                const currentWeight = plant.currentWeight ? Number(plant.currentWeight) : null;
+                
                 return (
                   <div
                     key={plant.id}
                     className="border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 bg-white dark:bg-zinc-900/80 shadow-sm space-y-3 transition-all hover:border-canopy/40 dark:hover:border-emerald-500/40"
                   >
                     <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2">
-                      <span className="text-sm font-bold text-graphite dark:text-zinc-100">
-                        {plant.name}
-                      </span>
-                      <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">
-                        ID: {plant.id.slice(0, 8)}
-                      </span>
+                      <div>
+                        <span className="text-sm font-bold text-graphite dark:text-zinc-100">
+                          {plant.name}
+                        </span>
+                        {currentWeight !== null && (
+                          <span className="ml-2 text-xs text-zinc-500 dark:text-zinc-400">
+                            Current: {currentWeight.toFixed(1)} lbs
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">
+                          ID: {plant.id.slice(0, 8)}
+                        </span>
+                        {/* Delete Plant Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleDeletePlant(plant.id, plant.name)}
+                          className="p-1.5 rounded-lg hover:bg-red-500/10 text-zinc-400 hover:text-red-500 transition-colors group"
+                          title="Delete plant and all associated data"
+                        >
+                          <Trash2 className="size-4 group-hover:text-red-500" />
+                        </button>
+                      </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
@@ -462,7 +533,7 @@ const hasActions =
                         <input
                           type="number"
                           step="0.1"
-                          placeholder="e.g. 14.2"
+                          placeholder={currentWeight !== null ? `Current: ${currentWeight.toFixed(1)}` : "e.g. 14.2"}
                           value={st.weight}
                           onChange={(e) =>
                             updatePlantState(plant.id, {
@@ -643,7 +714,7 @@ const hasActions =
       <CSVImportModal
         isOpen={isCsvModalOpen}
         onClose={() => setIsCsvModalOpen(false)}
-        onImportSuccess={handleCsvSuccess}
+        onImportSuccess={handleCsvImportSuccess}
       />
 
       <AddPlantModal
@@ -658,6 +729,7 @@ const hasActions =
             id: plant.id,
             name: plant.name,
             roomId: plant.roomId ?? undefined,
+            currentWeight: null
           }
         ]);
       }}
