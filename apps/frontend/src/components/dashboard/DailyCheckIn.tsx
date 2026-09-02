@@ -31,7 +31,7 @@ export interface PlantOption {
   id: string;
   name: string;
   currentWeight: number | null;
-  roomId?: string;
+  roomId?: string | undefined;
 }
 export interface RoomOption {
   id: string;
@@ -43,12 +43,14 @@ interface DailyCheckInProps {
    name:string;
    currentWeight:any;
    strain:string|null;
+   roomId?:string | null;
  }[];
    rooms: {
     id: string;
     name: string;
   }[];
   defaultRoomId?: string;
+  defaultPlantId?: string;
 }
 const TRAINING_EVENTS: TrainingEvent[] = [
   "None",
@@ -81,8 +83,14 @@ export function DailyCheckIn({
   rooms = [],
   plants = [],
   defaultRoomId,
+  defaultPlantId,
 }: DailyCheckInProps) {
-const [plantList, setPlantList] = useState<PlantOption[]>(plants);  
+const initialPlantList: PlantOption[] = plants.map(p => ({
+  ...p,
+  currentWeight: p.currentWeight ? Number(p.currentWeight) : null,
+  roomId: p.roomId || undefined // Convert null to undefined
+}));
+const [plantList, setPlantList] = useState<PlantOption[]>(initialPlantList);
 const [showAddPlant, setShowAddPlant] = useState(false);
   const router = useRouter();
   // 1. Room State
@@ -92,8 +100,8 @@ const [showAddPlant, setShowAddPlant] = useState(false);
       : rooms[0]?.id || ""
   );
   const [selectedPlantId, setSelectedPlantId] = useState(
-  plants[0]?.id || ""
-);
+    defaultPlantId || plants[0]?.id || ""
+  );
 
 const [isNutrientModalOpen, setIsNutrientModalOpen] = useState(false);
 const [selectedPlantForNutrient, setSelectedPlantForNutrient] = useState<any>(null);
@@ -158,9 +166,17 @@ const selectedPlant = plants.find(
   useEffect(() => {
     setPlantList(plants.map(p => ({
       ...p,
-      currentWeight: p.currentWeight ? Number(p.currentWeight) : null
+      currentWeight: p.currentWeight ? Number(p.currentWeight) : null,
+      roomId: p.roomId ?? undefined,
     })));
   }, [plants]);
+
+  // Select default plant if provided
+  useEffect(() => {
+    if (defaultPlantId && plantList.some(p => p.id === defaultPlantId)) {
+      setSelectedPlantId(defaultPlantId);
+    }
+  }, [defaultPlantId, plantList]);
 
 const handleSubmit = (e: React.FormEvent) => {
   e.preventDefault();

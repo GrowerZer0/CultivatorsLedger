@@ -35,22 +35,23 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
   const [view, setView] = useState<"grid" | "list">("list");
   const [addPlantOpen, setAddPlantOpen] = useState(false);
 
-const handleDeletePlant = async (plantId: string, plantName: string) => {
-  const confirmed = window.confirm(
-    `Delete "${plantName}"? This will permanently delete the plant and its associated data.`
-  );
+  const handleDeletePlant = async (plantId: string, plantName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const confirmed = window.confirm(
+      `Delete "${plantName}"? This will permanently delete the plant and its associated data.`
+    );
 
-  if (!confirmed) return;
+    if (!confirmed) return;
 
-  const result = await deletePlant(plantId);
+    const result = await deletePlant(plantId);
 
-  if (!result.success) {
-    alert(result.error);
-    return;
-  }
+    if (!result.success) {
+      alert(result.error);
+      return;
+    }
 
-  setPlants((current) => current.filter((plant) => plant.id !== plantId));
-};
+    setPlants((current) => current.filter((plant) => plant.id !== plantId));
+  };
 
   const filteredPlants = useMemo(() => {
     return plants.filter((plant) => {
@@ -62,7 +63,6 @@ const handleDeletePlant = async (plantId: string, plantName: string) => {
     });
   }, [plants, search, filterRoom, filterBatch]);
 
-  // Build maps for quick lookups
   const roomMap = useMemo(() => {
     const map: Record<string, string> = {};
     rooms.forEach((r) => { map[r.id] = r.name; });
@@ -75,64 +75,61 @@ const handleDeletePlant = async (plantId: string, plantName: string) => {
     return map;
   }, [batches]);
 
-if (plants.length === 0) {
-  return (
-    <>
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-        <h2 className="text-2xl font-semibold text-gray-900 dark:text-zinc-100">
-          No plants yet.
-        </h2>
-
-        <p className="mt-2 text-gray-500 dark:text-zinc-400 max-w-md">
-          Add your first plant to start tracking.
-        </p>
-
-        <button
-          onClick={() => setAddPlantOpen(true)}
-          className="mt-6 inline-flex items-center rounded-lg bg-emerald-600 px-6 py-3 text-sm font-bold text-white hover:bg-emerald-700 transition-colors"
-        >
-          <Plus className="size-4 mr-2" />
-          Add Your First Plant
-        </button>
-      </div>
-
-      <AddPlantModal
-        open={addPlantOpen}
-        onClose={() => setAddPlantOpen(false)}
-        rooms={rooms}
-        onPlantCreated={(plant) => {
-          setPlants((current) => [
-            ...current,
-            {
-              id: plant.id,
-              name: plant.name,
-              strain: null,
-              roomId: plant.roomId ?? null,
-              batchId: null,
-              wetWeight: null,
-              dryTarget: null,
-              containerGallons: null,
-              currentWeight: null,
-            },
-          ]);
-          setAddPlantOpen(false);
-        }}
-      />
-    </>
-  );
-}
+  if (plants.length === 0) {
+    return (
+      <>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-zinc-100">
+            No plants yet.
+          </h2>
+          <p className="mt-2 text-gray-500 dark:text-zinc-400 max-w-md">
+            Add your first plant to start tracking.
+          </p>
+          <button
+            onClick={() => setAddPlantOpen(true)}
+            className="mt-6 inline-flex items-center rounded-lg bg-emerald-600 px-6 py-3 text-sm font-bold text-white hover:bg-emerald-700 transition-colors"
+          >
+            <Plus className="size-4 mr-2" />
+            Add Your First Plant
+          </button>
+        </div>
+        <AddPlantModal
+          open={addPlantOpen}
+          onClose={() => setAddPlantOpen(false)}
+          rooms={rooms}
+          onPlantCreated={(plant) => {
+            setPlants((current) => [
+              ...current,
+              {
+                id: plant.id,
+                name: plant.name,
+                strain: null,
+                roomId: plant.roomId ?? null,
+                batchId: null,
+                wetWeight: null,
+                dryTarget: null,
+                containerGallons: null,
+                currentWeight: null,
+              },
+            ]);
+            setAddPlantOpen(false);
+          }}
+        />
+      </>
+    );
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-end">
-  <button
-    onClick={() => setAddPlantOpen(true)}
-    className="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
-  >
-    <Plus className="size-4 mr-2" />
-    Add Plant
-  </button>
-</div>
+        <button
+          onClick={() => setAddPlantOpen(true)}
+          className="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
+        >
+          <Plus className="size-4 mr-2" />
+          Add Plant
+        </button>
+      </div>
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3 bg-zinc-900/50 border border-zinc-800 rounded-xl p-3">
@@ -187,7 +184,6 @@ if (plants.length === 0) {
         </div>
       </div>
 
-      {/* Results count */}
       <p className="text-xs text-zinc-500">
         Showing {filteredPlants.length} of {plants.length} plants
       </p>
@@ -199,9 +195,15 @@ if (plants.length === 0) {
             const roomName = plant.roomId ? roomMap[plant.roomId] : "No Room";
             const batchName = plant.batchId ? batchMap[plant.batchId] : "No Batch";
             return (
-              <div key={plant.id} className="flex items-center justify-between p-4 bg-zinc-900/50">
+              <Link
+                key={plant.id}
+                href={`/plants/${plant.id}`}
+                className="flex items-center justify-between p-4 bg-zinc-900/50 hover:bg-zinc-800/70 transition-colors cursor-pointer group"
+              >
                 <div>
-                  <p className="font-medium text-white">{plant.name}</p>
+                  <p className="font-medium text-white group-hover:text-emerald-400 transition-colors">
+                    {plant.name}
+                  </p>
                   <div className="flex flex-wrap gap-2 text-xs text-zinc-400 mt-0.5">
                     <span>{plant.strain || "Unknown strain"}</span>
                     <span>•</span>
@@ -211,33 +213,30 @@ if (plants.length === 0) {
                   </div>
                 </div>
                 <div className="flex items-center gap-3 text-xs text-zinc-500">
-                  {plant.wetWeight !== null && (
-                    <span>Wet: {Number(plant.wetWeight).toFixed(1)} lbs</span>
-                  )}
                   {plant.currentWeight !== null && (
                     <span>Current: {Number(plant.currentWeight).toFixed(1)} lbs</span>
                   )}
-<div className="flex items-center gap-3">
-  {plant.roomId && (
-    <Link
-      href={`/rooms/${plant.roomId}`}
-      className="text-emerald-400 hover:underline"
-    >
-      View Room
-    </Link>
-  )}
-
-  <button
-    type="button"
-    onClick={() => handleDeletePlant(plant.id, plant.name)}
-    className="text-red-400 hover:text-red-300"
-    title="Delete plant"
-  >
-    <Trash2 className="size-4" />
-  </button>
-</div>
+                  <div className="flex items-center gap-3">
+                    {plant.roomId && (
+                      <Link
+                        href={`/rooms/${plant.roomId}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-emerald-400 hover:underline"
+                      >
+                        View Room
+                      </Link>
+                    )}
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeletePlant(plant.id, plant.name, e)}
+                      className="text-red-400 hover:text-red-300 transition-colors"
+                      title="Delete plant"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>
@@ -246,8 +245,14 @@ if (plants.length === 0) {
           {filteredPlants.map((plant) => {
             const roomName = plant.roomId ? roomMap[plant.roomId] : "No Room";
             return (
-              <div key={plant.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 hover:border-emerald-500 transition-colors">
-                <p className="font-medium text-white truncate">{plant.name}</p>
+              <Link
+                key={plant.id}
+                href={`/plants/${plant.id}`}
+                className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 hover:border-emerald-500 hover:bg-zinc-800/70 transition-all group cursor-pointer"
+              >
+                <p className="font-medium text-white group-hover:text-emerald-400 truncate transition-colors">
+                  {plant.name}
+                </p>
                 <p className="text-xs text-zinc-400 truncate">{plant.strain || "Unknown strain"}</p>
                 <div className="flex justify-between mt-2 text-xs">
                   <span className="text-emerald-400">{roomName}</span>
@@ -258,53 +263,53 @@ if (plants.length === 0) {
                     Current: {Number(plant.currentWeight).toFixed(1)} lbs
                   </p>
                 )}
-<div className="flex items-center gap-3 mt-2">
-  {plant.roomId && (
-    <Link
-      href={`/rooms/${plant.roomId}`}
-      className="text-xs text-emerald-400 hover:underline"
-    >
-      View Room →
-    </Link>
-  )}
-
-  <button
-    type="button"
-    onClick={() => handleDeletePlant(plant.id, plant.name)}
-    className="text-red-400 hover:text-red-300"
-    title="Delete plant"
-  >
-    <Trash2 className="size-4" />
-  </button>
-</div>
-              </div>
+                <div className="flex items-center gap-3 mt-2">
+                  {plant.roomId && (
+                    <Link
+                      href={`/rooms/${plant.roomId}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-xs text-emerald-400 hover:underline"
+                    >
+                      View Room →
+                    </Link>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => handleDeletePlant(plant.id, plant.name, e)}
+                    className="text-red-400 hover:text-red-300 transition-colors ml-auto"
+                    title="Delete plant"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                </div>
+              </Link>
             );
           })}
         </div>
       )}
 
-    <AddPlantModal
-      open={addPlantOpen}
-      onClose={() => setAddPlantOpen(false)}
-      rooms={rooms}
-      onPlantCreated={(plant) => {
-        setPlants((current) => [
-          ...current,
-          {
-            id: plant.id,
-            name: plant.name,
-            strain: null,
-            roomId: plant.roomId ?? null,
-            batchId: null,
-            wetWeight: null,
-            dryTarget: null,
-            containerGallons: null,
-            currentWeight: null,
-          },
-        ]);
-        setAddPlantOpen(false);
-      }}
-    />
-   </div>
+      <AddPlantModal
+        open={addPlantOpen}
+        onClose={() => setAddPlantOpen(false)}
+        rooms={rooms}
+        onPlantCreated={(plant) => {
+          setPlants((current) => [
+            ...current,
+            {
+              id: plant.id,
+              name: plant.name,
+              strain: null,
+              roomId: plant.roomId ?? null,
+              batchId: null,
+              wetWeight: null,
+              dryTarget: null,
+              containerGallons: null,
+              currentWeight: null,
+            },
+          ]);
+          setAddPlantOpen(false);
+        }}
+      />
+    </div>
   );
 }

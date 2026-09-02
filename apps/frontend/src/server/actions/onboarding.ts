@@ -55,11 +55,12 @@ export async function advanceOnboardingStep(userId?: string): Promise<{ success:
     data: {
       onboardingStep: nextStep,
       onboardingCompleted: isCompleted,
-      firstLoginAt: current.step === 0 ? new Date() : undefined,
     },
   });
 
   revalidatePath("/dashboard");
+  revalidatePath("/plants");
+  revalidatePath("/check-in");
   return { success: true, step: nextStep, completed: isCompleted };
 }
 

@@ -1,17 +1,17 @@
 import Stripe from 'stripe';
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-07-29.dahlia', // or the latest stable version
-  appInfo: {
-    name: 'Cultivators Ledger',
-    version: '1.0.0',
-  },
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('STRIPE_SECRET_KEY is not defined');
+}
+
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: '2026-08-26.dahlia',
 });
 
-// Product IDs (set these after creating them in Stripe)
-export const STRIPE_PRICE_GROWER_MONTHLY = process.env.STRIPE_PRICE_GROWER_MONTHLY!;
-
-// Customer Portal settings
+// Export configuration for stripe actions
+export const STRIPE_PRICE_GROWER_MONTHLY = process.env.STRIPE_PRICE_GROWER_MONTHLY || '';
 export const STRIPE_PORTAL_CONFIG = {
-  returnUrl: `${process.env.NEXT_PUBLIC_APP_URL}/settings/billing`,
+  return_url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000/dashboard',
 };
+
+export default stripe;

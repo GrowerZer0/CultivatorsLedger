@@ -1,35 +1,47 @@
 export type OnboardingStep = 0 | 1 | 2 | 3 | 4 | 5;
-// 0 = not started, 5 = complete
 
-export const ONBOARDING_STEPS = [
+export interface OnboardingStepConfig {
+  id: OnboardingStep;
+  label: string;
+  description: string;
+  href: string;
+  action: string;
+}
+
+export const ONBOARDING_STEPS: OnboardingStepConfig[] = [
   {
     id: 1,
-    label: "Add a Room",
-    description: "Create your first grow space",
-    href: "/rooms",
+    label: "Create your first plant",
+    description: "Add a plant to start tracking its growth journey",
+    href: "/plants",
+    action: "Add Plant",
   },
   {
     id: 2,
-    label: "Add a Plant",
-    description: "Add your first plant to a room",
-    href: "/plants",
+    label: "Log your first check-in",
+    description: "Record weight, watering, and training data",
+    href: "/check-in",
+    action: "Log Now",
   },
   {
     id: 3,
-    label: "Create a Batch",
-    description: "Group plants into a harvest cycle",
-    href: "/batches",
+    label: "Import your data",
+    description: "Upload historical CSV data for your plants",
+    href: "/dashboard",
+    action: "Import CSV",
   },
   {
     id: 4,
-    label: "Log a Reading",
-    description: "Record your first weight or environment reading",
-    href: "/check-in",
+    label: "Set up your room",
+    description: "Configure environmental targets for your grow space",
+    href: "/rooms",
+    action: "Set Up",
   },
   {
     id: 5,
-    label: "View Dashboard",
-    description: "See your data come to life",
+    label: "Explore your dashboard",
+    description: "View insights, analytics, and recommendations",
     href: "/dashboard",
+    action: "View Dashboard",
   },
-] as const;
+];
