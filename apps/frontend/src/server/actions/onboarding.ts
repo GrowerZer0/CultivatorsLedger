@@ -3,84 +3,89 @@
 import { db } from "@/lib/db";
 import { getUserId } from "@/lib/session";
 import { revalidatePath } from "next/cache";
-import { type OnboardingStep } from "@/lib/onboarding-constants";
 
-export type { OnboardingStep };
+export type OnboardingStep = 0 | 1 | 2 | 3 | 4 | 5;
 
-/**
- * Get the user's current onboarding step
- */
 export async function getOnboardingStep(userId?: string): Promise<{ step: OnboardingStep; completed: boolean }> {
   const id = userId || (await getUserId());
   if (!id) return { step: 0, completed: false };
 
-  const user = await db.user.findUnique({
-    where: { id },
-    select: { onboardingStep: true, onboardingCompleted: true },
-  });
+  try {
+    const user = await db.user.findUnique({
+      where: { id },
+      select: { 
+        onboardingStep: true, 
+        onboardingCompleted: true,
+      },
+    });
 
-  return {
-    step: (user?.onboardingStep as OnboardingStep) || 0,
-    completed: user?.onboardingCompleted || false,
-  };
+    return {
+      step: (user?.onboardingStep as OnboardingStep) || 0,
+      completed: user?.onboardingCompleted || false,
+    };
+  } catch (error) {
+    console.error("Error getting onboarding step:", error);
+    return { step: 0, completed: false };
+  }
 }
 
-/**
- * Check if a user has completed onboarding
- */
-export async function isOnboardingComplete(userId?: string): Promise<boolean> {
-  const { completed } = await getOnboardingStep(userId);
-  return completed;
-}
-
-/**
- * Advance to the next onboarding step
- */
 export async function advanceOnboardingStep(userId?: string): Promise<{ success: boolean; step: OnboardingStep; completed: boolean }> {
   const id = userId || (await getUserId());
   if (!id) return { success: false, step: 0, completed: false };
 
-  const current = await getOnboardingStep(id);
-  
-  // If already completed, return
-  if (current.completed) {
-    return { success: true, step: 5, completed: true };
+  try {
+    const current = await getOnboardingStep(id);
+    
+    if (current.completed) {
+      return { success: true, step: 5, completed: true };
+    }
+
+    const nextStep = Math.min(current.step + 1, 5) as OnboardingStep;
+    const isCompleted = nextStep === 5;
+
+    await db.user.update({
+      where: { id },
+      data: {
+        onboardingStep: nextStep,
+        onboardingCompleted: isCompleted,
+      },
+    });
+
+    revalidatePath("/dashboard");
+    revalidatePath("/plants");
+    revalidatePath("/check-in");
+    revalidatePath("/");
+    
+    return { success: true, step: nextStep, completed: isCompleted };
+  } catch (error) {
+    console.error("Error advancing onboarding step:", error);
+    return { success: false, step: 0, completed: false };
   }
-
-  const nextStep = Math.min(current.step + 1, 5) as OnboardingStep;
-  const isCompleted = nextStep === 5;
-
-  await db.user.update({
-    where: { id },
-    data: {
-      onboardingStep: nextStep,
-      onboardingCompleted: isCompleted,
-    },
-  });
-
-  revalidatePath("/dashboard");
-  revalidatePath("/plants");
-  revalidatePath("/check-in");
-  return { success: true, step: nextStep, completed: isCompleted };
 }
 
-/**
- * Set a specific onboarding step (for admin or debugging)
- */
 export async function setOnboardingStep(step: OnboardingStep, userId?: string): Promise<{ success: boolean }> {
   const id = userId || (await getUserId());
   if (!id) return { success: false };
 
-  await db.user.update({
-    where: { id },
-    data: {
-      onboardingStep: step,
-      onboardingCompleted: step === 5,
-    },
-  });
+  try {
+    await db.user.update({
+      where: { id },
+      data: {
+        onboardingStep: step,
+        onboardingCompleted: step === 5,
+      },
+    });
 
-  revalidatePath("/dashboard");
-  return { success: true };
+    revalidatePath("/dashboard");
+    revalidatePath("/plants");
+    revalidatePath("/check-in");
+    revalidatePath("/");
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Error setting onboarding step:", error);
+    return { success: false };
+  }
 }
 
 export async function getOnboardingState(userId?: string) {
@@ -93,20 +98,29 @@ export async function getOnboardingState(userId?: string) {
     };
   }
 
-  const user = await db.user.findUnique({
-    where: { id },
-    select: {
-      onboardingStep: true,
-      onboardingCompleted: true,
-      onboardingDismissed: true,
-    },
-  });
+  try {
+    const user = await db.user.findUnique({
+      where: { id },
+      select: {
+        onboardingStep: true,
+        onboardingCompleted: true,
+        onboardingDismissed: true,
+      },
+    });
 
-  return {
-    step: (user?.onboardingStep as OnboardingStep) || 0,
-    completed: user?.onboardingCompleted || false,
-    dismissed: user?.onboardingDismissed || false,
-  };
+    return {
+      step: (user?.onboardingStep as OnboardingStep) || 0,
+      completed: user?.onboardingCompleted || false,
+      dismissed: user?.onboardingDismissed || false,
+    };
+  } catch (error) {
+    console.error("Error getting onboarding state:", error);
+    return {
+      step: 0 as OnboardingStep,
+      completed: false,
+      dismissed: false,
+    };
+  }
 }
 
 export async function setOnboardingDismissed(
@@ -116,13 +130,19 @@ export async function setOnboardingDismissed(
   const id = userId || (await getUserId());
   if (!id) return { success: false };
 
-  await db.user.update({
-    where: { id },
-    data: { onboardingDismissed: dismissed },
-  });
+  try {
+    await db.user.update({
+      where: { id },
+      data: { onboardingDismissed: dismissed },
+    });
 
-  revalidatePath("/dashboard");
-  revalidatePath("/settings/profile");
+    revalidatePath("/dashboard");
+    revalidatePath("/settings/profile");
+    revalidatePath("/");
 
-  return { success: true };
+    return { success: true };
+  } catch (error) {
+    console.error("Error setting onboarding dismissed:", error);
+    return { success: false };
+  }
 }

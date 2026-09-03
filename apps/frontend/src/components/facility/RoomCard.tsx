@@ -1,63 +1,95 @@
-// apps/frontend/src/components/facility/RoomCard.tsx
-
 "use client";
 
 import Link from "next/link";
-import { ThermometerSun, Droplet, Wind, Users } from "lucide-react";
+import { Trash2, Home, ThermometerSun, Droplet, Wind } from "lucide-react";
 
-type RoomCardProps = {
+interface RoomCardProps {
   id: string;
   name: string;
   type: string;
   plantCount: number;
-  latestReading?: {
-    temperatureF: number | null;
-    humidity: number | null;
-    vpd: number | null;
-  };
-};
+  latestReading: {
+    temperatureF?: number | null;
+    humidity?: number | null;
+    vpd?: number | null;
+  } | null;
+  onDelete?: (id: string, name: string) => void;
+  isDeleting?: boolean;
+}
 
-export function RoomCard({ id, name, type, plantCount, latestReading }: RoomCardProps) {
+export function RoomCard({ 
+  id, 
+  name, 
+  type, 
+  plantCount, 
+  latestReading,
+  onDelete,
+  isDeleting,
+}: RoomCardProps) {
+  const tempFormatted = latestReading?.temperatureF !== undefined && latestReading?.temperatureF !== null
+    ? `${Math.round(latestReading.temperatureF)}°F`
+    : "--";
+  const rhFormatted = latestReading?.humidity !== undefined && latestReading?.humidity !== null
+    ? `${Math.round(latestReading.humidity)}%`
+    : "--";
+  const vpdFormatted = latestReading?.vpd !== undefined && latestReading?.vpd !== null
+    ? `${latestReading.vpd.toFixed(1)} kPa`
+    : "--";
+
   return (
-    <Link
-      href={`/rooms/${id}`}
-      className="block rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 transition hover:border-emerald-500 hover:shadow-md"
-    >
-      <div className="flex items-start justify-between">
-        <div>
-          <h3 className="font-semibold text-gray-900 dark:text-white">{name}</h3>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">{type}</p>
+    <Link href={`/rooms/${id}`} className="block group">
+      <div className="relative bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 hover:border-emerald-500/50 transition-all cursor-pointer">
+        <div className="flex items-start justify-between">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <Home className="size-4 text-zinc-500" />
+              <h3 className="font-semibold text-white truncate group-hover:text-emerald-400 transition-colors">
+                {name}
+              </h3>
+            </div>
+            <p className="text-xs text-zinc-500 mt-0.5 capitalize">{type}</p>
+            <p className="text-xs text-zinc-400 mt-2">
+              {plantCount} plant{plantCount !== 1 ? "s" : ""}
+            </p>
+          </div>
+          {onDelete && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onDelete(id, name);
+              }}
+              disabled={isDeleting}
+              className="p-1.5 rounded-lg hover:bg-red-500/10 text-zinc-400 hover:text-red-400 transition-colors disabled:opacity-50 shrink-0 ml-2"
+              title="Delete room"
+            >
+              <Trash2 className="size-4" />
+            </button>
+          )}
         </div>
-        <div className="flex items-center gap-1 text-xs text-zinc-500 dark:text-zinc-400">
-          <Users className="size-3.5" />
-          <span>{plantCount}</span>
+
+        {/* Latest readings preview */}
+        <div className="mt-3 pt-3 border-t border-zinc-800/50">
+          <div className="flex items-center gap-4 text-xs">
+            <div className="flex items-center gap-1 text-zinc-400">
+              <ThermometerSun className="size-3 text-orange-400" />
+              <span className="text-white">{tempFormatted}</span>
+            </div>
+            <div className="flex items-center gap-1 text-zinc-400">
+              <Droplet className="size-3 text-blue-400" />
+              <span className="text-white">{rhFormatted}</span>
+            </div>
+            <div className="flex items-center gap-1 text-zinc-400">
+              <Wind className="size-3 text-emerald-400" />
+              <span className="text-white">{vpdFormatted}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-2 text-xs text-emerald-400/70 group-hover:text-emerald-400 transition-colors">
+          Click to view details →
         </div>
       </div>
-
-      {latestReading ? (
-        <div className="mt-3 flex items-center gap-4 text-xs">
-          <span className="flex items-center gap-1 text-orange-500">
-            <ThermometerSun className="size-3.5" />
-            {latestReading.temperatureF !== null && latestReading.temperatureF !== undefined
-              ? `${Math.round(Number(latestReading.temperatureF))}°F`
-              : "--"}
-          </span>
-          <span className="flex items-center gap-1 text-blue-500">
-            <Droplet className="size-3.5" />
-            {latestReading.humidity !== null && latestReading.humidity !== undefined
-              ? `${Math.round(Number(latestReading.humidity))}%`
-              : "--"}
-          </span>
-          <span className="flex items-center gap-1 text-emerald-500">
-            <Wind className="size-3.5" />
-            {latestReading.vpd !== null && latestReading.vpd !== undefined
-              ? `${Number(latestReading.vpd).toFixed(1)} kPa`
-              : "--"}
-          </span>
-        </div>
-      ) : (
-        <p className="mt-3 text-xs text-zinc-400">No readings yet</p>
-      )}
     </Link>
   );
 }

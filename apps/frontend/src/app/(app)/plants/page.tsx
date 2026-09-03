@@ -3,6 +3,7 @@ import { PlantsClient } from "./PlantsClient";
 import { getPlants } from "@/server/actions/plant-mgmt";
 import { fetchRooms } from "@/server/actions/facility-mgmt";
 import { fetchBatches } from "@/server/actions/batch-mgmt";
+import { OnboardingReturnButton } from "@/components/onboarding/OnboardingReturnButton";
 
 export default async function PlantsPage() {
   const [plants, rooms, batches] = await Promise.all([
@@ -23,6 +24,8 @@ export default async function PlantsPage() {
       <Suspense fallback={<div className="text-zinc-400">Loading plants...</div>}>
         <PlantsClient initialPlants={plants} rooms={rooms} batches={batches} />
       </Suspense>
+
+      <OnboardingReturnButton currentPage="plants" />
     </div>
   );
 }

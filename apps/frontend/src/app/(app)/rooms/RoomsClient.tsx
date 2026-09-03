@@ -1,11 +1,9 @@
-// apps/frontend/src/app/(app)/rooms/RoomsClient.tsx
-
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { RoomCard } from "@/components/facility/RoomCard";
 import { AddRoomModal } from "@/components/facility/AddRoomModal";
+import { deleteRoom } from "@/server/actions/facility-mgmt";
 
 interface Room {
   id: string;
@@ -29,13 +27,27 @@ interface RoomsClientProps {
 export function RoomsClient({ rooms, plantCounts, latestReadings }: RoomsClientProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [localRooms, setLocalRooms] = useState(rooms);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleRoomCreated = (newRoom: { id: string; name: string }) => {
-    // Optimistically add to list (or refetch)
     setLocalRooms((prev) => [
       ...prev,
       { ...newRoom, type: "tent", targetTempF: null, targetRH: null, targetVPD: null, lightOnTime: null, lightOffTime: null, ppfd: null, lightDistance: null },
     ]);
+  };
+
+  const handleDeleteRoom = async (roomId: string, roomName: string) => {
+    if (!confirm(`Delete "${roomName}"? This will unassign all plants and batches in this room.`)) return;
+    
+    setDeletingId(roomId);
+    const result = await deleteRoom(roomId);
+    setDeletingId(null);
+
+    if (result.success) {
+      setLocalRooms((prev) => prev.filter((r) => r.id !== roomId));
+    } else {
+      alert(result.error || "Failed to delete room");
+    }
   };
 
   if (localRooms.length === 0) {
@@ -90,6 +102,8 @@ export function RoomsClient({ rooms, plantCounts, latestReadings }: RoomsClientP
             type={room.type}
             plantCount={plantCounts[room.id] || 0}
             latestReading={latestReadings[room.id] || null}
+            onDelete={handleDeleteRoom}
+            isDeleting={deletingId === room.id}
           />
         ))}
       </div>

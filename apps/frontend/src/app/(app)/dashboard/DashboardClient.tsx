@@ -34,8 +34,8 @@ import { RoomCard } from '@/components/facility/RoomCard';
 import { fetchRooms } from '@/server/actions/facility-mgmt';
 import { fetchPlants } from '@/server/actions/plant-mgmt';
 import { ActivityItem, RecentActivity } from "@/components/dashboard/RecentActivity";
-import { getOnboardingState, type OnboardingStep } from "@/server/actions/onboarding";
-import { OnboardingChecklist, } from "@/components/onboarding/OnBoardingChecklist";
+import { OnboardingChecklist } from "@/components/onboarding/OnBoardingChecklist";
+import { OnboardingReturnButton } from "@/components/onboarding/OnboardingReturnButton";
 
 type Plant = {
   id: string;
@@ -49,7 +49,26 @@ type Plant = {
   containerGallons?: number | null;
 };
 
-export default function DashboardPage() {
+interface DashboardClientProps {
+  initialData: {
+    plants: any[];
+    recentLogs: any[];
+    alerts: string[];
+    summary: string;
+  };
+  onboardingState: {
+    step: number;
+    completed: boolean;
+    dismissed: boolean;
+  };
+  isOnboardingActive: boolean;
+}
+
+export default function DashboardClient({ 
+  initialData, 
+  onboardingState,
+  isOnboardingActive 
+}: DashboardClientProps) {
   const { setData } = useTelemetry();
   // --- STATE ---
   const [dbEnvironmentReadings, setDbEnvironmentReadings] = useState<EnvironmentReading[]>([]);
@@ -72,69 +91,90 @@ export default function DashboardPage() {
   const [briefingActions, setBriefingActions] = useState<string[]>([]);
   const hasLoaded = useRef(false);
   const hasFetchedBriefingInitially = useRef(false);
-  const [onboardingStep, setOnboardingStep] = useState<OnboardingStep>(0);
-  const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(true);
   const [toast, setToast] = useState<{ type: "success"; message: string } | null>(null);
-  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
+
+  // Local onboarding state
+  const [localOnboardingState, setLocalOnboardingState] = useState(onboardingState);
+  const [showOnboarding, setShowOnboarding] = useState(isOnboardingActive);
 
   const searchParams = useSearchParams();
 
-useEffect(() => {
-  if (searchParams.get("logged") === "true") {
-    setToast({
-      type: "success",
-      message: "✅ Check-in logged successfully! Your data is saved.",
+  // Show toast for successful check-in
+  useEffect(() => {
+    if (searchParams.get("logged") === "true") {
+      setToast({
+        type: "success",
+        message: "✅ Check-in logged successfully! Your data is saved.",
+      });
+      const url = new URL(window.location.href);
+      url.searchParams.delete("logged");
+      window.history.replaceState({}, "", url.toString());
+      const timer = setTimeout(() => setToast(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams]);
+
+  // Check if we should show onboarding
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      try {
+        const res = await fetch('/api/user/onboarding');
+        const data = await res.json();
+        const isActive = !data.onboardingCompleted && !data.onboardingDismissed;
+        setShowOnboarding(isActive);
+        setLocalOnboardingState({
+          step: data.onboardingStep || 0,
+          completed: data.onboardingCompleted || false,
+          dismissed: data.onboardingDismissed || false,
+        });
+      } catch (error) {
+        console.error('Error checking onboarding:', error);
+      }
+    };
+    
+    if (isOnboardingActive) {
+      checkOnboarding();
+    }
+  }, [isOnboardingActive]);
+
+  const recentActivity = useMemo<ActivityItem[]>(() => {
+    const items: ActivityItem[] = [];
+
+    dbDryBackLogs.forEach((log) => {
+      const plant = plants.find((p) => p.id === log.plantId);
+      if (!plant) return;
+      items.push({
+        id: log.id,
+        type: "plant",
+        timestamp: log.loggedAt,
+        label: plant.name,
+        detail: `Weight: ${log.weight.toFixed(1)} lbs · ${log.source || "manual"}`,
+        metadata: {
+          weight: log.weight,
+          watered: log.watered || false,
+          fed: log.fed || false,
+          training: log.trainingEvent || undefined,
+        },
+      });
     });
-    // Clear the query param without refreshing
-    const url = new URL(window.location.href);
-    url.searchParams.delete("logged");
-    window.history.replaceState({}, "", url.toString());
-    // Auto-dismiss after 5 seconds
-    const timer = setTimeout(() => setToast(null), 5000);
-    return () => clearTimeout(timer);
-  }
-}, [searchParams]);
 
-const recentActivity = useMemo<ActivityItem[]>(() => {
-  const items: ActivityItem[] = [];
-
-  // Plant logs (dryback logs)
-  dbDryBackLogs.forEach((log) => {
-    const plant = plants.find((p) => p.id === log.plantId);
-    if (!plant) return;
-    items.push({
-      id: log.id,
-      type: "plant",
-      timestamp: log.loggedAt,
-      label: plant.name,
-      detail: `Weight: ${log.weight.toFixed(1)} lbs · ${log.source || "manual"}`,
-      metadata: {
-        weight: log.weight,
-        watered: log.watered || false,
-        fed: log.fed || false,
-        training: log.trainingEvent || undefined,
-      },
+    dbEnvironmentReadings.forEach((reading) => {
+      items.push({
+        id: reading.id,
+        type: "climate",
+        timestamp: reading.recordedAt,
+        label: "Room Climate",
+        detail: `${Math.round(reading.temperatureF)}°F · ${Math.round(reading.humidity)}% · ${reading.vpd.toFixed(2)} kPa`,
+        metadata: {
+          temperatureF: Math.round(reading.temperatureF),
+          humidity: Math.round(reading.humidity),
+          vpd: reading.vpd,
+        },
+      });
     });
-  });
 
-  // Climate logs
-  dbEnvironmentReadings.forEach((reading) => {
-    items.push({
-      id: reading.id,
-      type: "climate",
-      timestamp: reading.recordedAt,
-      label: "Room Climate",
-      detail: `${Math.round(reading.temperatureF)}°F · ${Math.round(reading.humidity)}% · ${reading.vpd.toFixed(2)} kPa`,
-      metadata: {
-        temperatureF: Math.round(reading.temperatureF),
-        humidity: Math.round(reading.humidity),
-        vpd: reading.vpd,
-      },
-    });
-  });
-
-  return items;
-}, [dbDryBackLogs, dbEnvironmentReadings, plants]);
+    return items;
+  }, [dbDryBackLogs, dbEnvironmentReadings, plants]);
 
   // --- DATA FETCH ---
   const loadData = useCallback(
@@ -142,25 +182,19 @@ const recentActivity = useMemo<ActivityItem[]>(() => {
       try {
         if (!skipLoading) setLoading(true);
         
-        // Fetch all data in parallel
-        const [dashboardData, roomsData, plantsData, readings, onboardingData] = await Promise.all([
+        const [dashboardData, roomsData, plantsData, readings] = await Promise.all([
           getDashboardData(),
           fetchRooms(),
           fetchPlants(),
           getLatestRoomReadings(),
-          getOnboardingState(),
         ]);
 
-          setOnboardingStep(onboardingData.step as OnboardingStep);
-          setOnboardingCompleted(onboardingData.completed);
-          setOnboardingDismissed(onboardingData.dismissed);
-          setDbEnvironmentReadings(dashboardData.environmentReadings || []);
-          setDbDryBackLogs(dashboardData.dryBackLogs || []);
-          setLatestIrrigation(dashboardData.latestIrrigation || null);
-          setRooms(roomsData);
-          setLatestRoomReadings(readings);
+        setDbEnvironmentReadings(dashboardData.environmentReadings || []);
+        setDbDryBackLogs(dashboardData.dryBackLogs || []);
+        setLatestIrrigation(dashboardData.latestIrrigation || null);
+        setRooms(roomsData);
+        setLatestRoomReadings(readings);
 
-        // Compute plant count per room
         const counts: Record<string, number> = {};
         plantsData.forEach((plant: any) => {
           if (plant.roomId) {
@@ -170,7 +204,6 @@ const recentActivity = useMemo<ActivityItem[]>(() => {
         setPlantCounts(counts);
         setPlants(plantsData);
 
-        // Build activeDryBack from latest log (existing logic)
         let activeDryBack = undefined;
         if (dashboardData.dryBackLogs && dashboardData.dryBackLogs.length > 0) {
           const latest = dashboardData.dryBackLogs[dashboardData.dryBackLogs.length - 1];
@@ -285,21 +318,26 @@ const recentActivity = useMemo<ActivityItem[]>(() => {
     <div className="min-h-screen bg-white dark:bg-[#0B0F19] text-gray-900 dark:text-zinc-100 p-4 space-y-6">
       
       {/* Toast */}
-        {toast && (
-          <div className="fixed top-20 right-4 z-50 max-w-sm animate-slide-in-right">
-            <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/95 dark:bg-emerald-950/90 px-4 py-3 shadow-lg backdrop-blur-sm">
-              <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-                {toast.message}
-              </p>
-            </div>
+      {toast && (
+        <div className="fixed top-20 right-4 z-50 max-w-sm animate-slide-in-right">
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/95 dark:bg-emerald-950/90 px-4 py-3 shadow-lg backdrop-blur-sm">
+            <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+              {toast.message}
+            </p>
           </div>
-        )}
+        </div>
+      )}
 
       {/* Onboarding Checklist */}
-{!onboardingCompleted && !onboardingDismissed && (
-          <OnboardingChecklist
-          currentStep={onboardingStep}
-          completed={onboardingCompleted}
+      {showOnboarding && (
+        <OnboardingChecklist
+          currentStep={localOnboardingState.step}
+          completed={localOnboardingState.completed}
+          onDismiss={() => {
+            setShowOnboarding(false);
+            // Refresh to persist the dismiss
+            window.location.reload();
+          }}
         />
       )}
 
@@ -405,8 +443,7 @@ const recentActivity = useMemo<ActivityItem[]>(() => {
       </div>
 
       {/* Recent Activity */}
-<RecentActivity items={recentActivity} maxItems={5} />
-
+      <RecentActivity items={recentActivity} maxItems={5} />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { getPlants } from '@/server/actions/plant-mgmt';
 import { fetchRooms } from '@/server/actions/facility-mgmt';
 import type { Plant } from '@prisma/client';
 import { BarChart3, ChevronRight } from 'lucide-react';
+import { OnboardingReturnButton } from '@/components/onboarding/OnboardingReturnButton';
 
 export const revalidate = 0;
 
@@ -52,6 +53,7 @@ export default async function CheckInPage({
         defaultRoomId={roomId}
         defaultPlantId={plantId}
       />
+      <OnboardingReturnButton currentPage="check-in" />
     </div>
   );
 }

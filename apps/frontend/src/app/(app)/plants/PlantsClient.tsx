@@ -34,16 +34,22 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
   const [filterBatch, setFilterBatch] = useState<string>("");
   const [view, setView] = useState<"grid" | "list">("list");
   const [addPlantOpen, setAddPlantOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleDeletePlant = async (plantId: string, plantName: string, e: React.MouseEvent) => {
+    // Stop the click from bubbling up to the Link
+    e.preventDefault();
     e.stopPropagation();
+    
     const confirmed = window.confirm(
       `Delete "${plantName}"? This will permanently delete the plant and its associated data.`
     );
 
     if (!confirmed) return;
 
+    setDeletingId(plantId);
     const result = await deletePlant(plantId);
+    setDeletingId(null);
 
     if (!result.success) {
       alert(result.error);
@@ -229,7 +235,8 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
                     <button
                       type="button"
                       onClick={(e) => handleDeletePlant(plant.id, plant.name, e)}
-                      className="text-red-400 hover:text-red-300 transition-colors"
+                      disabled={deletingId === plant.id}
+                      className="text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
                       title="Delete plant"
                     >
                       <Trash2 className="size-4" />
@@ -276,7 +283,8 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
                   <button
                     type="button"
                     onClick={(e) => handleDeletePlant(plant.id, plant.name, e)}
-                    className="text-red-400 hover:text-red-300 transition-colors ml-auto"
+                    disabled={deletingId === plant.id}
+                    className="text-red-400 hover:text-red-300 transition-colors ml-auto disabled:opacity-50"
                     title="Delete plant"
                   >
                     <Trash2 className="size-4" />

@@ -4,6 +4,7 @@ import { fetchRooms } from "@/server/actions/facility-mgmt";
 import { fetchPlants } from "@/server/actions/plant-mgmt";
 import { getLatestRoomReadings } from "@/server/actions/loggingreadings";
 import { RoomsClient } from "./RoomsClient";
+import { OnboardingReturnButton } from "@/components/onboarding/OnboardingReturnButton";
 
 export default async function RoomsPage() {
   const [rooms, plants, latestReadings] = await Promise.all([
@@ -19,5 +20,10 @@ export default async function RoomsPage() {
     return acc;
   }, {});
 
-  return <RoomsClient rooms={rooms} plantCounts={plantCounts} latestReadings={latestReadings} />;
+  return (
+    <>
+      <RoomsClient rooms={rooms} plantCounts={plantCounts} latestReadings={latestReadings} />
+      <OnboardingReturnButton currentPage="rooms" />
+    </>
+  );
 }

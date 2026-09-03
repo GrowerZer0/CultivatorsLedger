@@ -1,0 +1,17 @@
+import { withSentryConfig } from "@sentry/nextjs/config";
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {};
+
+export default withSentryConfig(nextConfig, {
+  org: "cultivators-ledger",
+  project: "javascript-nextjs",
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+  webpack: {
+    automaticVercelMonitors: true,
+    treeshake: {
+      removeDebugLogging: true,
+    },
+  },
+});
