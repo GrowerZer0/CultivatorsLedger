@@ -14,9 +14,12 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  Pencil,
 } from "lucide-react";
 import { deletePlant } from "@/server/actions/plant-mgmt";
-import type { PlantWithDetails, DryBackLog, IrrigationEvent } from "@/types/plant";
+import { EditPlantModal } from "@/components/facility/EditPlantModal";
+import { GROWTH_STAGES, getStageFromDays, getStageProgress } from "@/lib/growth-stages";
+import type { PlantWithDetails, DryBackLog, IrrigationEvent, PlantInsight } from "@/types/plant";
 
 interface PlantDetailClientProps {
   plant: PlantWithDetails;
@@ -25,6 +28,8 @@ interface PlantDetailClientProps {
 export function PlantDetailClient({ plant }: PlantDetailClientProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [currentPlant, setCurrentPlant] = useState(plant);
 
   const handleDelete = async () => {
     if (!confirm(`Delete "${plant.name}"? This will permanently delete the plant and all its data.`)) return;
@@ -40,18 +45,43 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
     }
   };
 
-  const latestLog = plant.dryBackLogs[0];
+  const handlePlantUpdated = (updatedPlant: any) => {
+    // Merge updated plant data with existing structure
+    setCurrentPlant({
+      ...currentPlant,
+      ...updatedPlant,
+      // Ensure arrays exist
+      dryBackLogs: currentPlant.dryBackLogs || [],
+      irrigationEvents: currentPlant.irrigationEvents || [],
+      plantInsights: currentPlant.plantInsights || [],
+    });
+    setShowEditModal(false);
+    router.refresh();
+  };
+
+  // Safe access with fallbacks
+  const dryBackLogs = currentPlant?.dryBackLogs || [];
+  const irrigationEvents = currentPlant?.irrigationEvents || [];
+  const plantInsights = currentPlant?.plantInsights || [];
+  
+  const latestLog = dryBackLogs[0];
   const weight = latestLog?.currentWeightLbs ?? null;
   const dryback = latestLog?.dryBackPercent ?? null;
-  const daysSinceStart = Math.floor(
-    (Date.now() - new Date(plant.startDate).getTime()) / (1000 * 60 * 60 * 24)
-  );
+  
+  const daysSinceStart = currentPlant?.startDate 
+    ? Math.floor((Date.now() - new Date(currentPlant.startDate).getTime()) / (1000 * 60 * 60 * 24))
+    : 0;
+
+  // Growth Stage
+  const detectedStage = currentPlant?.stage || getStageFromDays(daysSinceStart);
+  const stageConfig = GROWTH_STAGES[detectedStage as keyof typeof GROWTH_STAGES];
+  const stageProgress = getStageProgress(daysSinceStart, detectedStage as any);
 
   // Calculate dryback trend
   const getTrend = () => {
-    if (plant.dryBackLogs.length < 3) return null;
-    const recent = plant.dryBackLogs.slice(0, 3);
-    const older = plant.dryBackLogs.slice(3, 6);
+    if (dryBackLogs.length < 3) return null;
+    const recent = dryBackLogs.slice(0, 3);
+    const older = dryBackLogs.slice(3, 6);
     if (older.length === 0) return null;
     
     const recentAvg = recent.reduce((sum, l) => sum + l.dryBackPercent, 0) / recent.length;
@@ -66,9 +96,40 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
   const trend = getTrend();
 
   // Combine events for timeline
-  const allEvents = [...plant.dryBackLogs, ...plant.irrigationEvents].sort(
+  const allEvents = [...dryBackLogs, ...irrigationEvents].sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );
+
+  // Fetch all plants and batches for the edit modal
+  const [allPlants, setAllPlants] = useState<any[]>([]);
+  const [allBatches, setAllBatches] = useState<any[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(false);
+  const [allRooms, setAllRooms] = useState<any[]>([]);
+
+  const handleOpenEdit = async () => {
+  setIsLoadingData(true);
+  try {
+    const [plantsRes, batchesRes, roomsRes] = await Promise.all([
+      fetch('/api/plants'),
+      fetch('/api/batches'),
+      fetch('/api/rooms'),
+    ]);
+    const plantsData = await plantsRes.json();
+    const batchesData = await batchesRes.json();
+    const roomsData = await roomsRes.json();
+    setAllPlants(plantsData);
+    setAllBatches(batchesData);
+    setAllRooms(roomsData);
+    setShowEditModal(true);
+  } catch (error) {
+    console.error('Failed to load data for edit:', error);
+    setShowEditModal(true);
+  } finally {
+    setIsLoadingData(false);
+  }
+};
+
+  const rooms = currentPlant?.room ? [{ id: currentPlant.room.id, name: currentPlant.room.name }] : [];
 
   return (
     <div className="max-w-5xl mx-auto p-4 space-y-6">
@@ -82,15 +143,22 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
             <ArrowLeft className="size-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-white">{plant.name}</h1>
-            {plant.strain && (
-              <p className="text-sm text-zinc-400">{plant.strain}</p>
+            <h1 className="text-2xl font-bold text-white">{currentPlant?.name || 'Plant'}</h1>
+            {currentPlant?.strain && (
+              <p className="text-sm text-zinc-400">{currentPlant.strain}</p>
             )}
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => router.push(`/check-in?plantId=${plant.id}`)}
+            onClick={handleOpenEdit}
+            className="px-3 py-1.5 text-xs font-bold bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg transition-colors flex items-center gap-1"
+          >
+            <Pencil className="size-3.5" />
+            Edit
+          </button>
+          <button
+            onClick={() => router.push(`/check-in?plantId=${currentPlant?.id}`)}
             className="px-3 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
           >
             Log Check-in
@@ -106,7 +174,7 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
           <div className="flex items-center gap-2 text-zinc-400 text-xs">
             <Scale className="size-4" />
@@ -115,9 +183,9 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
           <div className="text-2xl font-bold text-white mt-1">
             {weight !== null ? `${weight.toFixed(1)} lbs` : "—"}
           </div>
-          {plant.wetWeight && (
+          {currentPlant?.wetWeight && (
             <div className="text-xs text-zinc-500">
-              Wet: {plant.wetWeight.toFixed(1)} lbs
+              Wet: {currentPlant.wetWeight.toFixed(1)} lbs
             </div>
           )}
         </div>
@@ -157,59 +225,82 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
             {daysSinceStart > 0 ? daysSinceStart : "—"}
           </div>
           <div className="text-xs text-zinc-500">
-            Since {new Date(plant.startDate).toLocaleDateString()}
+            Since {currentPlant?.startDate ? new Date(currentPlant.startDate).toLocaleDateString() : 'N/A'}
           </div>
         </div>
 
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
           <div className="flex items-center gap-2 text-zinc-400 text-xs">
             <Sprout className="size-4" />
+            Growth Stage
+          </div>
+          <div className="text-2xl font-bold mt-1">
+            <span className={stageConfig?.color || 'text-white'}>
+              {stageConfig?.icon || '🌱'} {stageConfig?.label || 'Unknown'}
+            </span>
+          </div>
+          <div className="text-xs text-zinc-500">
+            {Math.round(stageProgress)}% through stage
+          </div>
+        </div>
+
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+          <div className="flex items-center gap-2 text-zinc-400 text-xs">
+            <Droplet className="size-4" />
             Logs
           </div>
           <div className="text-2xl font-bold text-white mt-1">
-            {plant.dryBackLogs.length}
+            {dryBackLogs.length}
           </div>
           <div className="text-xs text-zinc-500">
-            {plant.irrigationEvents.length} irrigations
+            {irrigationEvents.length} irrigations
           </div>
         </div>
       </div>
 
       {/* Room & Batch Info */}
-      {(plant.room || plant.batch) && (
+      {(currentPlant?.room || currentPlant?.batch) && (
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 flex flex-wrap gap-4">
-          {plant.room && (
+          {currentPlant?.room && (
             <div>
               <span className="text-xs text-zinc-500">Room</span>
-              <Link href={`/rooms/${plant.room.id}`} className="block text-sm text-emerald-400 hover:underline">
-                {plant.room.name}
+              <Link href={`/rooms/${currentPlant.room.id}`} className="block text-sm text-emerald-400 hover:underline">
+                {currentPlant.room.name}
               </Link>
             </div>
           )}
-          {plant.batch && (
+          {currentPlant?.batch && (
             <div>
               <span className="text-xs text-zinc-500">Batch</span>
-              <Link href={`/batches/${plant.batch.id}`} className="block text-sm text-emerald-400 hover:underline">
-                {plant.batch.name}
+              <Link href={`/batches/${currentPlant.batch.id}`} className="block text-sm text-emerald-400 hover:underline">
+                {currentPlant.batch.name}
               </Link>
             </div>
           )}
-          {plant.containerGallons && (
+          {currentPlant?.containerGallons && (
             <div>
               <span className="text-xs text-zinc-500">Container</span>
-              <div className="text-sm text-white">{plant.containerGallons} gal</div>
+              <div className="text-sm text-white">{currentPlant.containerGallons} gal</div>
             </div>
           )}
-          {plant.dryTarget && (
+          {currentPlant?.dryTarget && (
             <div>
               <span className="text-xs text-zinc-500">Dry Target</span>
-              <div className="text-sm text-white">{plant.dryTarget.toFixed(1)} lbs</div>
+              <div className="text-sm text-white">{currentPlant.dryTarget.toFixed(1)} lbs</div>
+            </div>
+          )}
+          {currentPlant?.mirrorPlant && (
+            <div>
+              <span className="text-xs text-zinc-500">Mirroring</span>
+              <Link href={`/plants/${currentPlant.mirrorPlant.id}`} className="block text-sm text-emerald-400 hover:underline">
+                {currentPlant.mirrorPlant.name}
+              </Link>
             </div>
           )}
         </div>
       )}
 
-      {/* Recent Activity Timeline */}
+      {/* Activity Timeline */}
       <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
         <div className="p-4 border-b border-zinc-800">
           <h2 className="text-sm font-bold text-zinc-300">Activity Timeline</h2>
@@ -288,11 +379,11 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
       </div>
 
       {/* AI Insights */}
-      {plant.plantInsights.length > 0 && (
+      {plantInsights.length > 0 && (
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
           <h2 className="text-sm font-bold text-zinc-300 mb-3">AI Insights</h2>
           <div className="space-y-2">
-            {plant.plantInsights.slice(0, 3).map((insight) => (
+            {plantInsights.slice(0, 3).map((insight) => (
               <div key={insight.id} className="bg-zinc-800/30 rounded-lg p-3 border border-zinc-700/50">
                 <div className="flex items-center gap-2">
                   <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
@@ -315,6 +406,17 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
           </div>
         </div>
       )}
+
+      {/* Edit Modal */}
+<EditPlantModal
+  open={showEditModal}
+  onClose={() => setShowEditModal(false)}
+  plant={currentPlant}
+  rooms={allRooms.length > 0 ? allRooms : rooms}
+  batches={allBatches}
+  allPlants={allPlants}
+  onPlantUpdated={handlePlantUpdated}
+/>
     </div>
   );
 }

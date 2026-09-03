@@ -41,6 +41,10 @@ type Plant = {
   dryTarget: number | null;
   containerGallons: number | null;
   currentWeight: number | null;
+  mirrorPlantId: string | null;
+  startDate: Date | string | null;
+  stage: string | null;
+
 };
 
 type Batch = {
@@ -70,6 +74,7 @@ export default function RoomDetailPage() {
   const [editingPlant, setEditingPlant] = useState<Plant | null>(null);
   const [isAddBatchModalOpen, setIsAddBatchModalOpen] = useState(false);
   const [batchExists, setBatchExists] = useState(false);
+  const [existingPlants, setExistingPlants] = useState<any[]>([]);
 
   const loadData = useCallback(async () => {
     if (!params?.id) return;
@@ -133,6 +138,15 @@ export default function RoomDetailPage() {
       // The user will click the button
     }
   }, [isNewRoom, loading, plants.length]);
+
+useEffect(() => {
+  if (isAddPlantModalOpen) {
+    fetch('/api/plants')
+      .then(res => res.json())
+      .then(data => setExistingPlants(data))
+      .catch(err => console.error('Failed to fetch plants:', err));
+  }
+}, [isAddPlantModalOpen]);
 
   useEffect(() => {
     loadData();
@@ -554,15 +568,16 @@ export default function RoomDetailPage() {
       {/* ===== MODALS ===== */}
 
       {/* Add Plant Modal */}
-      <AddPlantModal
-        open={isAddPlantModalOpen}
-        onClose={() => setIsAddPlantModalOpen(false)}
-        rooms={[{ id: room.id, name: room.name }]}
-        defaultRoomId={room.id}
-        onPlantCreated={(plant) =>
-          setPlants((prev) => [...prev, plant as Plant])
-        }
-      />
+<AddPlantModal
+  open={isAddPlantModalOpen}
+  onClose={() => setIsAddPlantModalOpen(false)}
+  rooms={[{ id: room.id, name: room.name }]}
+  defaultRoomId={room.id}
+  existingPlants={existingPlants}
+  onPlantCreated={(plant) => {
+    setPlants((prev) => [...prev, plant as Plant]);
+  }}
+/>
 
       {/* Edit Plant Modal */}
       <EditPlantModal

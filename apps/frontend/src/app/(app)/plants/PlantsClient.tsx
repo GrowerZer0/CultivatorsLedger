@@ -37,7 +37,6 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleDeletePlant = async (plantId: string, plantName: string, e: React.MouseEvent) => {
-    // Stop the click from bubbling up to the Link
     e.preventDefault();
     e.stopPropagation();
     
@@ -103,6 +102,8 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
           open={addPlantOpen}
           onClose={() => setAddPlantOpen(false)}
           rooms={rooms}
+          batches={batches}
+          hideSelectExisting={true}
           onPlantCreated={(plant) => {
             setPlants((current) => [
               ...current,
@@ -206,7 +207,7 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
                 href={`/plants/${plant.id}`}
                 className="flex items-center justify-between p-4 bg-zinc-900/50 hover:bg-zinc-800/70 transition-colors cursor-pointer group"
               >
-                <div>
+                <div className="flex-1 min-w-0">
                   <p className="font-medium text-white group-hover:text-emerald-400 transition-colors">
                     {plant.name}
                   </p>
@@ -218,19 +219,22 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
                     <span className="text-blue-400">{batchName}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-zinc-500">
+                <div className="flex items-center gap-3 text-xs text-zinc-500 shrink-0">
                   {plant.currentWeight !== null && (
                     <span>Current: {Number(plant.currentWeight).toFixed(1)} lbs</span>
                   )}
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     {plant.roomId && (
-                      <Link
-                        href={`/rooms/${plant.roomId}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="text-emerald-400 hover:underline"
+                      <span 
+                        className="text-emerald-400 hover:underline cursor-pointer"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          window.location.href = `/rooms/${plant.roomId}`;
+                        }}
                       >
                         View Room
-                      </Link>
+                      </span>
                     )}
                     <button
                       type="button"
@@ -272,13 +276,16 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
                 )}
                 <div className="flex items-center gap-3 mt-2">
                   {plant.roomId && (
-                    <Link
-                      href={`/rooms/${plant.roomId}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-xs text-emerald-400 hover:underline"
+                    <span 
+                      className="text-xs text-emerald-400 hover:underline cursor-pointer"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.location.href = `/rooms/${plant.roomId}`;
+                      }}
                     >
                       View Room →
-                    </Link>
+                    </span>
                   )}
                   <button
                     type="button"
@@ -300,6 +307,8 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
         open={addPlantOpen}
         onClose={() => setAddPlantOpen(false)}
         rooms={rooms}
+        batches={batches}
+        hideSelectExisting={true}
         onPlantCreated={(plant) => {
           setPlants((current) => [
             ...current,

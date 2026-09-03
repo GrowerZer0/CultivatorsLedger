@@ -1,5 +1,3 @@
-//apps/frontend/src/server/actions/plant-mgmt.ts
-
 "use server";
 import { db, prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
@@ -95,7 +93,6 @@ export async function createPlant(
       },
     });
 
-    // ✅ Single correct trackEvent call
     await trackEvent('plant_added', {
       plantId: plant.id,
       name: plant.name,
@@ -123,26 +120,44 @@ return { success: true, plant: serializedPlant };
 
 export async function updatePlant(data: unknown) {
   try {
-    // We assume plantSchema has all fields optional except name? But update requires id and allows partial.
-    // We'll create a partial schema with required id.
-    const updatePlantSchema = plantSchema.partial().extend({ id: z.string() });
+    // Extend schema to include new fields
+    const updatePlantSchema = plantSchema.partial().extend({ 
+      id: z.string(),
+      mirrorPlantId: z.string().nullable().optional(),
+      startDate: z.date().nullable().optional(),
+      stage: z.string().nullable().optional(),
+    });
     const validated = updatePlantSchema.parse(data);
     const userId = await getUserId();
+    
+    // Build data object with only defined fields
+    const updateData: any = {};
+    
+    if (validated.name !== undefined) updateData.name = validated.name;
+    if (validated.strain !== undefined) updateData.strain = validated.strain;
+    if (validated.roomId !== undefined) updateData.roomId = validated.roomId;
+    if (validated.batchId !== undefined) updateData.batchId = validated.batchId;
+    if (validated.containerGallons !== undefined) updateData.containerGallons = validated.containerGallons;
+    if (validated.wetWeight !== undefined) updateData.wetWeight = validated.wetWeight;
+    if (validated.dryTarget !== undefined) updateData.dryTarget = validated.dryTarget;
+    if (validated.currentWeight !== undefined) updateData.currentWeight = validated.currentWeight;
+    if (validated.mirrorPlantId !== undefined) updateData.mirrorPlantId = validated.mirrorPlantId;
+    if (validated.stage !== undefined) updateData.stage = validated.stage;
+    // Handle startDate - only set if not null, otherwise skip (keep existing)
+    if (validated.startDate !== undefined && validated.startDate !== null) {
+      updateData.startDate = validated.startDate;
+    }
+
     const plant = await db.plant.update({
       where: { id: validated.id, userId },
-      data: {
-        name: validated.name,
-        strain: validated.strain !== undefined ? validated.strain : undefined,
-        roomId: validated.roomId !== undefined ? validated.roomId : undefined,
-        batchId: validated.batchId !== undefined ? validated.batchId : undefined,
-        containerGallons: validated.containerGallons !== undefined ? validated.containerGallons : undefined,
-        wetWeight: validated.wetWeight !== undefined ? validated.wetWeight : undefined,
-        dryTarget: validated.dryTarget !== undefined ? validated.dryTarget : undefined,
-        currentWeight: validated.currentWeight !== undefined ? validated.currentWeight : undefined,
-      },
+      data: updateData,
     });
+    
     revalidatePath("/settings");
     revalidatePath("/");
+    revalidatePath("/plants");
+    revalidatePath(`/plants/${plant.id}`);
+    
     return { success: true, plant: serializePrisma(plant) };
   } catch (error) {
     console.error("updatePlant error:", error);
@@ -185,6 +200,10 @@ export async function fetchPlants() {
       containerGallons: true,
       wetWeight: true,
       dryTarget: true,
+      currentWeight: true,
+      mirrorPlantId: true,
+      startDate: true,
+      stage: true,
     },
   });
   return serializePrisma(plants);

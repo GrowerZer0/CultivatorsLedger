@@ -29,6 +29,10 @@ type Plant = {
   dryTarget: number | null;
   containerGallons: number | null;
   currentWeight: number | null;
+  mirrorPlantId: string | null;
+  startDate: Date | string | null;
+  stage: string | null;
+
 };
 
 type RoomOption = {

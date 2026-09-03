@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { RoomCard } from "@/components/facility/RoomCard";
 import { AddRoomModal } from "@/components/facility/AddRoomModal";
+import { AddPlantModal } from "@/components/facility/AddPlantModal";
 import { deleteRoom } from "@/server/actions/facility-mgmt";
+import { fetchPlants } from "@/server/actions/plant-mgmt";
 
 interface Room {
   id: string;
@@ -28,6 +30,28 @@ export function RoomsClient({ rooms, plantCounts, latestReadings }: RoomsClientP
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [localRooms, setLocalRooms] = useState(rooms);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showAddPlant, setShowAddPlant] = useState(false);
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+  const [existingPlants, setExistingPlants] = useState<any[]>([]);
+  const [loadingPlants, setLoadingPlants] = useState(false);
+
+  // Load ALL existing plants when add plant modal opens
+  const handleOpenAddPlant = async (roomId: string) => {
+    setSelectedRoomId(roomId);
+    setLoadingPlants(true);
+    try {
+      const plants = await fetchPlants();
+      // Filter out plants that are already in this room
+      const plantsNotInRoom = plants.filter((p: any) => p.roomId !== roomId);
+      setExistingPlants(plantsNotInRoom);
+    } catch (error) {
+      console.error('Failed to fetch plants:', error);
+      setExistingPlants([]);
+    } finally {
+      setLoadingPlants(false);
+    }
+    setShowAddPlant(true);
+  };
 
   const handleRoomCreated = (newRoom: { id: string; name: string }) => {
     setLocalRooms((prev) => [
@@ -52,25 +76,27 @@ export function RoomsClient({ rooms, plantCounts, latestReadings }: RoomsClientP
 
   if (localRooms.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-        <h2 className="text-2xl font-semibold text-gray-900 dark:text-zinc-100">
-          No rooms yet.
-        </h2>
-        <p className="mt-2 text-gray-500 dark:text-zinc-400 max-w-md">
-          Create your first room to start tracking plants.
-        </p>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="mt-6 inline-flex items-center rounded-lg bg-emerald-600 px-6 py-3 text-sm font-bold text-white hover:bg-emerald-700 transition-colors"
-        >
-          Add Room
-        </button>
+      <>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-zinc-100">
+            No rooms yet.
+          </h2>
+          <p className="mt-2 text-gray-500 dark:text-zinc-400 max-w-md">
+            Create your first room to start tracking plants.
+          </p>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="mt-6 inline-flex items-center rounded-lg bg-emerald-600 px-6 py-3 text-sm font-bold text-white hover:bg-emerald-700 transition-colors"
+          >
+            Add Room
+          </button>
+        </div>
         <AddRoomModal
           open={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           onRoomCreated={handleRoomCreated}
         />
-      </div>
+      </>
     );
   }
 
@@ -104,6 +130,7 @@ export function RoomsClient({ rooms, plantCounts, latestReadings }: RoomsClientP
             latestReading={latestReadings[room.id] || null}
             onDelete={handleDeleteRoom}
             isDeleting={deletingId === room.id}
+            onAddPlant={() => handleOpenAddPlant(room.id)}
           />
         ))}
       </div>
@@ -112,6 +139,19 @@ export function RoomsClient({ rooms, plantCounts, latestReadings }: RoomsClientP
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onRoomCreated={handleRoomCreated}
+      />
+
+      <AddPlantModal
+        open={showAddPlant}
+        onClose={() => setShowAddPlant(false)}
+        rooms={localRooms}
+        defaultRoomId={selectedRoomId || undefined}
+        existingPlants={existingPlants}
+        loadingPlants={loadingPlants}
+        onPlantCreated={() => {
+          // Refresh the page to update plant counts
+          window.location.reload();
+        }}
       />
     </div>
   );

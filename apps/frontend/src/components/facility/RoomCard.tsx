@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Trash2, Home, ThermometerSun, Droplet, Wind } from "lucide-react";
+import { Trash2, Home, ThermometerSun, Droplet, Wind, Plus } from "lucide-react";
 
 interface RoomCardProps {
   id: string;
@@ -15,6 +15,7 @@ interface RoomCardProps {
   } | null;
   onDelete?: (id: string, name: string) => void;
   isDeleting?: boolean;
+  onAddPlant?: () => void;
 }
 
 export function RoomCard({ 
@@ -25,6 +26,7 @@ export function RoomCard({
   latestReading,
   onDelete,
   isDeleting,
+  onAddPlant,
 }: RoomCardProps) {
   const tempFormatted = latestReading?.temperatureF !== undefined && latestReading?.temperatureF !== null
     ? `${Math.round(latestReading.temperatureF)}°F`
@@ -52,20 +54,35 @@ export function RoomCard({
               {plantCount} plant{plantCount !== 1 ? "s" : ""}
             </p>
           </div>
-          {onDelete && (
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onDelete(id, name);
-              }}
-              disabled={isDeleting}
-              className="p-1.5 rounded-lg hover:bg-red-500/10 text-zinc-400 hover:text-red-400 transition-colors disabled:opacity-50 shrink-0 ml-2"
-              title="Delete room"
-            >
-              <Trash2 className="size-4" />
-            </button>
-          )}
+          <div className="flex items-center gap-1 shrink-0 ml-2">
+            {onAddPlant && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onAddPlant();
+                }}
+                className="p-1.5 rounded-lg hover:bg-emerald-500/10 text-zinc-400 hover:text-emerald-400 transition-colors"
+                title="Add plant to room"
+              >
+                <Plus className="size-3.5" />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onDelete(id, name);
+                }}
+                disabled={isDeleting}
+                className="p-1.5 rounded-lg hover:bg-red-500/10 text-zinc-400 hover:text-red-400 transition-colors disabled:opacity-50"
+                title="Delete room"
+              >
+                <Trash2 className="size-3.5" />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Latest readings preview */}

@@ -40,6 +40,10 @@ export default async function PlantDetailPage({
         orderBy: { createdAt: "desc" },
         take: 10,
       },
+      // Include mirrorPlant relation
+      mirrorPlant: {
+        select: { id: true, name: true },
+      },
     },
   });
 
@@ -63,6 +67,9 @@ export default async function PlantDetailPage({
     userId: plantData.userId,
     createdAt: plantData.createdAt,
     updatedAt: plantData.updatedAt,
+    stage: plantData.stage || null,
+    mirrorPlantId: plantData.mirrorPlantId || null,
+    mirrorPlant: plantData.mirrorPlant || null,
     room: plantData.room ? { id: plantData.room.id, name: plantData.room.name } : null,
     batch: plantData.batch ? { id: plantData.batch.id, name: plantData.batch.name } : null,
     dryBackLogs: plantData.dryBackLogs.map((log): DryBackLog => ({

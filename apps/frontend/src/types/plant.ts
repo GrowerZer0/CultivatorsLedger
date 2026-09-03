@@ -13,6 +13,8 @@ export interface Plant {
   userId: string;
   createdAt: Date;
   updatedAt: Date;
+  stage: string | null;
+  mirrorPlantId: string | null;
 }
 
 export interface DryBackLog {
@@ -76,6 +78,7 @@ export interface PlantWithDetails extends Omit<Plant, 'dryBackLogs' | 'irrigatio
   dryBackLogs: DryBackLog[];
   irrigationEvents: IrrigationEvent[];
   plantInsights: PlantInsight[];
+  mirrorPlant: { id: string; name: string } | null;
 }
 
 // Type guard to check if event is a DryBackLog

@@ -1,41 +1,32 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
-import { X, Plus, Loader2, Save } from "lucide-react";
-import { createPlant, updatePlant } from "@/server/actions/plant-mgmt";
+import { useState, useEffect } from "react";
+import { X, Search, Plus, Loader2 } from "lucide-react";
+import { createPlant } from "@/server/actions/plant-mgmt";
 
-interface RoomOption {
+type Plant = {
   id: string;
   name: string;
-}
+  strain: string | null;
+  roomId: string | null;
+  batchId: string | null;
+  currentWeight?: number | null; // Make currentWeight optional
+};
 
-interface BatchOption {
-  id: string;
-  name: string;
-}
-
-interface PlantData {
-  id: string;
-  name: string;
-  strain?: string | null;
-  roomId?: string | null;
-  batchId?: string | null;
-  containerGallons?: number | null;
-  wetWeight?: number | null;
-  dryTarget?: number | null;
-  currentWeight?: number | null;
-}
+type Room = { id: string; name: string };
+type Batch = { id: string; name: string };
 
 interface AddPlantModalProps {
   open: boolean;
   onClose: () => void;
-  rooms: RoomOption[];
-  batches?: BatchOption[];
+  rooms: Room[];
+  batches?: Batch[];
   defaultRoomId?: string;
   defaultBatchId?: string;
-  plant?: PlantData | null;
-  onPlantCreated?: (plant: PlantData) => void;
-  onPlantUpdated?: (plant: PlantData) => void;
+  onPlantCreated: (plant: any) => void;
+  existingPlants?: Plant[];
+  loadingPlants?: boolean;
+  hideSelectExisting?: boolean;
 }
 
 export function AddPlantModal({
@@ -45,256 +36,356 @@ export function AddPlantModal({
   batches = [],
   defaultRoomId,
   defaultBatchId,
-  plant,
   onPlantCreated,
-  onPlantUpdated,
+  existingPlants = [],
+  loadingPlants = false,
+  hideSelectExisting = false,
 }: AddPlantModalProps) {
-  const [isPending, startTransition] = useTransition();
+  const [mode, setMode] = useState<'select' | 'create'>(
+    hideSelectExisting ? 'create' : 'select'
+  );
+  const [searchTerm, setSearchTerm] = useState('');
+  const [formData, setFormData] = useState({
+    name: "",
+    strain: "",
+    roomId: defaultRoomId || "",
+    batchId: defaultBatchId || "",
+    containerGallons: "",
+    wetWeight: "",
+    dryTarget: "",
+    mirrorPlantId: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [allPlants, setAllPlants] = useState<Plant[]>([]);
 
-  const [name, setName] = useState("");
-  const [strain, setStrain] = useState("");
-  const [roomId, setRoomId] = useState("");
-  const [batchId, setBatchId] = useState("");
-  const [containerGallons, setContainerGallons] = useState("");
-  const [wetWeight, setWetWeight] = useState("");
-  const [dryTarget, setDryTarget] = useState("");
-  const [currentWeight, setCurrentWeight] = useState("");
-
-  const isEditing = Boolean(plant?.id);
+  // Fetch all plants for mirror selection
+  useEffect(() => {
+    if (open) {
+      fetch('/api/plants')
+        .then(res => res.json())
+        .then(data => setAllPlants(data))
+        .catch(err => console.error('Failed to fetch plants:', err));
+    }
+  }, [open]);
 
   useEffect(() => {
-    if (!open) return;
-
-    setName(plant?.name ?? "");
-    setStrain(plant?.strain ?? "");
-    setRoomId(
-      plant?.roomId ??
-      (defaultRoomId && rooms.some((r) => r.id === defaultRoomId)
-        ? defaultRoomId
-        : "")
-    );
-    setBatchId(plant?.batchId ?? defaultBatchId ?? "");
-    setContainerGallons(
-      plant?.containerGallons != null ? String(plant.containerGallons) : ""
-    );
-    setWetWeight(
-      plant?.wetWeight != null ? String(plant.wetWeight) : ""
-    );
-    setDryTarget(
-      plant?.dryTarget != null ? String(plant.dryTarget) : ""
-    );
-    setCurrentWeight(
-      plant?.currentWeight != null ? String(plant.currentWeight) : ""
-    );
-  }, [open, plant, defaultRoomId, defaultBatchId, rooms]);
+    if (open) {
+      setMode(hideSelectExisting ? 'create' : 'select');
+      setSearchTerm('');
+      setFormData({
+        name: "",
+        strain: "",
+        roomId: defaultRoomId || "",
+        batchId: defaultBatchId || "",
+        containerGallons: "",
+        wetWeight: "",
+        dryTarget: "",
+        mirrorPlantId: "",
+      });
+      setError(null);
+    }
+  }, [open, defaultRoomId, defaultBatchId, hideSelectExisting]);
 
   if (!open) return null;
 
-  function handleSubmit() {
-    if (!name.trim()) return;
+  const filteredPlants = existingPlants.filter(plant =>
+    plant.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (plant.strain && plant.strain.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
-    startTransition(async () => {
-      const payload = {
-        name: name.trim(),
-        strain: strain.trim() || null,
-        roomId: roomId || null,
-        batchId: batchId || null,
-        containerGallons: containerGallons
-          ? Number(containerGallons)
-          : null,
-        wetWeight: wetWeight ? Number(wetWeight) : null,
-        dryTarget: dryTarget ? Number(dryTarget) : null,
-        currentWeight: currentWeight ? Number(currentWeight) : null,
-      };
-
-      const result = isEditing
-        ? await updatePlant({
-            id: plant!.id,
-            ...payload,
-          })
-        : await createPlant(payload);
-
-      if (!result.success) {
-        alert(result.error);
-        return;
-      }
-
-      if (isEditing) {
-        onPlantUpdated?.(result.plant);
-      } else {
-        onPlantCreated?.(result.plant);
-      }
-
-      onClose();
+  const handleSelectPlant = (plant: Plant) => {
+    onPlantCreated({
+      ...plant,
+      roomId: defaultRoomId || plant.roomId,
     });
-  }
+    onClose();
+  };
+
+  const handleCreatePlant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.name.trim()) {
+      setError("Plant name is required");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await createPlant({
+        name: formData.name.trim(),
+        strain: formData.strain.trim() || null,
+        roomId: formData.roomId || null,
+        batchId: formData.batchId || null,
+        containerGallons: parseFloat(formData.containerGallons) || null,
+        wetWeight: parseFloat(formData.wetWeight) || null,
+        dryTarget: parseFloat(formData.dryTarget) || null,
+        mirrorPlantId: formData.mirrorPlantId || null,
+      });
+
+      if (result.success && result.plant) {
+        onPlantCreated(result.plant);
+        onClose();
+      } else {
+        if ('error' in result && result.error) {
+          setError(result.error);
+        } else {
+          setError("Failed to create plant");
+        }
+      }
+    } catch (err) {
+      setError("An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fix: Use the current plant's id if editing, otherwise use a dummy value
+  const mirrorOptions = allPlants.filter(p => p.id !== formData.mirrorPlantId);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-xl bg-white dark:bg-zinc-900 p-6 shadow-xl space-y-5 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
-            {isEditing
-              ? "Edit Plant"
-              : defaultBatchId
-                ? "Add Plant to Batch"
-                : "Add Plant"}
-          </h2>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-          >
-            <X size={20} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-white">
+            {hideSelectExisting ? 'Create New Plant' : 'Add Plant to Room'}
+          </h3>
+          <button onClick={onClose} className="text-zinc-400 hover:text-white">
+            <X className="size-5" />
           </button>
         </div>
 
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs font-bold uppercase text-zinc-500">
-              Plant Name
-            </label>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Example: Blue Dream #1"
-              className="mt-1 w-full rounded-lg border border-zinc-300 dark:border-zinc-700 p-2 dark:bg-zinc-800"
-            />
+        {error && (
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-xs text-red-400">
+            {error}
           </div>
+        )}
 
-          <div>
-            <label className="text-xs font-bold uppercase text-zinc-500">
-              Strain
-            </label>
-            <input
-              value={strain}
-              onChange={(e) => setStrain(e.target.value)}
-              placeholder="Optional"
-              className="mt-1 w-full rounded-lg border border-zinc-300 dark:border-zinc-700 p-2 dark:bg-zinc-800"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold uppercase text-zinc-500">
-              Room
-            </label>
-            <select
-              value={roomId}
-              onChange={(e) => setRoomId(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-zinc-300 dark:border-zinc-700 p-2 dark:bg-zinc-800"
+        {/* Mode Selection - only show if not hidden */}
+        {!hideSelectExisting && (
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => setMode('select')}
+              className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                mode === 'select'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-zinc-800 text-zinc-400 hover:text-white'
+              }`}
             >
-              <option value="">No Room</option>
-              {rooms.map((room) => (
-                <option key={room.id} value={room.id}>
-                  {room.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="text-xs font-bold uppercase text-zinc-500">
-              Batch
-            </label>
-            <select
-              value={batchId}
-              onChange={(e) => setBatchId(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-zinc-300 dark:border-zinc-700 p-2 dark:bg-zinc-800"
+              Select Existing
+            </button>
+            <button
+              onClick={() => setMode('create')}
+              className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                mode === 'create'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-zinc-800 text-zinc-400 hover:text-white'
+              }`}
             >
-              <option value="">No Batch</option>
-              {batches.map((batch) => (
-                <option key={batch.id} value={batch.id}>
-                  {batch.name}
-                </option>
-              ))}
-            </select>
+              Create New
+            </button>
           </div>
+        )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-bold uppercase text-zinc-500">
-                Container (gal)
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="0.1"
-                value={containerGallons}
-                onChange={(e) => setContainerGallons(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-zinc-300 dark:border-zinc-700 p-2 dark:bg-zinc-800"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-bold uppercase text-zinc-500">
-                Wet Weight
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="0.1"
-                value={wetWeight}
-                onChange={(e) => setWetWeight(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-zinc-300 dark:border-zinc-700 p-2 dark:bg-zinc-800"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-bold uppercase text-zinc-500">
-                Dry Target
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="0.1"
-                value={dryTarget}
-                onChange={(e) => setDryTarget(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-zinc-300 dark:border-zinc-700 p-2 dark:bg-zinc-800"
-              />
-            </div>
-
-            {isEditing && (
-              <div>
-                <label className="text-xs font-bold uppercase text-zinc-500">
-                  Current Weight
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  value={currentWeight}
-                  onChange={(e) => setCurrentWeight(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-zinc-300 dark:border-zinc-700 p-2 dark:bg-zinc-800"
-                />
+        {/* Select Existing Plants */}
+        {mode === 'select' && (
+          <div className="space-y-3">
+            {loadingPlants ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="size-6 animate-spin text-emerald-400" />
+                <span className="ml-2 text-sm text-zinc-400">Loading plants...</span>
               </div>
+            ) : (
+              <>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-500" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search existing plants..."
+                    className="w-full pl-9 pr-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div className="max-h-60 overflow-y-auto space-y-1">
+                  {filteredPlants.length === 0 ? (
+                    <div className="text-sm text-zinc-500 py-4 text-center">
+                      {searchTerm ? 'No plants match your search' : 'No existing plants available to add'}
+                      {!searchTerm && (
+                        <div className="text-xs text-zinc-600 mt-2">
+                          All plants are either already in this room or none exist yet.
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    filteredPlants.map((plant) => (
+                      <button
+                        key={plant.id}
+                        onClick={() => handleSelectPlant(plant)}
+                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-zinc-800 transition-colors flex items-center justify-between"
+                      >
+                        <div>
+                          <div className="text-sm font-medium text-white">{plant.name}</div>
+                          {plant.strain && (
+                            <div className="text-xs text-zinc-400">{plant.strain}</div>
+                          )}
+                        </div>
+                        <span className="text-xs text-emerald-400">Add →</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+
+                <div className="pt-3 border-t border-zinc-800">
+                  <button
+                    onClick={() => setMode('create')}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-dashed border-zinc-700 hover:border-emerald-500 text-zinc-400 hover:text-emerald-400 transition-colors text-sm"
+                  >
+                    <Plus className="size-4" />
+                    Create new plant instead
+                  </button>
+                </div>
+              </>
             )}
           </div>
-        </div>
+        )}
 
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={isPending || !name.trim()}
-          className="w-full flex items-center justify-center gap-2 rounded-lg bg-canopy text-white py-2.5 font-bold disabled:opacity-50"
-        >
-          {isPending ? (
-            <>
-              <Loader2 className="animate-spin" size={18} />
-              Saving...
-            </>
-          ) : isEditing ? (
-            <>
-              <Save size={18} />
-              Save Changes
-            </>
-          ) : (
-            <>
-              <Plus size={18} />
-              Add Plant
-            </>
-          )}
-        </button>
+        {/* Create New Plant */}
+        {mode === 'create' && (
+          <form onSubmit={handleCreatePlant} className="space-y-4">
+            <div>
+              <label className="text-xs text-zinc-400">Plant Name *</label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="e.g. Early Frost"
+                className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="text-xs text-zinc-400">Strain</label>
+              <input
+                type="text"
+                value={formData.strain}
+                onChange={(e) => setFormData({ ...formData, strain: e.target.value })}
+                placeholder="e.g. Twenty20 Mendocino"
+                className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-zinc-400">Room</label>
+                <select
+                  value={formData.roomId}
+                  onChange={(e) => setFormData({ ...formData, roomId: e.target.value })}
+                  className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+                >
+                  <option value="">None</option>
+                  {rooms.map((room) => (
+                    <option key={room.id} value={room.id}>{room.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-zinc-400">Batch</label>
+                <select
+                  value={formData.batchId}
+                  onChange={(e) => setFormData({ ...formData, batchId: e.target.value })}
+                  className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+                >
+                  <option value="">None</option>
+                  {batches.map((batch) => (
+                    <option key={batch.id} value={batch.id}>{batch.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs text-zinc-400">Container (gal)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={formData.containerGallons}
+                  onChange={(e) => setFormData({ ...formData, containerGallons: e.target.value })}
+                  placeholder="5"
+                  className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-zinc-400">Wet Weight</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={formData.wetWeight}
+                  onChange={(e) => setFormData({ ...formData, wetWeight: e.target.value })}
+                  placeholder="lbs"
+                  className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-zinc-400">Dry Target</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={formData.dryTarget}
+                  onChange={(e) => setFormData({ ...formData, dryTarget: e.target.value })}
+                  placeholder="lbs"
+                  className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+            </div>
+
+            {/* Mirror Plant Selection */}
+            <div className="border-t border-zinc-800 pt-3">
+              <label className="text-xs text-zinc-400 flex items-center gap-2">
+                <span>🔄 Mirror Weight From</span>
+                <span className="text-[10px] text-zinc-500">(optional)</span>
+              </label>
+              <select
+                value={formData.mirrorPlantId}
+                onChange={(e) => setFormData({ ...formData, mirrorPlantId: e.target.value })}
+                className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+              >
+                <option value="">None (use own weight)</option>
+                {mirrorOptions.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} {p.currentWeight ? `(${Number(p.currentWeight).toFixed(1)} lbs)` : ''}
+                  </option>
+                ))}
+              </select>
+              {formData.mirrorPlantId && (
+                <p className="text-[10px] text-emerald-400 mt-1">
+                  ✅ This plant will mirror the weight of the selected plant
+                </p>
+              )}
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+              >
+                {loading ? "Creating..." : "Create Plant"}
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );
