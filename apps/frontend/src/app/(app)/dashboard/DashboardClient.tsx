@@ -36,6 +36,7 @@ import { fetchPlants } from '@/server/actions/plant-mgmt';
 import { ActivityItem, RecentActivity } from "@/components/dashboard/RecentActivity";
 import { OnboardingChecklist } from "@/components/onboarding/OnBoardingChecklist";
 import { OnboardingReturnButton } from "@/components/onboarding/OnboardingReturnButton";
+import { WeightDrybackCard } from "@/components/dashboard/WeightDrybackCard";
 
 type Plant = {
   id: string;
@@ -338,6 +339,17 @@ export default function DashboardClient({
             // Refresh to persist the dismiss
             window.location.reload();
           }}
+        />
+      )}
+
+            {/* Weight & Dryback Card */}
+      {plants.length > 0 && (
+        <WeightDrybackCard
+          plants={plants}
+          dryBackLogs={dbDryBackLogs}
+          isLoading={loading}
+          onRefresh={() => loadData(true)}
+          lastRefreshTime={new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         />
       )}
 

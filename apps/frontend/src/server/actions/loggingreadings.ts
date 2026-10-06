@@ -302,7 +302,7 @@ export async function getDashboardData(batchId?: string, plantId?: string) {
       ...(batchId ? { batchId } : {}),
       ...(plantId ? { plantId } : {}),
     },
-    orderBy: { timestamp: "asc" },
+    orderBy: { timestamp: "desc" },
     take: 30,
   });
   const dryBackLogs = dryBackLogsFromDb.map((log: PrismaDryBackLog) => ({
