@@ -165,9 +165,6 @@ export function WeightDrybackCard({
           <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
             Weight & Dryback
           </h2>
-          <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
-            live from load cell
-          </span>
         </div>
         <div className="flex items-center gap-3">
           {lastRefreshTime && (
