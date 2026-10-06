@@ -1,4 +1,3 @@
-src/components/dashboard/WeightDrybackCard.tsx << 'EOF'
 "use client";
 
 import { useMemo } from "react";
