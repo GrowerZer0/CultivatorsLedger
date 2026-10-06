@@ -241,7 +241,7 @@ export async function POST(request: NextRequest) {
             row: i, 
             plantColumn: weightCol.name 
           },
-          containerGallons: 5,
+          containerGallons: 3,
           wetWeightLbs: wetWeight || 18.4,
           dryTargetWeightLbs: dryTarget || 13.2,
           dryBackPercent: dryBackPercent,

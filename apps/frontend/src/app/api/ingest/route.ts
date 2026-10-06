@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
         });
       }
       body = JSON.parse(text);
+      console.log('📥 INGEST PAYLOAD:', JSON.stringify(body));
     } catch (parseError) {
       console.error('JSON parse error:', parseError);
       return NextResponse.json({ 
@@ -106,31 +107,34 @@ export async function POST(request: NextRequest) {
         orderBy: { timestamp: "desc" },
       });
 
-      let wetWeight = 0;
+      // Read field capacity from the ESP32 payload (in grams)
+      // Convert to lbs: 1 lb = 453.592 g
+      const payloadFieldCapacityG = body.fieldCapacity_g;
+      const payloadFieldCapacityLbs = payloadFieldCapacityG && payloadFieldCapacityG > 50
+        ? payloadFieldCapacityG / 453.592
+        : 0;
+
+      // Also read the dryback percent the ESP32 already computed (from wet weight)
+      const payloadDrybackPercent = body.drybackPercent;
+
+      // Get wet weight from the payload first, fall back to last log
+      let wetWeight = payloadFieldCapacityLbs;
       let dryTarget = 0;
       
-      if (latestLog) {
+      if (wetWeight === 0 && latestLog) {
         wetWeight = Number(latestLog.wetWeightLbs) || 0;
         dryTarget = Number(latestLog.dryTargetWeightLbs) || 0;
       }
 
-      // If this is a high weight (post-irrigation), update wet weight
-      if (weight > 18 && wetWeight === 0) {
-        wetWeight = weight;
-        dryTarget = Math.round(wetWeight * 0.72 * 10) / 10;
-      }
-
-      // Calculate dryback percent
+      // Calculate dryback percent FROM WET WEIGHT (the correct model for this setup)
       let dryBackPercent = 0;
-      if (wetWeight > 0 && dryTarget > 0) {
-        const range = wetWeight - dryTarget;
-        if (range > 0) {
-          const lost = wetWeight - weight;
-          dryBackPercent = Math.max(0, Math.min(100, (lost / range) * 100));
-        }
+      if (wetWeight > 0) {
+        const lost = wetWeight - weight;
+        dryBackPercent = Math.max(0, Math.min(100, (lost / wetWeight) * 100));
       }
 
       // Save the weight reading
+      const dryTargetForLog = dryTarget || 0;
       const log = await db.dryBackLog.create({
         data: {
           timestamp: new Date(),
@@ -139,9 +143,9 @@ export async function POST(request: NextRequest) {
           userId: sensor.userId,
           source: 'esp32',
           sourceDevice: sensor.name,
-          containerGallons: Number(plant.containerGallons) || 5,
-          wetWeightLbs: wetWeight || 18.4,
-          dryTargetWeightLbs: dryTarget || 13.2,
+          containerGallons: Number(plant.containerGallons) || 3,
+          wetWeightLbs: wetWeight,
+          dryTargetWeightLbs: dryTargetForLog,
           dryBackPercent: dryBackPercent,
           unit: 'lbs',
           notes: `Auto-logged from ${sensor.name}`,
