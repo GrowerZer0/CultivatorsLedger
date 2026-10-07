@@ -81,13 +81,11 @@ export function WeightDrybackCard({
   onRefresh,
   lastRefreshTime,
 }: WeightDrybackCardProps) {
-  // Build a map of the latest ESP32 log per plant
   const plantStates = useMemo<PlantState[]>(() => {
     // Group logs by plantId, keep only the latest
     const latestByPlant = new Map<string, DryBackLog>();
     for (const log of dryBackLogs) {
       if (!log.plantId) continue;
-      // Only consider ESP32-sourced logs for "live" reading
       if (log.source !== "esp32" && log.source !== "loadcell") continue;
       const existing = latestByPlant.get(log.plantId);
       if (!existing || new Date(log.loggedAt) > new Date(existing.loggedAt)) {
@@ -152,6 +150,24 @@ export function WeightDrybackCard({
     });
   }, [plants, dryBackLogs]);
 
+  const handleSetFc = async (plantId: string, weight: number) => {
+    try {
+      const res = await fetch(`/api/plants/${plantId}/set-fc`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ weight }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.error || "Failed to set FC");
+        return;
+      }
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      alert("Failed to set FC");
+    }
+  };
+
   if (plants.length === 0) {
     return null;
   }
@@ -163,7 +179,7 @@ export function WeightDrybackCard({
         <div className="flex items-center gap-2">
           <Scale className="size-4 text-emerald-500" />
           <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-            Weight & Dryback
+            Weight &amp; Dryback
           </h2>
         </div>
         <div className="flex items-center gap-3">
@@ -188,14 +204,14 @@ export function WeightDrybackCard({
       {/* Plant rows */}
       <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
         {plantStates.map((state) => (
-          <PlantRow key={state.plant.id} state={state} />
+          <PlantRow key={state.plant.id} state={state} onSetFc={handleSetFc} />
         ))}
       </div>
     </div>
   );
 }
 
-function PlantRow({ state }: { state: PlantState }) {
+function PlantRow({ state, onSetFc }: { state: PlantState; onSetFc: (plantId: string, weight: number) => void }) {
   const {
     plant,
     currentWeight,
@@ -247,93 +263,116 @@ function PlantRow({ state }: { state: PlantState }) {
   const StatusIcon = statusConfig.icon;
 
   return (
-    <Link
-      href={`/plants/${plant.id}`}
-      className="block px-5 py-4 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors"
-    >
-      <div className="flex items-center justify-between gap-4">
-        {/* Left: plant info + weight */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-              {plant.name}
-            </h3>
-            {isMirrored && mirroredSourceName && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 font-medium">
-                🔄 mirroring {mirroredSourceName}
-              </span>
-            )}
-            {isStale && currentWeight !== null && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 font-medium flex items-center gap-1">
-                <Clock className="size-2.5" />
-                {formatTimeAgo(minutesSinceReading)}
-              </span>
-            )}
-          </div>
-
-          {currentWeight !== null ? (
-            <div className="flex items-baseline gap-4 mt-1">
-              <div className="flex items-baseline gap-1">
-                <span className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
-                  {currentWeight.toFixed(2)}
+    <div className="block px-5 py-4 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition-colors">
+      <Link href={`/plants/${plant.id}`} className="block">
+        <div className="flex items-center justify-between gap-4">
+          {/* Left: plant info + weight */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                {plant.name}
+              </h3>
+              {isMirrored && mirroredSourceName && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 font-medium">
+                  🔄 mirroring {mirroredSourceName}
                 </span>
-                <span className="text-xs text-zinc-500 dark:text-zinc-400">lbs</span>
-              </div>
-              {wetWeight !== null && (
-                <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
-                  FC: {wetWeight.toFixed(2)} lbs
+              )}
+              {isStale && currentWeight !== null && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 font-medium flex items-center gap-1">
+                  <Clock className="size-2.5" />
+                  {formatTimeAgo(minutesSinceReading)}
                 </span>
               )}
             </div>
-          ) : (
-            <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
-              {isMirrored
-                ? "Waiting for source plant data"
-                : "No readings yet"}
-            </p>
+
+            {currentWeight !== null ? (
+              <div className="flex items-baseline gap-4 mt-1">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+                    {currentWeight.toFixed(2)}
+                  </span>
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400">lbs</span>
+                </div>
+                {wetWeight !== null && (
+                  <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
+                    FC: {wetWeight.toFixed(2)} lbs
+                  </span>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
+                {isMirrored
+                  ? "Waiting for source plant data"
+                  : "No readings yet"}
+              </p>
+            )}
+          </div>
+
+          {/* Right: dryback + status */}
+          {drybackPercent !== null && (
+            <div className="flex items-center gap-4 shrink-0">
+              <div className="text-right">
+                <div className={`text-2xl font-bold ${
+                  status === "water-now" ? "text-red-500" :
+                  status === "heads-up" ? "text-amber-500" :
+                  "text-emerald-500"
+                }`}>
+                  {drybackPercent.toFixed(1)}%
+                </div>
+                <div className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+                  dryback
+                </div>
+              </div>
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border ${statusConfig.bg} ${statusConfig.border}`}>
+                <StatusIcon className={`size-3.5 ${statusConfig.text}`} />
+                <span className={`text-xs font-semibold ${statusConfig.text}`}>
+                  {statusConfig.label}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {drybackPercent === null && currentWeight === null && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border bg-zinc-50 dark:bg-zinc-900/40 border-zinc-200 dark:border-zinc-800 shrink-0">
+              <AlertTriangle className="size-3.5 text-zinc-400" />
+              <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+                No data
+              </span>
+            </div>
           )}
         </div>
 
-        {/* Right: dryback + status */}
+        {/* Status message */}
         {drybackPercent !== null && (
-          <div className="flex items-center gap-4 shrink-0">
-            <div className="text-right">
-              <div className={`text-2xl font-bold ${
-                status === "water-now" ? "text-red-500" :
-                status === "heads-up" ? "text-amber-500" :
-                "text-emerald-500"
-              }`}>
-                {drybackPercent.toFixed(1)}%
-              </div>
-              <div className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
-                dryback
-              </div>
-            </div>
-            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border ${statusConfig.bg} ${statusConfig.border}`}>
-              <StatusIcon className={`size-3.5 ${statusConfig.text}`} />
-              <span className={`text-xs font-semibold ${statusConfig.text}`}>
-                {statusConfig.label}
-              </span>
-            </div>
-          </div>
+          <p className={`text-xs mt-2 ${statusConfig.text}`}>
+            {statusConfig.message}
+          </p>
         )}
+      </Link>
 
-        {drybackPercent === null && currentWeight === null && (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border bg-zinc-50 dark:bg-zinc-900/40 border-zinc-200 dark:border-zinc-800 shrink-0">
-            <AlertTriangle className="size-3.5 text-zinc-400" />
-            <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-              No data
-            </span>
-          </div>
-        )}
+      {/* Set FC button — outside the Link so it doesn't navigate */}
+      <div className="flex justify-end mt-2">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const defaultWeight = currentWeight !== null ? currentWeight.toFixed(2) : "";
+            const input = window.prompt(
+              `Set field capacity for ${plant.name}.\n\nEnter the new wet weight (lbs):`,
+              defaultWeight
+            );
+            if (input === null) return;
+            const val = parseFloat(input);
+            if (isNaN(val) || val <= 0) return;
+            onSetFc(plant.id, val);
+          }}
+          className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
+          title="Set field capacity (wet weight)"
+        >
+          Set FC
+        </button>
       </div>
-
-      {/* Status message */}
-      {drybackPercent !== null && (
-        <p className={`text-xs mt-2 ${statusConfig.text}`}>
-          {statusConfig.message}
-        </p>
-      )}
-    </Link>
+    </div>
   );
 }

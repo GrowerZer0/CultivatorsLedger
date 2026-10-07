@@ -39,6 +39,11 @@ model User {
   firstLoginAt         DateTime? @map("first_login_at")
   // =============================
 
+  drybackStageSeedling   Decimal  @default(5.0)  @map("dryback_stage_seedling")  @db.Decimal(4, 1)
+  drybackStageVeg        Decimal  @default(6.0)  @map("dryback_stage_veg")       @db.Decimal(4, 1)
+  drybackStageFlowering  Decimal  @default(20.0) @map("dryback_stage_flowering") @db.Decimal(4, 1)
+  drybackStageHarvest    Decimal  @default(25.0) @map("dryback_stage_harvest")   @db.Decimal(4, 1)
+
   // Relations
   rooms            Room[]
   climateLogs      ClimateLog[]
@@ -233,7 +238,8 @@ model Plant {
   mirrorPlantId    String?           @map("mirror_plant_id")
   mirrorPlant      Plant?            @relation("PlantMirror", fields: [mirrorPlantId], references: [id], onDelete: SetNull)
   mirroredBy       Plant[]           @relation("PlantMirror")
-  stage           String?   @default("seedling") // seedling, vegetative, flowering, harvest
+  stage            String?           @default("seedling") // seedling, vegetative, flowering, harvest
+  drybackOverride  Decimal?          @map("dryback_override") @db.Decimal(4, 1)
   @@map("plants")
 }
 model PlantInsight {

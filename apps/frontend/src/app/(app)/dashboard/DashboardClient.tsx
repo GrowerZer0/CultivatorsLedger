@@ -208,25 +208,30 @@ export default function DashboardClient({
         let activeDryBack = undefined;
         if (dashboardData.dryBackLogs && dashboardData.dryBackLogs.length > 0) {
           const latest = dashboardData.dryBackLogs[dashboardData.dryBackLogs.length - 1];
-          const wet = 18.4;
-          const dry = 13.2;
-          const calc = calculateDryBack({
-            id: 'active',
-            cultivar: 'Environment',
-            containerGallons: 5,
-            wetWeight: wet,
-            dryTarget: dry,
-            weight: Number(latest.weight),
-            loggedAt: new Date().toISOString(),
-            watered: false,
-            fed: false,
-            trainingEvent: null,
-          });
-          activeDryBack = {
-            dryBackPercent: calc.dryBackPercent,
-            estimatedHoursUntilWater: calc.estimatedHoursUntilWater,
-            poundsUntilIrrigation: calc.poundsUntilIrrigation,
-          };
+
+          // Only compute if we have a usable wet weight from the log
+          const wet = Number(latest.wetWeight);
+          const dry = Number(latest.dryTarget);
+
+          if (wet > 0) {
+            const calc = calculateDryBack({
+              id: 'active',
+              cultivar: 'Environment',
+              containerGallons: 5,
+              wetWeight: wet,
+              dryTarget: dry,
+              weight: Number(latest.weight),
+              loggedAt: latest.loggedAt || new Date().toISOString(),
+              watered: false,
+              fed: false,
+              trainingEvent: null,
+            });
+            activeDryBack = {
+              dryBackPercent: calc.dryBackPercent,
+              estimatedHoursUntilWater: calc.estimatedHoursUntilWater,
+              poundsUntilIrrigation: calc.poundsUntilIrrigation,
+            };
+          }
         }
 
         setData({

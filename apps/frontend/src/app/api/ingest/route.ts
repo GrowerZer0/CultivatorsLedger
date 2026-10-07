@@ -107,19 +107,31 @@ export async function POST(request: NextRequest) {
         orderBy: { timestamp: "desc" },
       });
 
-      // Read field capacity from the ESP32 payload (in grams)
-      // Convert to lbs: 1 lb = 453.592 g
-      const payloadFieldCapacityG = body.fieldCapacity_g;
-      const payloadFieldCapacityLbs = payloadFieldCapacityG && payloadFieldCapacityG > 50
-        ? payloadFieldCapacityG / 453.592
-        : 0;
+      // === WET WEIGHT SOURCE PRIORITY ===
+      // 1. plant.wetWeight (source of truth — set by user via "Set FC" button)
+      // 2. ESP32 payload fieldCapacity_g (bootstrap only)
+      // 3. Latest log's wetWeightLbs
+      // 4. Fall back to current weight (last resort)
 
-      // Also read the dryback percent the ESP32 already computed (from wet weight)
-      const payloadDrybackPercent = body.drybackPercent;
-
-      // Get wet weight from the payload first, fall back to last log
-      let wetWeight = payloadFieldCapacityLbs;
+      let wetWeight = 0;
       let dryTarget = 0;
+
+      if (plant.wetWeight !== null && plant.wetWeight !== undefined && Number(plant.wetWeight) > 0) {
+        wetWeight = Number(plant.wetWeight);
+        dryTarget = Number(plant.dryTarget) || 0;
+      } else {
+        // Bootstrap: read from ESP32 payload
+        const payloadFieldCapacityG = body.fieldCapacity_g;
+        if (payloadFieldCapacityG && payloadFieldCapacityG > 50) {
+          wetWeight = payloadFieldCapacityG / 453.592;
+        } else if (latestLog) {
+          wetWeight = Number(latestLog.wetWeightLbs) || 0;
+          dryTarget = Number(latestLog.dryTargetWeightLbs) || 0;
+        }
+        if (wetWeight === 0) {
+          wetWeight = weight; // last resort — this reading becomes the WW
+        }
+      }
       
       if (wetWeight === 0 && latestLog) {
         wetWeight = Number(latestLog.wetWeightLbs) || 0;
@@ -145,7 +157,7 @@ export async function POST(request: NextRequest) {
           sourceDevice: sensor.name,
           containerGallons: Number(plant.containerGallons) || 3,
           wetWeightLbs: wetWeight,
-          dryTargetWeightLbs: dryTargetForLog,
+          dryTargetWeightLbs: dryTarget,
           dryBackPercent: dryBackPercent,
           unit: 'lbs',
           notes: `Auto-logged from ${sensor.name}`,

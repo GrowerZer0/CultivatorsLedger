@@ -164,6 +164,25 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
             Log Check-in
           </button>
           <button
+  onClick={async () => {
+    const defaultWeight = currentPlant.currentWeight ? Number(currentPlant.currentWeight).toFixed(2) : '';
+    const input = window.prompt(`Set field capacity for ${currentPlant.name}.\n\nEnter the new wet weight (lbs):`, defaultWeight);
+    if (input === null) return;
+    const val = parseFloat(input);
+    if (isNaN(val) || val <= 0) return;
+    const res = await fetch(`/api/plants/${currentPlant.id}/set-fc`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ weight: val }),
+    });
+    if (res.ok) router.refresh();
+    else alert('Failed to set FC');
+  }}
+  className="px-3 py-1.5 text-xs font-bold bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg transition-colors"
+>
+  Set FC
+</button>
+          <button
             onClick={handleDelete}
             disabled={isDeleting}
             className="p-2 rounded-lg hover:bg-red-500/10 text-zinc-400 hover:text-red-500 transition-colors"

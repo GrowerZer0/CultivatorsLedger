@@ -242,8 +242,8 @@ export async function POST(request: NextRequest) {
             plantColumn: weightCol.name 
           },
           containerGallons: 3,
-          wetWeightLbs: wetWeight || 18.4,
-          dryTargetWeightLbs: dryTarget || 13.2,
+          wetWeightLbs: wetWeight,
+          dryTargetWeightLbs: dryTarget,
           dryBackPercent: dryBackPercent,
           unit: 'lbs',
           notes: `Imported from ${file.name}`
