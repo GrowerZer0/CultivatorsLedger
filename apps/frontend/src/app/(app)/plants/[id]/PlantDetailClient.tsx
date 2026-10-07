@@ -16,6 +16,15 @@ import {
   Minus,
   Pencil,
 } from "lucide-react";
+import {
+  Line,
+  LineChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { deletePlant } from "@/server/actions/plant-mgmt";
 import { EditPlantModal } from "@/components/facility/EditPlantModal";
 import { GROWTH_STAGES, getStageFromDays, getStageProgress } from "@/lib/growth-stages";
@@ -99,6 +108,21 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
   const allEvents = [...dryBackLogs, ...irrigationEvents].sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );
+
+    // Chart data: dryback % over the last 7 days
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const dryBackChartData = dryBackLogs
+    .filter((log) => new Date(log.timestamp).getTime() >= sevenDaysAgo)
+    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+    .map((log) => ({
+      time: new Date(log.timestamp).toLocaleString([], {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      }),
+      dryback: Number(log.dryBackPercent),
+    }));
 
   // Fetch all plants and batches for the edit modal
   const [allPlants, setAllPlants] = useState<any[]>([]);
@@ -316,6 +340,76 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
               </Link>
             </div>
           )}
+        </div>
+      )}
+
+            {/* Dry-Back Trend Chart (last 7 days) */}
+      {dryBackChartData.length > 1 && (
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+          <div className="flex justify-between items-center mb-3">
+            <div>
+              <h2 className="text-sm font-bold text-zinc-300">Dry-Back Trend</h2>
+              <p className="text-[10px] text-zinc-500">Last 7 days</p>
+            </div>
+            <span className="text-[10px] font-mono text-zinc-500">
+              {dryBackChartData.length} points
+            </span>
+          </div>
+          <div className="h-56 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={dryBackChartData}
+                margin={{ top: 5, right: 5, bottom: 5, left: -25 }}
+              >
+                <CartesianGrid stroke="#1F2937" className="opacity-40" strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="time"
+                  stroke="#4B5563"
+                  fontSize={10}
+                  tickLine={false}
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  stroke="#4B5563"
+                  fontSize={10}
+                  tickLine={false}
+                  domain={[0, 'auto']}
+                  label={{
+                    value: 'Dryback %',
+                    angle: -90,
+                    position: 'insideLeft',
+                    fill: '#9CA3AF',
+                    fontSize: 10,
+                  }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#111827',
+                    borderColor: '#374151',
+                    color: '#fff',
+                    fontSize: '12px',
+                  }}
+formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Dryback']}                />
+                <Line
+                  type="monotone"
+                  dataKey="dryback"
+                  stroke="#10B981"
+                  strokeWidth={2}
+                  dot={false}
+                  connectNulls
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* Show message if no data in the last 7 days */}
+      {dryBackChartData.length === 0 && dryBackLogs.length > 0 && (
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 text-center">
+          <p className="text-xs text-zinc-500">
+            No dryback readings in the last 7 days.
+          </p>
         </div>
       )}
 
