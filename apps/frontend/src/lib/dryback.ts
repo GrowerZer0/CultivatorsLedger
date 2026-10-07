@@ -22,8 +22,8 @@ const DEFAULT_TARGETS: Record<string, number> = {
   seedling: 5.0,
   vegetative: 6.0,
   flowering: 20.0,
-  harvest: 25.0,
-};
+  harvest: 20.0,  // same as flowering
+  };
 
 export function getDrybackTargetForPlant(
   plant: DrybackPlantSettings,
@@ -52,7 +52,8 @@ export function getDrybackTargetForPlant(
         userSetting = user.drybackStageFlowering !== null ? Number(user.drybackStageFlowering) : null;
         break;
       case 'harvest':
-        userSetting = user.drybackStageHarvest !== null ? Number(user.drybackStageHarvest) : null;
+        // Harvest stage uses the flowering target — we're still watering until chop
+        userSetting = user.drybackStageFlowering !== null ? Number(user.drybackStageFlowering) : null;
         break;
     }
     if (userSetting !== null && !isNaN(userSetting) && userSetting > 0) {

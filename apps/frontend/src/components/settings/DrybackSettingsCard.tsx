@@ -68,7 +68,6 @@ export function DrybackSettingsCard() {
     { key: "seedling", label: "Seedling" },
     { key: "veg", label: "Vegetative" },
     { key: "flowering", label: "Flowering" },
-    { key: "harvest", label: "Harvest" },
   ];
 
   const previewDryTarget = EXAMPLE_WET_WEIGHT * (1 - settings.flowering / 100);
@@ -91,9 +90,11 @@ export function DrybackSettingsCard() {
         <div>
           <h4 className="text-sm font-semibold text-white">Stage Dryback Targets</h4>
           <p className="text-xs text-zinc-400 mt-1">
-            These percentages are used to compute a plant&apos;s dry target when you press
-            &quot;Set FC&quot;. Each plant uses the value for its current growth stage
-            unless it has a manual override.
+            These values tell the app when to alert you to water. Each plant uses the value
+            for its current growth stage unless it has a manual override.
+            <span className="block mt-1 text-zinc-500">
+              Not the same as harvest timing — that&apos;s your call based on the plant itself.
+            </span>
           </p>
         </div>
 
