@@ -56,7 +56,7 @@ export function BatchesClient({ initialBatches, rooms }: BatchesClientProps) {
             Batches
           </h1>
           <p className="text-zinc-500 dark:text-zinc-400">
-            Manage cultivation batches and compare harvest data.
+            Manage cultivation batches.
           </p>
         </div>
         <div className="flex gap-3">

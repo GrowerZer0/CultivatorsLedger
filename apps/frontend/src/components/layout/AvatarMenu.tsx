@@ -77,14 +77,12 @@ export function AvatarMenu({
     { name: "Dashboard", href: "/dashboard", icon: Gauge },
     { name: "Plants", href: "/plants", icon: Sprout },
     { name: "Rooms", href: "/rooms", icon: Home },
-    { name: "Batches", href: "/batches", icon: Layers },
-    { name: "Nutrients", href: "/nutrients", icon: FlaskConical },
   ];
 
   const settingsLinks = [
     { name: "Profile", href: "/settings/profile", icon: User },
-    { name: "Facility", href: "/settings/facility", icon: Leaf },
     { name: "Billing", href: "/settings/billing", icon: CreditCard },
+    { name: "Grow", href: "/settings/grow", icon: Sprout },
     { name: "Hardware", href: "/settings/hardware", icon: Server },
     { name: "System", href: "/settings/system", icon: Shield },
   ];

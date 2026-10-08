@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { SectionPanel } from "@/components/layout/SectionPanel";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { DrybackSettingsCard } from "@/components/settings/DrybackSettingsCard";
 import { getSystemSettings, updateTempUnitPreference } from "@/server/actions/system-settings";
 
 export default function SystemSettingsPage() {
@@ -39,8 +38,6 @@ export default function SystemSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <DrybackSettingsCard />
-
       <SectionPanel title="System Preferences & Displays">
         <div className="space-y-6 max-w-xl">
           <div className="flex items-center justify-between">
@@ -80,21 +77,6 @@ export default function SystemSettingsPage() {
               <p className="text-xs text-zinc-400">Toggle dark and light visual mode.</p>
             </div>
             <ThemeToggle />
-          </div>
-
-          <div className="border-t border-zinc-800 pt-4">
-            <h4 className="text-sm font-semibold text-white">Data & Privacy</h4>
-            <p className="text-xs text-zinc-400 mt-1">
-              Manage your data export, deletion, and privacy settings.
-            </p>
-            <div className="mt-3 flex gap-2">
-              <button className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition">
-                Export All Data
-              </button>
-              <button className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition">
-                Delete Account
-              </button>
-            </div>
           </div>
         </div>
       </SectionPanel>

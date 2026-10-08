@@ -176,20 +176,6 @@ export default function ProfileSettingsPage() {
           </div>
         </div>
         <div className="border-t border-zinc-800 pt-4 space-y-4">
-          <h4 className="text-sm font-semibold text-white">Subscription</h4>
-          <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-xl">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-white">Grower Tier</p>
-                <p className="text-xs text-zinc-400">$12.99/month • Active</p>
-              </div>
-              <span className="px-2 py-1 text-[10px] font-bold bg-emerald-500/10 text-emerald-400 rounded border border-emerald-500/20">Active</span>
-            </div>
-            <p className="text-xs text-zinc-500 mt-2">Manage your subscription in the billing portal.</p>
-            <button className="mt-3 px-3 py-1.5 text-xs font-semibold rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition">Manage Billing</button>
-          </div>
-        </div>
-        <div className="border-t border-zinc-800 pt-4 space-y-4">
           <h4 className="text-sm font-semibold text-white">Change Password</h4>
           {!changePassword ? (
             <button
@@ -267,8 +253,25 @@ export default function ProfileSettingsPage() {
             {saving ? "Saving..." : "Save Changes"}
           </button>
         </div>
+        
         <div className="border-t border-zinc-800 pt-4">
           <button onClick={handleSignOut} className="w-full px-4 py-2 text-sm font-semibold rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition">Sign Out</button>
+        </div>
+                        <div className="border-t border-zinc-800 pt-4">
+          <h3 className="text-sm font-semibold text-white">Danger Zone</h3>
+          <p className="text-xs text-zinc-500 mt-1">
+            Permanently delete your account and all associated data. This cannot be undone.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              if (!confirm("Delete your account? This cannot be undone. All plants, rooms, batches, and history will be permanently removed.")) return;
+              alert("Account deletion is not yet implemented. Contact support.");
+            }}
+            className="mt-3 px-3 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-semibold transition-colors"
+          >
+            Delete Account
+          </button>
         </div>
       </div>
     </SectionPanel>

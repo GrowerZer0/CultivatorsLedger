@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { SectionPanel } from "@/components/layout/SectionPanel";
 import { getDrybackSettings, updateDrybackSettings, type DrybackSettings } from "@/server/actions/dryback-settings";
 
 const EXAMPLE_WET_WEIGHT = 21;
@@ -56,11 +55,9 @@ export function DrybackSettingsCard() {
 
   if (loading) {
     return (
-      <SectionPanel title="Grow Settings">
-        <div className="text-xs text-zinc-500 py-8 text-center animate-pulse">
-          Loading grow settings...
-        </div>
-      </SectionPanel>
+      <div className="text-xs text-zinc-500 py-8 text-center animate-pulse">
+        Loading grow settings...
+      </div>
     );
   }
 
@@ -73,7 +70,6 @@ export function DrybackSettingsCard() {
   const previewDryTarget = EXAMPLE_WET_WEIGHT * (1 - settings.flowering / 100);
 
   return (
-    <SectionPanel title="Grow Settings">
       <div className="space-y-6 max-w-xl">
         {message && (
           <div
@@ -139,6 +135,5 @@ export function DrybackSettingsCard() {
           </button>
         </div>
       </div>
-    </SectionPanel>
   );
 }
