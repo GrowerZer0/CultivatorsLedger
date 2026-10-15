@@ -289,13 +289,13 @@ function PlantRow({ state, onSetFc }: { state: PlantState; onSetFc: (plantId: st
               <div className="flex items-baseline gap-4 mt-1">
                 <div className="flex items-baseline gap-1">
                   <span className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
-                    {currentWeight.toFixed(2)}
+                    {Number(currentWeight).toFixed(2)}
                   </span>
                   <span className="text-xs text-zinc-500 dark:text-zinc-400">lbs</span>
                 </div>
                 {wetWeight !== null && (
                   <span className="text-[11px] text-zinc-400 dark:text-zinc-500">
-                    FC: {wetWeight.toFixed(2)} lbs
+                    FC: {Number(wetWeight).toFixed(2)} lbs
                   </span>
                 )}
               </div>
@@ -317,7 +317,7 @@ function PlantRow({ state, onSetFc }: { state: PlantState; onSetFc: (plantId: st
                   status === "heads-up" ? "text-amber-500" :
                   "text-emerald-500"
                 }`}>
-                  {drybackPercent.toFixed(1)}%
+                  {Number(drybackPercent).toFixed(1)}%
                 </div>
                 <div className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
                   dryback
@@ -357,7 +357,7 @@ function PlantRow({ state, onSetFc }: { state: PlantState; onSetFc: (plantId: st
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            const defaultWeight = currentWeight !== null ? currentWeight.toFixed(2) : "";
+            const defaultWeight = currentWeight !== null ? Number(currentWeight).toFixed(2) : "";
             const input = window.prompt(
               `Set field capacity for ${plant.name}.\n\nEnter the new wet weight (lbs):`,
               defaultWeight
