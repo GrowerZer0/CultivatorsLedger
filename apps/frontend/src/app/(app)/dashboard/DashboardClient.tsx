@@ -35,8 +35,9 @@ import { fetchRooms } from '@/server/actions/facility-mgmt';
 import { fetchPlants } from '@/server/actions/plant-mgmt';
 import { ActivityItem, RecentActivity } from "@/components/dashboard/RecentActivity";
 import { OnboardingChecklist } from "@/components/onboarding/OnBoardingChecklist";
-import { OnboardingReturnButton } from "@/components/onboarding/OnboardingReturnButton";
 import { WeightDrybackCard } from "@/components/dashboard/WeightDrybackCard";
+import { ClimateCard } from "@/components/dashboard/ClimateCard";
+import { getLatestClimateReading, type ClimateReading } from "@/server/actions/climate";
 
 type Plant = {
   id: string;
@@ -78,7 +79,8 @@ export default function DashboardClient({
   const [latestIrrigation, setLatestIrrigation] = useState<any>(null);
   const [plants, setPlants] = useState<Plant[]>([]);
   const [selectedPlantId, setSelectedPlantId] = useState<string | null>(null);
-  
+  const [climateReading, setClimateReading] = useState<ClimateReading | null>(null);
+
   // New states for room cards
   const [rooms, setRooms] = useState<any[]>([]);
   const [latestRoomReadings, setLatestRoomReadings] = useState<Record<string, any>>({});
@@ -183,11 +185,12 @@ export default function DashboardClient({
       try {
         if (!skipLoading) setLoading(true);
         
-        const [dashboardData, roomsData, plantsData, readings] = await Promise.all([
+        const [dashboardData, roomsData, plantsData, readings, climate] = await Promise.all([
           getDashboardData(),
           fetchRooms(),
           fetchPlants(),
           getLatestRoomReadings(),
+          getLatestClimateReading(),
         ]);
 
         setDbEnvironmentReadings(dashboardData.environmentReadings || []);
@@ -195,6 +198,7 @@ export default function DashboardClient({
         setLatestIrrigation(dashboardData.latestIrrigation || null);
         setRooms(roomsData);
         setLatestRoomReadings(readings);
+        setClimateReading(climate);
 
         const counts: Record<string, number> = {};
         plantsData.forEach((plant: any) => {
@@ -340,6 +344,13 @@ export default function DashboardClient({
           }}
         />
       )}
+
+      {/* Climate Card */}
+<ClimateCard
+  reading={climateReading}
+  onRefresh={() => loadData(true)}
+  isLoading={loading}
+/>
 
             {/* Weight & Dryback Card */}
       {plants.length > 0 && (
