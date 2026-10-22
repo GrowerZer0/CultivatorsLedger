@@ -24,6 +24,7 @@ import {
   Tooltip,
   XAxis,
   YAxis,
+  ReferenceLine,
 } from "recharts";
 import { deletePlant } from "@/server/actions/plant-mgmt";
 import { EditPlantModal } from "@/components/facility/EditPlantModal";
@@ -398,6 +399,32 @@ formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Dryback']}              
                   dot={false}
                   connectNulls
                 />
+
+                {/* Irrigation markers */}
+{irrigationEvents
+  .filter((e) => new Date(e.timestamp).getTime() >= sevenDaysAgo)
+  .map((e) => {
+    const isoMatch = dryBackChartData.find(
+      (d) =>
+        Math.abs(
+          new Date(d.time).getTime() - new Date(e.timestamp).getTime()
+        ) < 5 * 60 * 1000
+    );
+    if (!isoMatch) return null;
+    return (
+      <ReferenceLine
+        key={`irrigation-${e.id}`}
+        x={isoMatch.time}
+        stroke="#3b82f6"
+        strokeDasharray="3 3"
+        label={{
+          value: "💧",
+          position: "top",
+          fontSize: 14,
+        }}
+      />
+    );
+  })}
               </LineChart>
             </ResponsiveContainer>
           </div>

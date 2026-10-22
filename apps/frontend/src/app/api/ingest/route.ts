@@ -107,6 +107,50 @@ export async function POST(request: NextRequest) {
         orderBy: { timestamp: "desc" },
       });
 
+            // === IRRIGATION DETECTION ===
+      // Detect weight jumps that indicate the pot was just watered.
+      // Requires the elevated weight to be present (not a bounce), so we
+      // compare against the previous reading and require the current weight
+      // to be significantly higher.
+      const IRRIGATION_THRESHOLD_LBS = 1.5;
+
+      if (latestLog) {
+        const previousWeight = Number(latestLog.currentWeightLbs);
+        const weightJump = weight - previousWeight;
+
+        if (weightJump > IRRIGATION_THRESHOLD_LBS) {
+          // Check if we already logged an irrigation event in the last 5 minutes
+          // (to avoid double-logging if the ESP32 sends multiple readings during watering)
+          const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+          const recentIrrigation = await db.irrigationEvent.findFirst({
+            where: {
+              plantId: plant.id,
+              userId: sensor.userId,
+              timestamp: { gte: fiveMinutesAgo },
+              source: 'auto',
+            },
+          });
+
+          if (!recentIrrigation) {
+            await db.irrigationEvent.create({
+              data: {
+                timestamp: new Date(),
+                roomId: plant.roomId || "Default",
+                zoneId: "Main",
+                plantId: plant.id,
+                isManualEntry: false,
+                userId: sensor.userId,
+                notes: `Auto-detected: weight jumped ${weightJump.toFixed(2)} lbs (${previousWeight.toFixed(2)} → ${weight.toFixed(2)})`,
+                source: 'auto',
+                currentWeightLbs: weight,
+              },
+            });
+
+            console.log(`💧 IRRIGATION DETECTED: ${plant.name} — jump of ${weightJump.toFixed(2)} lbs`);
+          }
+        }
+      }
+
       // === WET WEIGHT SOURCE PRIORITY ===
       // 1. plant.wetWeight (source of truth — set by user via "Set FC" button)
       // 2. ESP32 payload fieldCapacity_g (bootstrap only)
