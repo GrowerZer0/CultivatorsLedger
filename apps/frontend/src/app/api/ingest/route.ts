@@ -189,33 +189,51 @@ export async function POST(request: NextRequest) {
     // HANDLE ENVIRONMENTAL DATA (Temperature/Humidity)
     // ==========================================
     if (isEnvironmentalData) {
-      const { temperature, humidity, roomId, zoneId, sensorMac } = body;
+      const { temperature, humidity } = body;
       
       if (temperature === undefined || humidity === undefined) {
         return NextResponse.json({ error: 'Missing temperature or humidity' }, { status: 400 });
       }
 
-      // Push to PGMQ for async processing
-      const payload = {
-        air_temp_c: temperature,
-        relative_humidity: humidity,
-        room_id: roomId || 'default',
-        zone_id: zoneId || 'Main',
-        sensor_mac: sensorMac || 'unknown',
-        timestamp: new Date().toISOString(),
-        leaf_offset_c: 2.0,
-        sensor_id: sensor.id,
-        user_id: sensor.userId,
-      };
+      const tempC = Number(temperature);
+      const rh = Number(humidity);
 
-      await db.$executeRaw`
-        SELECT pgmq.send('sensor_pings', ${JSON.stringify(payload)}::jsonb)
-      `;
+      // Calculate VPD
+      const es = 0.6108 * Math.exp((17.27 * tempC) / (tempC + 237.3));
+      const ea = (rh / 100) * es;
+      const vpd = Math.round(Math.max(0, es - ea) * 100) / 100;
+
+      // Find a room for this user, or fall back to a default string
+      const room = await db.room.findFirst({
+        where: { userId: sensor.userId },
+      });
+
+      const log = await db.climateLog.create({
+        data: {
+          timestamp: new Date(),
+          roomId: room?.id || "Default",
+          zoneId: "Main",
+          airTempC: tempC,
+          relativeHumidity: rh,
+          calculatedVpdKpa: vpd,
+          isManualEntry: false,
+          userId: sensor.userId,
+          sourceType: 'sht45',
+          sourceDevice: sensor.name,
+        },
+      });
+
+      revalidatePath("/");
+      revalidatePath("/dashboard");
 
       return NextResponse.json({
         success: true,
         type: 'environmental',
-        message: 'Environmental data queued for processing',
+        id: log.id,
+        temperature: tempC,
+        humidity: rh,
+        vpd: vpd,
+        message: 'Environmental data logged successfully',
       });
     }
 
