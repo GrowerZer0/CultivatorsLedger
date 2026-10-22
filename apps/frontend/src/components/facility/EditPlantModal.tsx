@@ -18,6 +18,7 @@ type Plant = {
   mirrorPlantId: string | null;
   startDate: string | Date | null;
   stage: string | null;
+  flipDate: string | Date | null;
 };
 
 type Room = { id: string; name: string };
@@ -67,6 +68,7 @@ export function EditPlantModal({
         mirrorPlantId: plant.mirrorPlantId,
         startDate: plant.startDate ? new Date(plant.startDate).toISOString().split('T')[0] : null,
         stage: plant.stage || null,
+        flipDate: plant.flipDate ? new Date(plant.flipDate).toISOString().split('T')[0] : null,
       });
     }
   }, [plant]);
@@ -89,6 +91,7 @@ export function EditPlantModal({
         mirrorPlantId: formData.mirrorPlantId || null,
         startDate: formData.startDate ? new Date(formData.startDate) : null,
         stage: formData.stage || null,
+        flipDate: formData.flipDate ? new Date(formData.flipDate) : null,
       };
 
       // Handle number fields with helper
@@ -158,7 +161,7 @@ export function EditPlantModal({
           <div className="border-t border-zinc-800 pt-4">
             <h4 className="text-xs font-semibold text-zinc-400 mb-3">📅 Growth Timeline</h4>
             
-            <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-zinc-400">Start Date</label>
                 <input
@@ -169,20 +172,33 @@ export function EditPlantModal({
                 />
               </div>
               <div>
-                <label className="text-xs text-zinc-400">Growth Stage</label>
-                <select
-                  value={formData.stage || ""}
-                  onChange={(e) => setFormData({ ...formData, stage: e.target.value || null })}
+                <label className="text-xs text-zinc-400">Flip Date (12/12)</label>
+                <input
+                  type="date"
+                  value={(formData.flipDate as string) || ""}
+                  onChange={(e) => setFormData({ ...formData, flipDate: e.target.value || null })}
                   className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
-                >
-                  <option value="">Auto-detect</option>
-                  {Object.entries(GROWTH_STAGES).map(([key, config]) => (
-                    <option key={key} value={key}>
-                      {config.icon} {config.label}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
+            </div>
+
+            <div>
+              <label className="text-xs text-zinc-400">Growth Stage (manual override)</label>
+              <select
+                value={formData.stage || ""}
+                onChange={(e) => setFormData({ ...formData, stage: e.target.value || null })}
+                className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+              >
+                <option value="">Auto-detect from dates</option>
+                {Object.entries(GROWTH_STAGES).map(([key, config]) => (
+                  <option key={key} value={key}>
+                    {config.icon} {config.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-zinc-500 mt-1">
+                Leave on auto-detect unless you want to override the calculated stage.
+              </p>
             </div>
             {formData.stage && GROWTH_STAGES[formData.stage as GrowthStage] && (
               <div className="mt-2 p-2 bg-zinc-800/50 rounded-lg">

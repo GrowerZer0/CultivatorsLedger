@@ -181,6 +181,8 @@ model IrrigationEvent {
   sourceType         String         @default("manual") @map("source_type")
   sourceDevice       String?        @map("source_device")
   sourceMetadata     Json?          @map("source_metadata")
+    source           String         @default("manual") @map("source")
+  
   @@index([roomId, timestamp])
   @@map("irrigation_events")
 }
@@ -240,6 +242,8 @@ model Plant {
   mirroredBy       Plant[]           @relation("PlantMirror")
   stage            String?           @default("seedling") // seedling, vegetative, flowering, harvest
   drybackOverride  Decimal?          @map("dryback_override") @db.Decimal(4, 1)
+    flipDate       DateTime?         @map("flip_date")
+  
   @@map("plants")
 }
 model PlantInsight {

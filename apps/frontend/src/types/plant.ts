@@ -15,6 +15,7 @@ export interface Plant {
   updatedAt: Date;
   stage: string | null;
   mirrorPlantId: string | null;
+  flipDate: Date | null;
 }
 
 export interface DryBackLog {

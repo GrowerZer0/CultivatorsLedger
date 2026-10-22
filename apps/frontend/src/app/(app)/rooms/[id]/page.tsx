@@ -44,7 +44,7 @@ type Plant = {
   mirrorPlantId: string | null;
   startDate: Date | string | null;
   stage: string | null;
-
+  flipDate: string | Date | null;
 };
 
 type Batch = {

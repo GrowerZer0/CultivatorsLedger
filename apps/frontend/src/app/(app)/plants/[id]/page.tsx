@@ -3,6 +3,7 @@ import { getUserId } from "@/lib/session";
 import { notFound } from "next/navigation";
 import { PlantDetailClient } from "./PlantDetailClient";
 import type { DryBackLog, IrrigationEvent, PlantInsight } from "@/types/plant";
+import { derivePlantStage } from "@/lib/plant-stage";
 
 // Helper to convert Decimal to number
 function toNumber(value: any): number {
@@ -51,6 +52,12 @@ export default async function PlantDetailPage({
     notFound();
   }
 
+  const derived = derivePlantStage({
+  startDate: plantData.startDate,
+  flipDate: plantData.flipDate,
+  manualStage: plantData.stage,
+});
+
   // Convert Decimal to number for client component with proper typing
   const plant = {
     id: plantData.id,
@@ -67,11 +74,12 @@ export default async function PlantDetailPage({
     userId: plantData.userId,
     createdAt: plantData.createdAt,
     updatedAt: plantData.updatedAt,
-    stage: plantData.stage || null,
     mirrorPlantId: plantData.mirrorPlantId || null,
     mirrorPlant: plantData.mirrorPlant || null,
     room: plantData.room ? { id: plantData.room.id, name: plantData.room.name } : null,
     batch: plantData.batch ? { id: plantData.batch.id, name: plantData.batch.name } : null,
+    stage: derived.stage,
+    flipDate: plantData.flipDate,
     dryBackLogs: plantData.dryBackLogs.map((log): DryBackLog => ({
       id: log.id,
       timestamp: log.timestamp,

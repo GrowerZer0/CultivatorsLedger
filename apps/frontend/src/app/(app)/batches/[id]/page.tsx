@@ -32,6 +32,7 @@ type Plant = {
   mirrorPlantId: string | null;
   startDate: Date | string | null;
   stage: string | null;
+  flipDate: Date | string | null;
 
 };
 

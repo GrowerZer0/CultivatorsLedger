@@ -126,6 +126,7 @@ export async function updatePlant(data: unknown) {
       mirrorPlantId: z.string().nullable().optional(),
       startDate: z.date().nullable().optional(),
       stage: z.string().nullable().optional(),
+        flipDate: z.date().nullable().optional(),
     });
     const validated = updatePlantSchema.parse(data);
     const userId = await getUserId();
@@ -143,6 +144,7 @@ export async function updatePlant(data: unknown) {
     if (validated.currentWeight !== undefined) updateData.currentWeight = validated.currentWeight;
     if (validated.mirrorPlantId !== undefined) updateData.mirrorPlantId = validated.mirrorPlantId;
     if (validated.stage !== undefined) updateData.stage = validated.stage;
+    if (validated.flipDate !== undefined) updateData.flipDate = validated.flipDate;
     // Handle startDate - only set if not null, otherwise skip (keep existing)
     if (validated.startDate !== undefined && validated.startDate !== null) {
       updateData.startDate = validated.startDate;
@@ -204,6 +206,7 @@ export async function fetchPlants() {
       mirrorPlantId: true,
       startDate: true,
       stage: true,
+      flipDate: true,
     },
   });
   return serializePrisma(plants);
