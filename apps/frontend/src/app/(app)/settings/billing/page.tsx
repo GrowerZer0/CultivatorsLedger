@@ -67,15 +67,15 @@ export default function BillingSettingsPage() {
     <SectionPanel title="Billing & Subscription">
       <div className="space-y-6 max-w-2xl">
         {/* Current Tier */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h4 className="text-sm font-semibold text-white">Current Tier</h4>
+              <h4 className="text-sm font-semibold text-zinc-900 dark:text-white">Current Tier</h4>
               <p className="text-2xl font-bold text-emerald-400 mt-1">
                 {tier === "GROWER" ? "🌱 Grower" : "🌿 Free"}
               </p>
               {tier === "GROWER" && subscriptionStatus === "trialing" && trialEndsAt && (
-                <p className="text-xs text-zinc-400 mt-1">
+                <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
                   Trial ends {new Date(trialEndsAt).toLocaleDateString()}
                 </p>
               )}
@@ -83,7 +83,7 @@ export default function BillingSettingsPage() {
                 <p className="text-xs text-emerald-400 mt-1">✓ Active subscription</p>
               )}
               {tier === "FREE" && (
-                <p className="text-xs text-zinc-400 mt-1">
+                <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
                   {plantCount}/{plantLimit} plants used
                 </p>
               )}
@@ -101,7 +101,7 @@ export default function BillingSettingsPage() {
               <button
                 onClick={handleManageSubscription}
                 disabled={portalLoading}
-                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-lg text-sm transition-colors disabled:opacity-50 flex items-center gap-2"
               >
                 {portalLoading ? <Loader2 className="size-4 animate-spin" /> : null}
                 Manage Subscription
@@ -111,34 +111,34 @@ export default function BillingSettingsPage() {
         </div>
 
         {/* Feature Comparison */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-          <h4 className="text-sm font-semibold text-white mb-4">What You Get</h4>
+        <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6">
+          <h4 className="text-sm font-semibold text-zinc-900 dark:text-white mb-4">What You Get</h4>
           <div className="space-y-2">
             <div className="flex items-center gap-3 text-sm">
               <Check className="size-4 text-emerald-500" />
-              <span className="text-zinc-300">Track up to {tier === "GROWER" ? "∞" : "3"} plants</span>
+              <span className="text-zinc-700 dark:text-zinc-300">Track up to {tier === "GROWER" ? "∞" : "3"} plants</span>
             </div>
             <div className="flex items-center gap-3 text-sm">
               <Check className={`size-4 ${tier === "GROWER" ? "text-emerald-500" : "text-zinc-600"}`} />
-              <span className={tier === "GROWER" ? "text-zinc-300" : "text-zinc-500"}>
+              <span className={tier === "GROWER" ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-500"}>
                 {tier === "GROWER" ? "Unlimited" : "5"} AI insights per month
               </span>
             </div>
             <div className="flex items-center gap-3 text-sm">
               <Check className={`size-4 ${tier === "GROWER" ? "text-emerald-500" : "text-zinc-600"}`} />
-              <span className={tier === "GROWER" ? "text-zinc-300" : "text-zinc-500"}>
+              <span className={tier === "GROWER" ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-500"}>
                 {tier === "GROWER" ? "✓" : "✗"} Photo uploads
               </span>
             </div>
             <div className="flex items-center gap-3 text-sm">
               <Check className={`size-4 ${tier === "GROWER" ? "text-emerald-500" : "text-zinc-600"}`} />
-              <span className={tier === "GROWER" ? "text-zinc-300" : "text-zinc-500"}>
+              <span className={tier === "GROWER" ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-500"}>
                 {tier === "GROWER" ? "✓" : "✗"} Dry-back charts per room
               </span>
             </div>
             <div className="flex items-center gap-3 text-sm">
               <Check className={`size-4 ${tier === "GROWER" ? "text-emerald-500" : "text-zinc-600"}`} />
-              <span className={tier === "GROWER" ? "text-zinc-300" : "text-zinc-500"}>
+              <span className={tier === "GROWER" ? "text-zinc-700 dark:text-zinc-300" : "text-zinc-500"}>
                 {tier === "GROWER" ? "✓" : "✗"} CSV export
               </span>
             </div>
@@ -148,7 +148,7 @@ export default function BillingSettingsPage() {
         {/* Upgrade Benefits (if free) */}
         {tier === "FREE" && (
           <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4">
-            <p className="text-sm text-zinc-300">
+            <p className="text-sm text-zinc-700 dark:text-zinc-300">
               🚀 Upgrade to Grower for unlimited plants, AI insights, and premium features.
               Plus, get a <span className="font-bold text-emerald-400">14-day free trial</span>!
             </p>

@@ -42,18 +42,18 @@ export default function SystemSettingsPage() {
         <div className="space-y-6 max-w-xl">
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="text-sm font-semibold text-white">Temperature Scale</h4>
-              <p className="text-xs text-zinc-400">
+              <h4 className="text-sm font-semibold text-zinc-900 dark:text-white">Temperature Scale</h4>              
+              <p className="text-xs text-zinc-600 dark:text-zinc-400">
                 Choose preferred telemetry temperature display unit.
               </p>
             </div>
-            <div className="flex bg-zinc-900 border border-zinc-800 p-1 rounded-lg">
+            <div className="flex bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-1 rounded-lg">
               <button
                 onClick={() => handleTempUnitToggle("C")}
                 className={`px-3 py-1 text-xs font-bold rounded ${
                   preferredTempUnit === "C"
                     ? "bg-emerald-600 text-white"
-                    : "text-zinc-400 hover:text-white"
+                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
                 }`}
               >
                 °C
@@ -63,7 +63,7 @@ export default function SystemSettingsPage() {
                 className={`px-3 py-1 text-xs font-bold rounded ${
                   preferredTempUnit === "F"
                     ? "bg-emerald-600 text-white"
-                    : "text-zinc-400 hover:text-white"
+                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
                 }`}
               >
                 °F
@@ -71,10 +71,10 @@ export default function SystemSettingsPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between border-t border-zinc-800 pt-4">
+          <div className="flex items-center justify-between border-t border-zinc-200 dark:border-zinc-800 pt-4">
             <div>
-              <h4 className="text-sm font-semibold text-white">UI Color Mode</h4>
-              <p className="text-xs text-zinc-400">Toggle dark and light visual mode.</p>
+              <h4 className="text-sm font-semibold text-zinc-900 dark:text-white">UI Color Mode</h4>
+              <p className="text-xs text-zinc-600 dark:text-zinc-400">Toggle dark and light visual mode.</p>
             </div>
             <ThemeToggle />
           </div>

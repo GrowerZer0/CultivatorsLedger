@@ -188,7 +188,7 @@ export default function BatchPage() {
       {/* ===== ONBOARDING PROMPT FOR NEW BATCH ===== */}
       {isNewBatch && plants.length === 0 && (
         <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-6 mb-4">
-          <h3 className="text-lg font-bold text-white">🌱 Batch created!</h3>
+          <h3 className="text-lg font-bold text-zinc-900 dark:text-white">🌱 Batch created!</h3>
           <p className="text-sm text-zinc-400 mt-1">
             Now add plants to this batch to start tracking.
           </p>
@@ -217,8 +217,8 @@ export default function BatchPage() {
       <div>
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-1">{batch.name}</h1>
-            <p className="text-zinc-400 flex items-center gap-3 flex-wrap">
+            <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-1">{batch.name}</h1>
+            <p className="text-zinc-600 dark:text-zinc-400 flex items-center gap-3 flex-wrap">
               {batch.cultivar && <span>{batch.cultivar}</span>}
 {batch.roomId && (
   <span>
@@ -237,7 +237,7 @@ export default function BatchPage() {
                     alert("Failed to move batch.");
                   }
                 }}
-                className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-xs text-white"
+                className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-900 dark:text-white"
               >
                 <option value="">No Room</option>
                 {allRooms.map((r) => (
@@ -281,7 +281,7 @@ export default function BatchPage() {
                 type="date"
                 value={editStartDate ? new Date(editStartDate).toISOString().split('T')[0] : ''}
                 onChange={(e) => setEditStartDate(e.target.value ? new Date(e.target.value) : null)}
-                className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-sm text-white"
+                className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-sm text-zinc-900 dark:text-white"
               />
               <button
                 onClick={async () => {

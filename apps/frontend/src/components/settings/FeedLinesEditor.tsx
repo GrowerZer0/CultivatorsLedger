@@ -125,7 +125,7 @@ export function FeedLinesEditor() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <p className="text-xs text-zinc-400">
+        <p className="text-xs text-zinc-600 dark:text-zinc-400">
           Select your primary feed profile or customize EC targets and dosing ratios.
         </p>
         <button
@@ -144,31 +144,31 @@ export function FeedLinesEditor() {
               key={schedule.id}
               className={`p-4 rounded-xl border transition flex flex-col justify-between space-y-3 ${
                 isActive
-                  ? "bg-zinc-900 border-emerald-500 shadow-md shadow-emerald-500/10"
-                  : "bg-zinc-900/60 border-zinc-800"
+                  ? "bg-white dark:bg-zinc-900 border-emerald-500 shadow-md shadow-emerald-500/10"
+                  : "bg-zinc-900/60 border-zinc-200 dark:border-zinc-800"
               }`}
             >
               <div>
                 <div className="flex justify-between items-start">
-                  <h4 className="text-sm font-bold text-white">{schedule.brand}</h4>
+                  <h4 className="text-sm font-bold text-zinc-900 dark:text-white">{schedule.brand}</h4>
                   {schedule.isCustom && (
                     <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20">
                       Custom
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-zinc-400 mt-1">Stage: {schedule.stage}</p>
+                <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">Stage: {schedule.stage}</p>
                 <p className="text-xs text-emerald-400 font-mono mt-0.5">
                   Target EC: {schedule.targetEc}
                 </p>
               </div>
-              <div className="flex items-center justify-between pt-3 border-t border-zinc-800">
+              <div className="flex items-center justify-between pt-3 border-t border-zinc-200 dark:border-zinc-800">
                 <button
                   onClick={(e) => handleSetActiveLine(schedule.id, e)}
                   className={`text-xs px-3 py-1 rounded-lg font-semibold transition ${
                     isActive
                       ? "bg-emerald-500 text-black"
-                      : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-700"
                   }`}
                 >
                   {isActive ? "Active Blueprint" : "Set Active"}
@@ -177,7 +177,7 @@ export function FeedLinesEditor() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setEditingSchedule(schedule)}
-                      className="p-1 text-zinc-400 hover:text-white transition"
+                      className="p-1 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition"
                     >
                       <Edit className="w-4 h-4" />
                     </button>

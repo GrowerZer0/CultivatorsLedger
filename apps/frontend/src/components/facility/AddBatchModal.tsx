@@ -59,7 +59,7 @@ export function AddBatchModal({
       <div className="w-full max-w-md rounded-xl bg-white dark:bg-zinc-900 p-6 shadow-xl space-y-5">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold">Create Batch</h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-700">
+          <button onClick={onClose} className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-700">
             <X size={20} />
           </button>
         </div>

@@ -13,13 +13,13 @@ export default function GrowSettingsPage() {
   return (
     <SectionPanel title="Grow Settings">
       <div className="space-y-6">
-        <div className="flex border-b border-zinc-800 pb-2 gap-4">
+        <div className="flex border-b border-zinc-200 dark:border-zinc-800 pb-2 gap-4">
           <button
             onClick={() => setTab("stages")}
             className={`text-sm font-bold pb-2 border-b-2 transition-colors ${
               tab === "stages"
-                ? "border-emerald-500 text-emerald-400"
-                : "border-transparent text-zinc-400 hover:text-zinc-200"
+                ? "border-emerald-500 text-emerald-600 dark:text-emerald-400"
+                : "border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
             }`}
           >
             Stage Dryback
@@ -28,8 +28,8 @@ export default function GrowSettingsPage() {
             onClick={() => setTab("feedlines")}
             className={`text-sm font-bold pb-2 border-b-2 transition-colors ${
               tab === "feedlines"
-                ? "border-emerald-500 text-emerald-400"
-                : "border-transparent text-zinc-400 hover:text-zinc-200"
+                ? "border-emerald-500 text-emerald-600 dark:text-emerald-400"
+                : "border-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
             }`}
           >
             Feed Lines

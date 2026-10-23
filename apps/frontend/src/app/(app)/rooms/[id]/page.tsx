@@ -232,7 +232,7 @@ useEffect(() => {
       {/* ===== ONBOARDING PROMPT ===== */}
 {plants.length === 0 && (
           <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-6 mb-4">
-          <h3 className="text-lg font-bold text-white">🌱 Let's set up this room</h3>
+          <h3 className="text-lg font-bold text-zinc-900 dark:text-white">🌱 Let's set up this room</h3>
           <p className="text-sm text-zinc-400 mt-1">
             Start by creating a batch, then add plants to it.
           </p>
@@ -276,7 +276,7 @@ useEffect(() => {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">{room.name}</h1>
+          <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">{room.name}</h1>
           <p className="text-xs text-zinc-500 mt-1 text-left">
             {plants.length} plant{plants.length !== 1 ? "s" : ""}
           </p>
@@ -308,7 +308,7 @@ useEffect(() => {
       </div>
 
       {/* Environmental Targets */}
-      <div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800">
+      <div className="bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-bold text-zinc-400">Environmental Targets</h2>
           {isEditing ? (
@@ -435,29 +435,29 @@ useEffect(() => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
               <span className="text-zinc-500">Temp</span>
-              <p className="text-white font-medium">
+              <p className="text-zinc-900 dark:text-white font-medium">
                 {room.targetTempF ? `${room.targetTempF}°F` : "Not set"}
               </p>
             </div>
             <div>
               <span className="text-zinc-500">RH</span>
-              <p className="text-white font-medium">
+              <p className="text-zinc-900 dark:text-white font-medium">
                 {room.targetRH ? `${room.targetRH}%` : "Not set"}
               </p>
             </div>
             <div>
               <span className="text-zinc-500">VPD</span>
-              <p className="text-white font-medium">
+              <p className="text-zinc-900 dark:text-white font-medium">
                 {room.targetVPD ? `${room.targetVPD} kPa` : "Not set"}
               </p>
             </div>
             <div>
               <span className="text-zinc-500">PPFD</span>
-              <p className="text-white font-medium">{room.ppfd || "Not set"}</p>
+              <p className="text-zinc-900 dark:text-white font-medium">{room.ppfd || "Not set"}</p>
             </div>
             <div>
               <span className="text-zinc-500">Light Schedule</span>
-              <p className="text-white font-medium">
+              <p className="text-zinc-900 dark:text-white font-medium">
                 {room.lightOnTime && room.lightOffTime
                   ? `${room.lightOnTime} – ${room.lightOffTime}`
                   : "Not set"}
@@ -465,7 +465,7 @@ useEffect(() => {
             </div>
             <div>
               <span className="text-zinc-500">Light Distance</span>
-              <p className="text-white font-medium">
+              <p className="text-zinc-900 dark:text-white font-medium">
                 {room.lightDistance ? `${room.lightDistance} in` : "Not set"}
               </p>
             </div>
@@ -474,7 +474,7 @@ useEffect(() => {
       </div>
 
       {/* Plants List */}
-      <div className="bg-zinc-900 p-4 rounded-xl border border-zinc-800">
+      <div className="bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800">
         <h2 className="text-sm font-bold text-zinc-400 mb-3">Plants in this Room</h2>
         {plants.length === 0 ? (
           <div className="py-8 text-center">
@@ -486,7 +486,7 @@ useEffect(() => {
             {plants.map((plant) => (
               <div key={plant.id} className="py-3 flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="font-medium text-white">{plant.name}</p>
+                  <p className="font-medium text-zinc-900 dark:text-white">{plant.name}</p>
                   <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-400">
                     <span>{plant.strain || "Unknown strain"}</span>
                     <button
@@ -518,7 +518,7 @@ useEffect(() => {
                           alert("Failed to move plant.");
                         }
                       }}
-                      className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-xs text-white"
+                      className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded px-2 py-1 text-xs text-zinc-900 dark:text-white"
                     >
                       <option value="">No Room</option>
                       {allRooms.map((r: RoomOption) => (
@@ -544,7 +544,7 @@ useEffect(() => {
                           alert("Failed to move batch.");
                         }
                       }}
-                      className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-xs text-white"
+                      className="bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded px-2 py-1 text-xs text-zinc-900 dark:text-white"
                     >
                       <option value="">No Batch</option>
                       {allBatches.map((b: Batch) => (

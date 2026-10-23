@@ -146,12 +146,12 @@ export function AddPlantModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-white">
             {hideSelectExisting ? 'Create New Plant' : 'Add Plant to Room'}
           </h3>
-          <button onClick={onClose} className="text-zinc-400 hover:text-white">
+          <button onClick={onClose} className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white">
             <X className="size-5" />
           </button>
         </div>
@@ -170,7 +170,7 @@ export function AddPlantModal({
               className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
                 mode === 'select'
                   ? 'bg-emerald-600 text-white'
-                  : 'bg-zinc-800 text-zinc-400 hover:text-white'
+                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
               }`}
             >
               Select Existing
@@ -180,7 +180,7 @@ export function AddPlantModal({
               className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
                 mode === 'create'
                   ? 'bg-emerald-600 text-white'
-                  : 'bg-zinc-800 text-zinc-400 hover:text-white'
+                  : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
               }`}
             >
               Create New
@@ -194,7 +194,7 @@ export function AddPlantModal({
             {loadingPlants ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="size-6 animate-spin text-emerald-400" />
-                <span className="ml-2 text-sm text-zinc-400">Loading plants...</span>
+                <span className="ml-2 text-sm text-zinc-600 dark:text-zinc-400">Loading plants...</span>
               </div>
             ) : (
               <>
@@ -205,7 +205,7 @@ export function AddPlantModal({
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder="Search existing plants..."
-                    className="w-full pl-9 pr-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+                    className="w-full pl-9 pr-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
@@ -224,12 +224,12 @@ export function AddPlantModal({
                       <button
                         key={plant.id}
                         onClick={() => handleSelectPlant(plant)}
-                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-zinc-800 transition-colors flex items-center justify-between"
+                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-zinc-100 dark:bg-zinc-800 transition-colors flex items-center justify-between"
                       >
                         <div>
                           <div className="text-sm font-medium text-white">{plant.name}</div>
                           {plant.strain && (
-                            <div className="text-xs text-zinc-400">{plant.strain}</div>
+                            <div className="text-xs text-zinc-600 dark:text-zinc-400">{plant.strain}</div>
                           )}
                         </div>
                         <span className="text-xs text-emerald-400">Add →</span>
@@ -238,10 +238,10 @@ export function AddPlantModal({
                   )}
                 </div>
 
-                <div className="pt-3 border-t border-zinc-800">
+                <div className="pt-3 border-t border-zinc-200 dark:border-zinc-800">
                   <button
                     onClick={() => setMode('create')}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-dashed border-zinc-700 hover:border-emerald-500 text-zinc-400 hover:text-emerald-400 transition-colors text-sm"
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700 hover:border-emerald-500 text-zinc-600 dark:text-zinc-400 hover:text-emerald-400 transition-colors text-sm"
                   >
                     <Plus className="size-4" />
                     Create new plant instead
@@ -256,35 +256,35 @@ export function AddPlantModal({
         {mode === 'create' && (
           <form onSubmit={handleCreatePlant} className="space-y-4">
             <div>
-              <label className="text-xs text-zinc-400">Plant Name *</label>
+              <label className="text-xs text-zinc-600 dark:text-zinc-400">Plant Name *</label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="e.g. Early Frost"
-                className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+                className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
                 required
               />
             </div>
 
             <div>
-              <label className="text-xs text-zinc-400">Strain</label>
+              <label className="text-xs text-zinc-600 dark:text-zinc-400">Strain</label>
               <input
                 type="text"
                 value={formData.strain}
                 onChange={(e) => setFormData({ ...formData, strain: e.target.value })}
                 placeholder="e.g. Twenty20 Mendocino"
-                className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+                className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-zinc-400">Room</label>
+                <label className="text-xs text-zinc-600 dark:text-zinc-400">Room</label>
                 <select
                   value={formData.roomId}
                   onChange={(e) => setFormData({ ...formData, roomId: e.target.value })}
-                  className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
                 >
                   <option value="">None</option>
                   {rooms.map((room) => (
@@ -293,11 +293,11 @@ export function AddPlantModal({
                 </select>
               </div>
               <div>
-                <label className="text-xs text-zinc-400">Batch</label>
+                <label className="text-xs text-zinc-600 dark:text-zinc-400">Batch</label>
                 <select
                   value={formData.batchId}
                   onChange={(e) => setFormData({ ...formData, batchId: e.target.value })}
-                  className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
                 >
                   <option value="">None</option>
                   {batches.map((batch) => (
@@ -309,50 +309,50 @@ export function AddPlantModal({
 
             <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="text-xs text-zinc-400">Container (gal)</label>
+                <label className="text-xs text-zinc-600 dark:text-zinc-400">Container (gal)</label>
                 <input
                   type="number"
                   step="0.1"
                   value={formData.containerGallons}
                   onChange={(e) => setFormData({ ...formData, containerGallons: e.target.value })}
                   placeholder="5"
-                  className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+                  className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
                 />
               </div>
               <div>
-                <label className="text-xs text-zinc-400">Wet Weight</label>
+                <label className="text-xs text-zinc-600 dark:text-zinc-400">Wet Weight</label>
                 <input
                   type="number"
                   step="0.1"
                   value={formData.wetWeight}
                   onChange={(e) => setFormData({ ...formData, wetWeight: e.target.value })}
                   placeholder="lbs"
-                  className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+                  className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
                 />
               </div>
               <div>
-                <label className="text-xs text-zinc-400">Dry Target</label>
+                <label className="text-xs text-zinc-600 dark:text-zinc-400">Dry Target</label>
                 <input
                   type="number"
                   step="0.1"
                   value={formData.dryTarget}
                   onChange={(e) => setFormData({ ...formData, dryTarget: e.target.value })}
                   placeholder="lbs"
-                  className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+                  className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
                 />
               </div>
             </div>
 
             {/* Mirror Plant Selection */}
-            <div className="border-t border-zinc-800 pt-3">
-              <label className="text-xs text-zinc-400 flex items-center gap-2">
+            <div className="border-t border-zinc-200 dark:border-zinc-800 pt-3">
+              <label className="text-xs text-zinc-600 dark:text-zinc-400 flex items-center gap-2">
                 <span>🔄 Mirror Weight From</span>
                 <span className="text-[10px] text-zinc-500">(optional)</span>
               </label>
               <select
                 value={formData.mirrorPlantId}
                 onChange={(e) => setFormData({ ...formData, mirrorPlantId: e.target.value })}
-                className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
               >
                 <option value="">None (use own weight)</option>
                 {mirrorOptions.map((p) => (
@@ -379,7 +379,7 @@ export function AddPlantModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-semibold transition-colors"
+                className="px-4 py-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-semibold transition-colors"
               >
                 Cancel
               </button>

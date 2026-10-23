@@ -118,10 +118,10 @@ export function EditPlantModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-white">Edit Plant</h3>
-          <button onClick={onClose} className="text-zinc-400 hover:text-white">
+          <button onClick={onClose} className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white">
             <X className="size-5" />
           </button>
         </div>
@@ -135,57 +135,57 @@ export function EditPlantModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Basic Info */}
           <div>
-            <label className="text-xs text-zinc-400">Plant Name</label>
+            <label className="text-xs text-zinc-600 dark:text-zinc-400">Plant Name</label>
             <input
               type="text"
               value={formData.name || ""}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+              className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
               required
             />
           </div>
 
           <div>
-            <label className="text-xs text-zinc-400">Strain</label>
+            <label className="text-xs text-zinc-600 dark:text-zinc-400">Strain</label>
             <input
               type="text"
               value={formData.strain || ""}
               onChange={(e) => setFormData({ ...formData, strain: e.target.value || null })}
-              className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+              className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
             />
           </div>
 
           {/* Start Date & Growth Stage */}
-          <div className="border-t border-zinc-800 pt-4">
-            <h4 className="text-xs font-semibold text-zinc-400 mb-3">📅 Growth Timeline</h4>
+          <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4">
+            <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-3">📅 Growth Timeline</h4>
             
               <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-zinc-400">Start Date</label>
+                <label className="text-xs text-zinc-600 dark:text-zinc-400">Start Date</label>
                 <input
                   type="date"
                   value={formData.startDate as string || ""}
                   onChange={(e) => setFormData({ ...formData, startDate: e.target.value || null })}
-                  className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
                 />
               </div>
               <div>
-                <label className="text-xs text-zinc-400">Flip Date (12/12)</label>
+                <label className="text-xs text-zinc-600 dark:text-zinc-400">Flip Date (12/12)</label>
                 <input
                   type="date"
                   value={(formData.flipDate as string) || ""}
                   onChange={(e) => setFormData({ ...formData, flipDate: e.target.value || null })}
-                  className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-xs text-zinc-400">Growth Stage (manual override)</label>
+              <label className="text-xs text-zinc-600 dark:text-zinc-400">Growth Stage (manual override)</label>
               <select
                 value={formData.stage || ""}
                 onChange={(e) => setFormData({ ...formData, stage: e.target.value || null })}
-                className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
               >
                 <option value="">Auto-detect from dates</option>
                 {Object.entries(GROWTH_STAGES).map(([key, config]) => (
@@ -199,8 +199,8 @@ export function EditPlantModal({
               </p>
             </div>
             {formData.stage && GROWTH_STAGES[formData.stage as GrowthStage] && (
-              <div className="mt-2 p-2 bg-zinc-800/50 rounded-lg">
-                <p className="text-xs text-zinc-400">
+              <div className="mt-2 p-2 bg-zinc-100 dark:bg-zinc-800/50 rounded-lg">
+                <p className="text-xs text-zinc-600 dark:text-zinc-400">
                   {GROWTH_STAGES[formData.stage as GrowthStage]?.description}
                 </p>
               </div>
@@ -210,11 +210,11 @@ export function EditPlantModal({
           {/* Location */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-zinc-400">Room</label>
+              <label className="text-xs text-zinc-600 dark:text-zinc-400">Room</label>
               <select
                 value={formData.roomId || ""}
                 onChange={(e) => setFormData({ ...formData, roomId: e.target.value || null })}
-                className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
               >
                 <option value="">None</option>
                 {rooms.map((room) => (
@@ -223,11 +223,11 @@ export function EditPlantModal({
               </select>
             </div>
             <div>
-              <label className="text-xs text-zinc-400">Batch</label>
+              <label className="text-xs text-zinc-600 dark:text-zinc-400">Batch</label>
               <select
                 value={formData.batchId || ""}
                 onChange={(e) => setFormData({ ...formData, batchId: e.target.value || null })}
-                className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
               >
                 <option value="">None</option>
                 {batches.map((batch) => (
@@ -240,7 +240,7 @@ export function EditPlantModal({
           {/* Weight Settings */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-zinc-400">Container (gallons)</label>
+              <label className="text-xs text-zinc-600 dark:text-zinc-400">Container (gallons)</label>
               <input
                 type="number"
                 step="0.1"
@@ -249,12 +249,12 @@ export function EditPlantModal({
                   const val = e.target.value;
                   setFormData({ ...formData, containerGallons: val === '' ? null : parseFloat(val) });
                 }}
-                className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
                 placeholder="e.g. 5"
               />
             </div>
             <div>
-              <label className="text-xs text-zinc-400">Wet Weight (lbs)</label>
+              <label className="text-xs text-zinc-600 dark:text-zinc-400">Wet Weight (lbs)</label>
               <input
                 type="number"
                 step="0.1"
@@ -263,14 +263,14 @@ export function EditPlantModal({
                   const val = e.target.value;
                   setFormData({ ...formData, wetWeight: val === '' ? null : parseFloat(val) });
                 }}
-                className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
                 placeholder="e.g. 18.5"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-xs text-zinc-400">Dry Target (lbs)</label>
+            <label className="text-xs text-zinc-600 dark:text-zinc-400">Dry Target (lbs)</label>
             <input
               type="number"
               step="0.1"
@@ -279,21 +279,21 @@ export function EditPlantModal({
                 const val = e.target.value;
                 setFormData({ ...formData, dryTarget: val === '' ? null : parseFloat(val) });
               }}
-              className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+              className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
               placeholder="e.g. 13.0"
             />
           </div>
 
           {/* Plant Mirroring */}
-          <div className="border-t border-zinc-800 pt-4">
-            <label className="text-xs text-zinc-400 flex items-center gap-2">
+          <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4">
+            <label className="text-xs text-zinc-600 dark:text-zinc-400 flex items-center gap-2">
               <span>🔄 Mirror Weight From</span>
               <span className="text-[10px] text-zinc-500">(optional)</span>
             </label>
             <select
               value={formData.mirrorPlantId || ""}
               onChange={(e) => setFormData({ ...formData, mirrorPlantId: e.target.value || null })}
-              className="w-full mt-1 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+              className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
             >
               <option value="">None (use own weight)</option>
               {mirrorOptions.map((p) => (
@@ -320,7 +320,7 @@ export function EditPlantModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-semibold transition-colors"
+              className="px-4 py-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-semibold transition-colors"
             >
               Cancel
             </button>

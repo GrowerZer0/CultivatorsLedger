@@ -72,9 +72,9 @@ export function AppShell({
   }, []);
 
   return (
-    <div className="min-h-screen bg-zinc-950">
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       {/* Header - Clean: Brand + Telemetry + Avatar */}
-      <header className="sticky top-0 z-40 border-b border-zinc-800 bg-zinc-950/95 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
           {/* Brand - Restored old logo style */}
           <Link href="/dashboard" className="flex items-center gap-3">
@@ -94,18 +94,18 @@ export function AppShell({
           {/* Right side: Telemetry + Avatar */}
           <div className="flex items-center gap-3">
             {/* Telemetry */}
-            <div className="hidden md:flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-1.5 text-xs">
-              <span className="flex items-center gap-1 text-zinc-400">
+            <div className="hidden md:flex items-center gap-2 rounded-full border border-zinc-200 dark:border-zinc-800 bg-zinc-900/60 px-3 py-1.5 text-xs">
+              <span className="flex items-center gap-1 text-zinc-600 dark:text-zinc-400">
                 <ThermometerSun className="size-3.5 text-orange-400" />
                 <span className="text-white">{tempFormatted}</span>
               </span>
               <span className="text-zinc-700">|</span>
-              <span className="flex items-center gap-1 text-zinc-400">
+              <span className="flex items-center gap-1 text-zinc-600 dark:text-zinc-400">
                 <Droplet className="size-3.5 text-blue-400" />
                 <span className="text-white">{rhFormatted}</span>
               </span>
               <span className="text-zinc-700">|</span>
-              <span className="flex items-center gap-1 text-zinc-400">
+              <span className="flex items-center gap-1 text-zinc-600 dark:text-zinc-400">
                 <Wind className="size-3.5 text-emerald-400" />
                 <span className="text-white">{vpdFormatted}</span>
               </span>

@@ -84,7 +84,7 @@ export default function SettingsLayout({
     <div className="flex min-h-screen">
       {/* Desktop Settings Sidebar */}
       <aside
-        className="hidden lg:flex flex-col flex-shrink-0 bg-zinc-900 border-r border-zinc-800 transition-all duration-200"
+        className="hidden lg:flex flex-col flex-shrink-0 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 transition-all duration-200"
         style={{
           width: sidebarCollapsed ? "3.5rem" : "14rem",
         }}
@@ -110,8 +110,8 @@ export default function SettingsLayout({
                     title={sidebarCollapsed ? item.label : undefined}
                     className={`flex items-center gap-3 rounded-lg px-3 py-2 transition ${
                       isActive
-                        ? "bg-zinc-800 text-white"
-                        : "text-zinc-400 hover:text-white hover:bg-zinc-800"
+                        ? "bg-zinc-100 dark:bg-zinc-800 text-white"
+                        : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:bg-zinc-800"
                     } ${
                       sidebarCollapsed
                         ? "justify-center"
@@ -132,7 +132,7 @@ export default function SettingsLayout({
         </nav>
         <button
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          className="m-3 flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-zinc-400 hover:text-white hover:bg-zinc-800"
+          className="m-3 flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:bg-zinc-800"
           aria-label={
             sidebarCollapsed
               ? "Expand sidebar"

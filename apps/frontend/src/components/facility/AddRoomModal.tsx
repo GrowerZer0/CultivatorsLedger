@@ -70,7 +70,7 @@ export function AddRoomModal({ open, onClose, onRoomCreated }: AddRoomModalProps
       <div className="w-full max-w-md rounded-xl bg-white dark:bg-zinc-900 p-6 shadow-xl space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-bold">Add Room</h2>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-700">
+          <button onClick={onClose} className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-700">
             <X size={20} />
           </button>
         </div>
@@ -105,7 +105,7 @@ export function AddRoomModal({ open, onClose, onRoomCreated }: AddRoomModalProps
           <button
             type="button"
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="flex items-center gap-1 text-xs font-medium text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+            className="flex items-center gap-1 text-xs font-medium text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-800 dark:text-zinc-200"
           >
             {showAdvanced ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
             {showAdvanced ? "Hide Environmental Targets" : "Show Environmental Targets (Optional)"}

@@ -110,39 +110,39 @@ export default function ProfileSettingsPage() {
           </button>
         </div>
         <div className="space-y-4">
-          <h4 className="text-sm font-semibold text-white">Account Information</h4>
-          <div className="grid grid-cols-1 gap-4">
+          <h4 className="text-sm font-semibold text-zinc-900 dark:text-white">Account Information</h4>
+                    <div className="grid grid-cols-1 gap-4">
             <div>
-              <label className="text-xs font-medium text-zinc-300">Display Name</label>
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Display Name</label>
               <input
                 type="text"
                 value={formData.displayName}
                 onChange={e => setFormData({ ...formData, displayName: e.target.value })}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-xs text-white mt-1 focus:border-emerald-500 outline-none"
+                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2.5 text-xs text-zinc-900 dark:text-white mt-1 focus:border-emerald-500 outline-none"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-zinc-300">Email</label>
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Email</label>
               <input
                 type="email"
                 value={formData.email}
                 onChange={e => setFormData({ ...formData, email: e.target.value })}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-xs text-white mt-1 focus:border-emerald-500 outline-none"
+                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2.5 text-xs text-zinc-900 dark:text-white mt-1 focus:border-emerald-500 outline-none"
                 disabled
               />
               <p className="text-[10px] text-zinc-500 mt-1">Email changes require re-authentication.</p>
             </div>
           </div>
         </div>
-        <div className="border-t border-zinc-800 pt-4 space-y-4">
-          <h4 className="text-sm font-semibold text-white">Preferences</h4>
+        <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 space-y-4">
+          <h4 className="text-sm font-semibold text-zinc-900 dark:text-white">Preferences</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-medium text-zinc-300">Timezone</label>
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Timezone</label>
               <select
                 value={formData.timezone}
                 onChange={e => setFormData({ ...formData, timezone: e.target.value })}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-xs text-white mt-1 focus:border-emerald-500 outline-none"
+                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2.5 text-xs text-zinc-900 dark:text-white mt-1 focus:border-emerald-500 outline-none"
               >
                 <option value="UTC">UTC</option>
                 <option value="America/New_York">Eastern Time (US)</option>
@@ -156,11 +156,11 @@ export default function ProfileSettingsPage() {
               </select>
             </div>
             <div>
-              <label className="text-xs font-medium text-zinc-300">Language</label>
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">Language</label>
               <select
                 value={formData.language}
                 onChange={e => setFormData({ ...formData, language: e.target.value })}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-xs text-white mt-1 focus:border-emerald-500 outline-none"
+                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2.5 text-xs text-zinc-900 dark:text-white mt-1 focus:border-emerald-500 outline-none"
               >
                 <option value="en">English</option>
                 <option value="es">Spanish</option>
@@ -175,12 +175,12 @@ export default function ProfileSettingsPage() {
             </div>
           </div>
         </div>
-        <div className="border-t border-zinc-800 pt-4 space-y-4">
-          <h4 className="text-sm font-semibold text-white">Change Password</h4>
-          {!changePassword ? (
+        <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 space-y-4">
+          <h4 className="text-sm font-semibold text-zinc-900 dark:text-white">Change Password</h4>
+                    {!changePassword ? (
             <button
               onClick={() => setChangePassword(true)}
-              className="px-4 py-2 text-sm font-semibold rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition"
+              className="px-4 py-2 text-sm font-semibold rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border border-zinc-300 dark:border-zinc-700 transition"
             >
               Change Password
             </button>
@@ -191,21 +191,21 @@ export default function ProfileSettingsPage() {
                 placeholder="Current password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-xs text-white focus:border-emerald-500 outline-none"
+                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2.5 text-xs text-zinc-900 dark:text-white focus:border-emerald-500 outline-none"
               />
               <input
                 type="password"
                 placeholder="New password (min 6 chars)"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-xs text-white focus:border-emerald-500 outline-none"
+                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2.5 text-xs text-zinc-900 dark:text-white focus:border-emerald-500 outline-none"
               />
               <input
                 type="password"
                 placeholder="Confirm new password"
                 value={confirmNewPassword}
                 onChange={(e) => setConfirmNewPassword(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2.5 text-xs text-white focus:border-emerald-500 outline-none"
+                className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-lg p-2.5 text-xs text-zinc-900 dark:text-white focus:border-emerald-500 outline-none"
               />
               <div className="flex gap-2">
                 <button
@@ -240,7 +240,7 @@ export default function ProfileSettingsPage() {
                     setNewPassword('');
                     setConfirmNewPassword('');
                   }}
-                  className="px-4 py-2 text-sm font-semibold rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition"
+                  className="px-4 py-2 text-sm font-semibold rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border border-zinc-300 dark:border-zinc-700 transition"
                 >
                   Cancel
                 </button>
@@ -254,12 +254,12 @@ export default function ProfileSettingsPage() {
           </button>
         </div>
         
-        <div className="border-t border-zinc-800 pt-4">
+        <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4">
           <button onClick={handleSignOut} className="w-full px-4 py-2 text-sm font-semibold rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition">Sign Out</button>
         </div>
-                        <div className="border-t border-zinc-800 pt-4">
-          <h3 className="text-sm font-semibold text-white">Danger Zone</h3>
-          <p className="text-xs text-zinc-500 mt-1">
+                        <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4">
+          <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">Danger Zone</h3>
+                    <p className="text-xs text-zinc-500 mt-1">
             Permanently delete your account and all associated data. This cannot be undone.
           </p>
           <button

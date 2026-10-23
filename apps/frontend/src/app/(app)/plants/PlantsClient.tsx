@@ -139,7 +139,7 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 bg-zinc-900/50 border border-zinc-800 rounded-xl p-3">
+      <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-3">
         <div className="flex-1 min-w-[200px]">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-500" />
@@ -148,7 +148,7 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
               placeholder="Search plants or strains..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
+              className="w-full pl-9 pr-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
             />
           </div>
         </div>
@@ -156,7 +156,7 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
         <select
           value={filterRoom}
           onChange={(e) => setFilterRoom(e.target.value)}
-          className="px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+          className="px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-emerald-500"
         >
           <option value="">All Rooms</option>
           {rooms.map((room) => (
@@ -167,7 +167,7 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
         <select
           value={filterBatch}
           onChange={(e) => setFilterBatch(e.target.value)}
-          className="px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+          className="px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-emerald-500"
         >
           <option value="">All Batches</option>
           {batches.map((batch) => (
@@ -178,13 +178,13 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
         <div className="flex items-center gap-1 ml-auto">
           <button
             onClick={() => setView("grid")}
-            className={`p-2 rounded-lg transition-colors ${view === "grid" ? "bg-zinc-700 text-white" : "text-zinc-500 hover:text-zinc-300"}`}
+            className={`p-2 rounded-lg transition-colors ${view === "grid" ? "bg-zinc-700 text-white" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-300"}`}
           >
             <Grid className="size-4" />
           </button>
           <button
             onClick={() => setView("list")}
-            className={`p-2 rounded-lg transition-colors ${view === "list" ? "bg-zinc-700 text-white" : "text-zinc-500 hover:text-zinc-300"}`}
+            className={`p-2 rounded-lg transition-colors ${view === "list" ? "bg-zinc-700 text-white" : "text-zinc-500 hover:text-zinc-700 dark:text-zinc-300"}`}
           >
             <List className="size-4" />
           </button>
@@ -197,7 +197,7 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
 
       {/* Plant List/Grid */}
       {view === "list" ? (
-        <div className="divide-y divide-zinc-800 border border-zinc-800 rounded-xl overflow-hidden">
+        <div className="divide-y divide-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
           {filteredPlants.map((plant) => {
             const roomName = plant.roomId ? roomMap[plant.roomId] : "No Room";
             const batchName = plant.batchId ? batchMap[plant.batchId] : "No Batch";
@@ -205,13 +205,13 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
               <Link
                 key={plant.id}
                 href={`/plants/${plant.id}`}
-                className="flex items-center justify-between p-4 bg-zinc-900/50 hover:bg-zinc-800/70 transition-colors cursor-pointer group"
+                className="flex items-center justify-between p-4 bg-white dark:bg-zinc-900/50 hover:bg-zinc-100 dark:hover:bg-zinc-800/70 transition-colors cursor-pointer group"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-white group-hover:text-emerald-400 transition-colors">
+                  <p className="font-medium text-zinc-900 dark:text-white group-hover:text-emerald-400 transition-colors">
                     {plant.name}
                   </p>
-                  <div className="flex flex-wrap gap-2 text-xs text-zinc-400 mt-0.5">
+                  <div className="flex flex-wrap gap-2 text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
                     <span>{plant.strain || "Unknown strain"}</span>
                     <span>•</span>
                     <span className="text-emerald-400">{roomName}</span>
@@ -259,12 +259,12 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
               <Link
                 key={plant.id}
                 href={`/plants/${plant.id}`}
-                className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 hover:border-emerald-500 hover:bg-zinc-800/70 transition-all group cursor-pointer"
+                className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 hover:border-emerald-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/70 transition-all group cursor-pointer"
               >
-                <p className="font-medium text-white group-hover:text-emerald-400 truncate transition-colors">
+                <p className="font-medium text-zinc-900 dark:text-white group-hover:text-emerald-400 truncate transition-colors">
                   {plant.name}
                 </p>
-                <p className="text-xs text-zinc-400 truncate">{plant.strain || "Unknown strain"}</p>
+                <p className="text-xs text-zinc-600 dark:text-zinc-400 truncate">{plant.strain || "Unknown strain"}</p>
                 <div className="flex justify-between mt-2 text-xs">
                   <span className="text-emerald-400">{roomName}</span>
                   <span className="text-blue-400">{plant.batchId ? "In batch" : "No batch"}</span>

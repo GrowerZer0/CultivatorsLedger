@@ -163,14 +163,14 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
         <div className="flex items-center gap-3">
           <Link
             href="/plants"
-            className="p-2 rounded-lg hover:bg-zinc-800 transition-colors text-zinc-400 hover:text-white"
+            className="p-2 rounded-lg hover:bg-zinc-100 dark:bg-zinc-800 transition-colors text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
           >
             <ArrowLeft className="size-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-white">{currentPlant?.name || 'Plant'}</h1>
+            <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{currentPlant?.name || 'Plant'}</h1>
             {currentPlant?.strain && (
-              <p className="text-sm text-zinc-400">{currentPlant.strain}</p>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">{currentPlant.strain}</p>
             )}
           </div>
         </div>
@@ -191,7 +191,7 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
           <button
             onClick={handleDelete}
             disabled={isDeleting}
-            className="p-2 rounded-lg hover:bg-red-500/10 text-zinc-400 hover:text-red-500 transition-colors"
+            className="p-2 rounded-lg hover:bg-red-500/10 text-zinc-600 dark:text-zinc-400 hover:text-red-500 transition-colors"
           >
             <Trash2 className="size-4" />
           </button>
@@ -200,12 +200,12 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-zinc-400 text-xs">
+        <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
+          <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 text-xs">
             <Scale className="size-4" />
             Current Weight
           </div>
-          <div className="text-2xl font-bold text-white mt-1">
+          <div className="text-2xl font-bold text-zinc-900 dark:text-white mt-1">
             {weight !== null ? `${Number(weight).toFixed(1)} lbs` : "—"}
           </div>
           {currentPlant?.wetWeight && (
@@ -215,8 +215,8 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
           )}
         </div>
 
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-zinc-400 text-xs">
+        <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
+          <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 text-xs">
             <Activity className="size-4" />
             Dryback
           </div>
@@ -236,17 +236,17 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
                 trend.direction === 'down' ? 'text-green-500' :
                 'text-zinc-500'
               }`} />
-              <span className="text-zinc-400">{trend.label}</span>
+              <span className="text-zinc-600 dark:text-zinc-400">{trend.label}</span>
             </div>
           )}
         </div>
 
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-zinc-400 text-xs">
+        <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
+          <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 text-xs">
             <Calendar className="size-4" />
             Days in Grow
           </div>
-          <div className="text-2xl font-bold text-white mt-1">
+          <div className="text-2xl font-bold text-zinc-900 dark:text-white mt-1">
             {daysSinceStart > 0 ? daysSinceStart : "—"}
           </div>
           <div className="text-xs text-zinc-500">
@@ -254,8 +254,8 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
           </div>
         </div>
 
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-zinc-400 text-xs">
+        <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
+          <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 text-xs">
             <Sprout className="size-4" />
             Growth Stage
           </div>
@@ -269,12 +269,12 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
           </div>
         </div>
 
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-zinc-400 text-xs">
+        <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
+          <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 text-xs">
             <Droplet className="size-4" />
             Logs
           </div>
-          <div className="text-2xl font-bold text-white mt-1">
+          <div className="text-2xl font-bold text-zinc-900 dark:text-white mt-1">
             {dryBackLogs.length}
           </div>
           <div className="text-xs text-zinc-500">
@@ -285,7 +285,7 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
 
       {/* Room & Batch Info */}
       {(currentPlant?.room || currentPlant?.batch) && (
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 flex flex-wrap gap-4">
+        <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 flex flex-wrap gap-4">
           {currentPlant?.room && (
             <div>
               <span className="text-xs text-zinc-500">Room</span>
@@ -305,13 +305,13 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
           {currentPlant?.containerGallons && (
             <div>
               <span className="text-xs text-zinc-500">Container</span>
-              <div className="text-sm text-white">{currentPlant.containerGallons} gal</div>
+              <div className="text-sm text-zinc-900 dark:text-white">{currentPlant.containerGallons} gal</div>
             </div>
           )}
           {currentPlant?.dryTarget && (
             <div>
               <span className="text-xs text-zinc-500">Dry Target</span>
-              <div className="text-sm text-white">{Number(currentPlant.dryTarget).toFixed(1)} lbs</div>
+              <div className="text-sm text-zinc-900 dark:text-white">{Number(currentPlant.dryTarget).toFixed(1)} lbs</div>
             </div>
           )}
           {currentPlant?.mirrorPlant && (
@@ -327,10 +327,10 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
 
             {/* Dry-Back Trend Chart (last 7 days) */}
       {dryBackChartData.length > 1 && (
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+        <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
           <div className="flex justify-between items-center mb-3">
             <div>
-              <h2 className="text-sm font-bold text-zinc-300">Dry-Back Trend</h2>
+              <h2 className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Dry-Back Trend</h2>
               <p className="text-[10px] text-zinc-500">Last 7 days</p>
             </div>
             <span className="text-[10px] font-mono text-zinc-500">
@@ -414,7 +414,7 @@ formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Dryback']}              
 
       {/* Show message if no data in the last 7 days */}
       {dryBackChartData.length === 0 && dryBackLogs.length > 0 && (
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 text-center">
+        <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 text-center">
           <p className="text-xs text-zinc-500">
             No dryback readings in the last 7 days.
           </p>
@@ -422,9 +422,9 @@ formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Dryback']}              
       )}
 
       {/* Activity Timeline */}
-      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
-        <div className="p-4 border-b border-zinc-800">
-          <h2 className="text-sm font-bold text-zinc-300">Activity Timeline</h2>
+      <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
+        <div className="p-4 border-b border-zinc-200 dark:border-zinc-800">
+          <h2 className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Activity Timeline</h2>
         </div>
         <div className="divide-y divide-zinc-800">
           {allEvents.length === 0 ? (
@@ -433,14 +433,14 @@ formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Dryback']}              
               <p className="text-xs mt-1">Start by logging a check-in or importing data.</p>
             </div>
           ) : (
-            allEvents.slice(0, 20).map((event, index) => {
+            allEvents.slice(0, 3).map((event, index) => {
               const isWeight = 'currentWeightLbs' in event && event.currentWeightLbs !== null;
               const date = new Date(event.timestamp);
               const log = event as DryBackLog;
               const irrigation = event as IrrigationEvent;
               
               return (
-                <div key={`${isWeight ? 'weight' : 'irrigation'}-${event.id}-${index}`} className="p-4 flex items-start gap-3 hover:bg-zinc-800/30 transition-colors">
+                <div key={`${isWeight ? 'weight' : 'irrigation'}-${event.id}-${index}`} className="p-4 flex items-start gap-3 hover:bg-zinc-100 dark:hover:bg-zinc-800/30 transition-colors">
                   <div className="shrink-0 mt-0.5">
                     {isWeight ? (
                       <div className="p-1.5 rounded-full bg-emerald-500/10 text-emerald-400">
@@ -456,7 +456,7 @@ formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Dryback']}              
                     <div className="flex items-center justify-between gap-2">
                       <div>
                         {isWeight ? (
-                          <span className="font-medium text-white">
+                          <span className="font-medium text-zinc-900 dark:text-white">
                             {Number(log.currentWeightLbs).toFixed(1)} lbs
                             <span className={`ml-2 text-xs ${
                               Number(log.dryBackPercent) > 80 ? 'text-red-400' :
@@ -467,10 +467,10 @@ formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Dryback']}              
                             </span>
                           </span>
                         ) : (
-                          <span className="font-medium text-white">
+                          <span className="font-medium text-zinc-900 dark:text-white">
                             Irrigation
                             {irrigation.moisturePercentage !== null && (
-                              <span className="ml-2 text-xs text-zinc-400">
+                              <span className="ml-2 text-xs text-zinc-600 dark:text-zinc-400">
                                 ({Number(irrigation.moisturePercentage).toFixed(0)}% moisture)
                               </span>
                             )}
@@ -482,7 +482,7 @@ formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Dryback']}              
                       </span>
                     </div>
                     {isWeight && log.trainingEvent && log.trainingEvent !== "None" && (
-                      <div className="text-xs text-zinc-400 mt-0.5">
+                      <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
                         Training: {log.trainingEvent}
                       </div>
                     )}
@@ -501,11 +501,11 @@ formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Dryback']}              
 
       {/* AI Insights */}
       {plantInsights.length > 0 && (
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
-          <h2 className="text-sm font-bold text-zinc-300 mb-3">AI Insights</h2>
+        <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
+          <h2 className="text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-3">AI Insights</h2>
           <div className="space-y-2">
             {plantInsights.slice(0, 3).map((insight) => (
-              <div key={insight.id} className="bg-zinc-800/30 rounded-lg p-3 border border-zinc-700/50">
+              <div key={insight.id} className="bg-zinc-800/30 rounded-lg p-3 border border-zinc-300 dark:border-zinc-700/50">
                 <div className="flex items-center gap-2">
                   <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                     insight.recommendationType === 'irrigate' ? 'bg-red-500/20 text-red-400' :
@@ -518,9 +518,9 @@ formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Dryback']}              
                     {new Date(insight.createdAt).toLocaleDateString()}
                   </span>
                 </div>
-                <p className="text-sm text-zinc-300 mt-1">{insight.recommendationText}</p>
+                <p className="text-sm text-zinc-700 dark:text-zinc-300 mt-1">{insight.recommendationText}</p>
                 {insight.actionPlan && (
-                  <p className="text-xs text-zinc-400 mt-1">{insight.actionPlan}</p>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">{insight.actionPlan}</p>
                 )}
               </div>
             ))}
