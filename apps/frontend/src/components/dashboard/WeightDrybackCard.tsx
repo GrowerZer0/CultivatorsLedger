@@ -150,24 +150,6 @@ export function WeightDrybackCard({
     });
   }, [plants, dryBackLogs]);
 
-  const handleSetFc = async (plantId: string, weight: number) => {
-    try {
-      const res = await fetch(`/api/plants/${plantId}/set-fc`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ weight }),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        alert(err.error || "Failed to set FC");
-        return;
-      }
-      if (onRefresh) onRefresh();
-    } catch (err) {
-      alert("Failed to set FC");
-    }
-  };
-
   if (plants.length === 0) {
     return null;
   }
@@ -204,14 +186,14 @@ export function WeightDrybackCard({
       {/* Plant rows */}
       <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
         {plantStates.map((state) => (
-          <PlantRow key={state.plant.id} state={state} onSetFc={handleSetFc} />
+          <PlantRow key={state.plant.id} state={state} />
         ))}
       </div>
     </div>
   );
 }
 
-function PlantRow({ state, onSetFc }: { state: PlantState; onSetFc: (plantId: string, weight: number) => void }) {
+function PlantRow({ state}: { state: PlantState }) {
   const {
     plant,
     currentWeight,
@@ -349,30 +331,6 @@ function PlantRow({ state, onSetFc }: { state: PlantState; onSetFc: (plantId: st
           </p>
         )}
       </Link>
-
-      {/* Set FC button — outside the Link so it doesn't navigate */}
-      <div className="flex justify-end mt-2">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const defaultWeight = currentWeight !== null ? Number(currentWeight).toFixed(2) : "";
-            const input = window.prompt(
-              `Set field capacity for ${plant.name}.\n\nEnter the new wet weight (lbs):`,
-              defaultWeight
-            );
-            if (input === null) return;
-            const val = parseFloat(input);
-            if (isNaN(val) || val <= 0) return;
-            onSetFc(plant.id, val);
-          }}
-          className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors"
-          title="Set field capacity (wet weight)"
-        >
-          Set FC
-        </button>
-      </div>
     </div>
   );
 }

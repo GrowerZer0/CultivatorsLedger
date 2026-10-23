@@ -16,6 +16,8 @@ export interface Plant {
   stage: string | null;
   mirrorPlantId: string | null;
   flipDate: Date | null;
+  pendingFcUpdate: boolean;
+  pendingFcStartTime: Date | null;
 }
 
 export interface DryBackLog {

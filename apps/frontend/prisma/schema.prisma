@@ -242,8 +242,10 @@ model Plant {
   mirroredBy       Plant[]           @relation("PlantMirror")
   stage            String?           @default("seedling") // seedling, vegetative, flowering, harvest
   drybackOverride  Decimal?          @map("dryback_override") @db.Decimal(4, 1)
-    flipDate       DateTime?         @map("flip_date")
-  
+  flipDate         DateTime?         @map("flip_date")
+  pendingFcUpdate  Boolean   @default(false) @map("pending_fc_update")
+  pendingFcStartTime  DateTime? @map("pending_fc_start_time")
+
   @@map("plants")
 }
 model PlantInsight {

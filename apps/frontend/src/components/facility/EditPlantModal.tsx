@@ -64,7 +64,6 @@ export function EditPlantModal({
         wetWeight: plant.wetWeight,
         dryTarget: plant.dryTarget,
         containerGallons: plant.containerGallons,
-        currentWeight: plant.currentWeight,
         mirrorPlantId: plant.mirrorPlantId,
         startDate: plant.startDate ? new Date(plant.startDate).toISOString().split('T')[0] : null,
         stage: plant.stage || null,
@@ -98,7 +97,6 @@ export function EditPlantModal({
       payload.wetWeight = toNumberOrNull(formData.wetWeight);
       payload.dryTarget = toNumberOrNull(formData.dryTarget);
       payload.containerGallons = toNumberOrNull(formData.containerGallons);
-      payload.currentWeight = toNumberOrNull(formData.currentWeight);
 
       const result = await updatePlant(payload);
 

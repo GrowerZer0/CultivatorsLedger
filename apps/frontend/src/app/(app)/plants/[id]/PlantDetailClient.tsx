@@ -189,25 +189,6 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
             Log Check-in
           </button>
           <button
-  onClick={async () => {
-    const defaultWeight = currentPlant.currentWeight ? Number(currentPlant.currentWeight).toFixed(2) : '';
-    const input = window.prompt(`Set field capacity for ${currentPlant.name}.\n\nEnter the new wet weight (lbs):`, defaultWeight);
-    if (input === null) return;
-    const val = parseFloat(input);
-    if (isNaN(val) || val <= 0) return;
-    const res = await fetch(`/api/plants/${currentPlant.id}/set-fc`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ weight: val }),
-    });
-    if (res.ok) router.refresh();
-    else alert('Failed to set FC');
-  }}
-  className="px-3 py-1.5 text-xs font-bold bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg transition-colors"
->
-  Set FC
-</button>
-          <button
             onClick={handleDelete}
             disabled={isDeleting}
             className="p-2 rounded-lg hover:bg-red-500/10 text-zinc-400 hover:text-red-500 transition-colors"
@@ -225,11 +206,11 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
             Current Weight
           </div>
           <div className="text-2xl font-bold text-white mt-1">
-            {weight !== null ? `${weight.toFixed(1)} lbs` : "—"}
+            {weight !== null ? `${Number(weight).toFixed(1)} lbs` : "—"}
           </div>
           {currentPlant?.wetWeight && (
             <div className="text-xs text-zinc-500">
-              Wet: {currentPlant.wetWeight.toFixed(1)} lbs
+              Wet: {Number(currentPlant.wetWeight).toFixed(1)} lbs
             </div>
           )}
         </div>
@@ -246,7 +227,7 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
               'text-green-500'
             ) : 'text-white'
           }`}>
-            {dryback !== null ? `${dryback.toFixed(1)}%` : "—"}
+            {dryback !== null ? `${Number(dryback).toFixed(1)}%` : "—"}
           </div>
           {trend && (
             <div className="flex items-center gap-1 text-xs">
@@ -330,7 +311,7 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
           {currentPlant?.dryTarget && (
             <div>
               <span className="text-xs text-zinc-500">Dry Target</span>
-              <div className="text-sm text-white">{currentPlant.dryTarget.toFixed(1)} lbs</div>
+              <div className="text-sm text-white">{Number(currentPlant.dryTarget).toFixed(1)} lbs</div>
             </div>
           )}
           {currentPlant?.mirrorPlant && (
@@ -476,13 +457,13 @@ formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Dryback']}              
                       <div>
                         {isWeight ? (
                           <span className="font-medium text-white">
-                            {log.currentWeightLbs.toFixed(1)} lbs
+                            {Number(log.currentWeightLbs).toFixed(1)} lbs
                             <span className={`ml-2 text-xs ${
-                              log.dryBackPercent > 80 ? 'text-red-400' :
-                              log.dryBackPercent > 60 ? 'text-yellow-400' :
+                              Number(log.dryBackPercent) > 80 ? 'text-red-400' :
+                              Number(log.dryBackPercent) > 60 ? 'text-yellow-400' :
                               'text-green-400'
                             }`}>
-                              ({log.dryBackPercent.toFixed(1)}% dryback)
+                              ({Number(log.dryBackPercent).toFixed(1)}% dryback)
                             </span>
                           </span>
                         ) : (
@@ -490,7 +471,7 @@ formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Dryback']}              
                             Irrigation
                             {irrigation.moisturePercentage !== null && (
                               <span className="ml-2 text-xs text-zinc-400">
-                                ({irrigation.moisturePercentage.toFixed(0)}% moisture)
+                                ({Number(irrigation.moisturePercentage).toFixed(0)}% moisture)
                               </span>
                             )}
                           </span>

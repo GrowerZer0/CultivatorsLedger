@@ -151,6 +151,53 @@ export async function POST(request: NextRequest) {
         }
       }
 
+            // === AUTO-FC UPDATE LOGIC ===
+      // If we're in a pending FC update window, check if the weight has stabilized.
+      if (plant.pendingFcUpdate && plant.pendingFcStartTime) {
+        const now = Date.now();
+        const startTime = new Date(plant.pendingFcStartTime).getTime();
+        const minutesElapsed = (now - startTime) / 1000 / 60;
+
+        // We need at least 2 readings after the irrigation to confirm stabilization.
+        // Since readings are every 30s, we check if at least 2 minutes have passed.
+        if (minutesElapsed >= 2) {
+          // Check the previous reading to see if the change is small
+          const previousReading = await db.dryBackLog.findFirst({
+            where: { plantId: plant.id, userId: sensor.userId },
+            orderBy: { timestamp: "desc" },
+            skip: 1, // Get the one before the latest
+          });
+
+          if (previousReading) {
+            const weightChange = Math.abs(weight - Number(previousReading.currentWeightLbs));
+            const threshold = 0.1; // 0.1 lbs change is considered stable
+
+            if (weightChange <= threshold) {
+              // Weight has stabilized! Update FC.
+              await db.plant.update({
+                where: { id: plant.id },
+                data: {
+                  wetWeight: weight,
+                  pendingFcUpdate: false,
+                  pendingFcStartTime: null,
+                },
+              });
+              console.log(`✅ AUTO-FC: Stabilized at ${weight.toFixed(2)} lbs for ${plant.name}`);
+            }
+          }
+        }
+      }
+
+      // If an irrigation was just detected, set the pending flag
+      // (Add this inside the irrigation detection block where you create the IrrigationEvent)
+      await db.plant.update({
+        where: { id: plant.id },
+        data: {
+          pendingFcUpdate: true,
+          pendingFcStartTime: new Date(),
+        },
+      });
+
       // === WET WEIGHT SOURCE PRIORITY ===
       // 1. plant.wetWeight (source of truth — set by user via "Set FC" button)
       // 2. ESP32 payload fieldCapacity_g (bootstrap only)

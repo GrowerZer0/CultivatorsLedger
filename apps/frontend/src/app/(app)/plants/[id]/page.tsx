@@ -80,6 +80,8 @@ export default async function PlantDetailPage({
     batch: plantData.batch ? { id: plantData.batch.id, name: plantData.batch.name } : null,
     stage: derived.stage,
     flipDate: plantData.flipDate,
+    pendingFcUpdate: plantData.pendingFcUpdate,
+    pendingFcStartTime: plantData.pendingFcStartTime,
     dryBackLogs: plantData.dryBackLogs.map((log): DryBackLog => ({
       id: log.id,
       timestamp: log.timestamp,

@@ -19,7 +19,11 @@ export const plantSchema = z.object({
   containerGallons: z.number().min(0).max(100).optional().nullable(),
   wetWeight: z.number().min(0).max(1000).optional().nullable(),
   dryTarget: z.number().min(0).max(1000).optional().nullable(),
-  currentWeight: z.number().min(0).max(1000).optional().nullable(),
+  currentWeight: z.number().optional().nullable(),
+  startDate: z.date().optional().nullable(),
+  flipDate: z.date().optional().nullable(),
+  stage: z.string().optional().nullable(),
+  mirrorPlantId: z.string().optional().nullable(),
 });
 
 export const batchSchema = z.object({
