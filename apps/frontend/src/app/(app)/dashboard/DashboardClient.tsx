@@ -15,8 +15,6 @@ import {
   XAxis,
   YAxis,
   ReferenceArea,
-  LineChart,
-  Line
 } from 'recharts';
 import {
   type EnvironmentReading,
@@ -30,10 +28,8 @@ import {
 import { generateDailyBriefing } from '@/server/actions/dailyinsights';
 import { useTelemetry } from '@/lib/telemetry-context';
 import { MorningBrief } from '@/components/MorningBrief';
-import { RoomCard } from '@/components/facility/RoomCard';
 import { fetchRooms } from '@/server/actions/facility-mgmt';
 import { fetchPlants } from '@/server/actions/plant-mgmt';
-import { ActivityItem, RecentActivity } from "@/components/dashboard/RecentActivity";
 import { OnboardingChecklist } from "@/components/onboarding/OnBoardingChecklist";
 import { WeightDrybackCard } from "@/components/dashboard/WeightDrybackCard";
 import { ClimateCard } from "@/components/dashboard/ClimateCard";
@@ -67,7 +63,6 @@ interface DashboardClientProps {
 }
 
 export default function DashboardClient({ 
-  initialData, 
   onboardingState,
   isOnboardingActive 
 }: DashboardClientProps) {
@@ -80,11 +75,6 @@ export default function DashboardClient({
   const [plants, setPlants] = useState<Plant[]>([]);
   const [selectedPlantId, setSelectedPlantId] = useState<string | null>(null);
   const [climateReading, setClimateReading] = useState<ClimateReading | null>(null);
-
-  // New states for room cards
-  const [rooms, setRooms] = useState<any[]>([]);
-  const [latestRoomReadings, setLatestRoomReadings] = useState<Record<string, any>>({});
-  const [plantCounts, setPlantCounts] = useState<Record<string, number>>({});
 
   // AI Briefing state
   const [briefingLoading, setBriefingLoading] = useState(false);
@@ -140,45 +130,6 @@ export default function DashboardClient({
     }
   }, [isOnboardingActive]);
 
-  const recentActivity = useMemo<ActivityItem[]>(() => {
-    const items: ActivityItem[] = [];
-
-    dbDryBackLogs.forEach((log) => {
-      const plant = plants.find((p) => p.id === log.plantId);
-      if (!plant) return;
-      items.push({
-        id: log.id,
-        type: "plant",
-        timestamp: log.loggedAt,
-        label: plant.name,
-        detail: `Weight: ${log.weight.toFixed(1)} lbs · ${log.source || "manual"}`,
-        metadata: {
-          weight: log.weight,
-          watered: log.watered || false,
-          fed: log.fed || false,
-          training: log.trainingEvent || undefined,
-        },
-      });
-    });
-
-    dbEnvironmentReadings.forEach((reading) => {
-      items.push({
-        id: reading.id,
-        type: "climate",
-        timestamp: reading.recordedAt,
-        label: "Room Climate",
-        detail: `${Math.round(reading.temperatureF)}°F · ${Math.round(reading.humidity)}% · ${reading.vpd.toFixed(2)} kPa`,
-        metadata: {
-          temperatureF: Math.round(reading.temperatureF),
-          humidity: Math.round(reading.humidity),
-          vpd: reading.vpd,
-        },
-      });
-    });
-
-    return items;
-  }, [dbDryBackLogs, dbEnvironmentReadings, plants]);
-
   // --- DATA FETCH ---
   const loadData = useCallback(
     async (skipLoading = false) => {
@@ -196,8 +147,6 @@ export default function DashboardClient({
         setDbEnvironmentReadings(dashboardData.environmentReadings || []);
         setDbDryBackLogs(dashboardData.dryBackLogs || []);
         setLatestIrrigation(dashboardData.latestIrrigation || null);
-        setRooms(roomsData);
-        setLatestRoomReadings(readings);
         setClimateReading(climate);
 
         const counts: Record<string, number> = {};
@@ -206,7 +155,6 @@ export default function DashboardClient({
             counts[plant.roomId] = (counts[plant.roomId] || 0) + 1;
           }
         });
-        setPlantCounts(counts);
         setPlants(plantsData);
 
         let activeDryBack = undefined;
@@ -392,31 +340,7 @@ export default function DashboardClient({
         />
       )}
 
-      {/* Room Cards */}
-      <div>
-        <h2 className="text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-zinc-400 mb-3">
-          Your Rooms
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {rooms.map((room) => (
-            <RoomCard
-              key={room.id}
-              id={room.id}
-              name={room.name}
-              type={room.type}
-              plantCount={plantCounts[room.id] || 0}
-              latestReading={latestRoomReadings[room.id] || null}
-            />
-          ))}
-        </div>
-        {rooms.length === 0 && (
-          <p className="text-center text-zinc-500 py-8">
-            No rooms yet. <a href="/rooms" className="text-emerald-500 hover:underline">Create one</a>.
-          </p>
-        )}
-      </div>
-
-      {/* Daily AI Briefing */}
+      {/* Daily AI Briefing 
       <div>
         <MorningBrief
           snapshot={briefingSnapshot}
@@ -426,10 +350,7 @@ export default function DashboardClient({
           isRefreshing={briefingLoading}
           onRefresh={() => loadBriefing(true)}
         />
-      </div>
-
-      {/* Recent Activity */}
-      <RecentActivity items={recentActivity} maxItems={5} />
+      </div>*/}
     </div>
   );
 }
