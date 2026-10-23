@@ -759,7 +759,6 @@ const handleCsvImportSuccess = () => {
   }}
   plantStage={selectedPlantForNutrient?.stage}
   plantStrain={selectedPlantForNutrient?.strain}
-  plantWeight={selectedPlantForNutrient?.currentWeight}
 />
     </>
   );

@@ -1,5 +1,3 @@
-//apps/frontend/src/components/nutrients/NutrientCalculatorModal.tsx
-
 "use client";
 
 import { useEffect } from "react";
@@ -10,7 +8,8 @@ interface NutrientCalculatorModalProps {
   onClose: () => void;
   plantStage?: string;
   plantStrain?: string;
-  plantWeight?: number;
+  plantName?: string;
+  weekOfStage?: number | null;
 }
 
 export function NutrientCalculatorModal({
@@ -18,9 +17,9 @@ export function NutrientCalculatorModal({
   onClose,
   plantStage,
   plantStrain,
-  plantWeight,
+  plantName,
+  weekOfStage,
 }: NutrientCalculatorModalProps) {
-  // Prevent body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -36,12 +35,12 @@ export function NutrientCalculatorModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="relative w-full max-w-2xl max-h-[95vh] overflow-y-auto">
+      <div className="relative w-full max-w-md max-h-[95vh] overflow-y-auto">
         <NutrientCalculator
-          mode="batch" // default, but user can toggle
           plantStage={plantStage}
           plantStrain={plantStrain}
-          plantWeight={plantWeight}
+          plantName={plantName}
+          weekOfStage={weekOfStage}
           onClose={onClose}
         />
       </div>

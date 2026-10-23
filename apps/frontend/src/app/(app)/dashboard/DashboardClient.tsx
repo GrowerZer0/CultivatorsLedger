@@ -5,6 +5,8 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams } from "next/navigation";
 import {
   Layers,
+  Scale, 
+  FlaskConical,
 } from 'lucide-react';
 import {
   Area,
@@ -34,6 +36,7 @@ import { OnboardingChecklist } from "@/components/onboarding/OnBoardingChecklist
 import { WeightDrybackCard } from "@/components/dashboard/WeightDrybackCard";
 import { ClimateCard } from "@/components/dashboard/ClimateCard";
 import { getLatestClimateReading, getClimateTrend, type ClimateReading, type ClimatePoint } from "@/server/actions/climate";
+import { NutrientCalculatorModal } from "@/components/nutrients/NutrientCalculatorModal";
 
 type Plant = {
   id: string;
@@ -76,7 +79,7 @@ export default function DashboardClient({
   const [selectedPlantId, setSelectedPlantId] = useState<string | null>(null);
   const [climateReading, setClimateReading] = useState<ClimateReading | null>(null);
   const [climateTrend, setClimateTrend] = useState<ClimatePoint[]>([]);
-
+const [isNutrientModalOpen, setIsNutrientModalOpen] = useState(false);
   // AI Briefing state
   const [briefingLoading, setBriefingLoading] = useState(false);
   const [lastBriefingTime, setLastBriefingTime] = useState<string>('Not yet generated');
@@ -137,7 +140,7 @@ export default function DashboardClient({
       try {
         if (!skipLoading) setLoading(true);
         
-        const [dashboardData, roomsData, plantsData, readings, climate] = await Promise.all([
+        const [dashboardData, roomsData, plantsData, readings, climate, trend] = await Promise.all([
           getDashboardData(),
           fetchRooms(),
           fetchPlants(),
@@ -150,7 +153,7 @@ export default function DashboardClient({
         setDbDryBackLogs(dashboardData.dryBackLogs || []);
         setLatestIrrigation(dashboardData.latestIrrigation || null);
         setClimateReading(climate);
-        setClimateTrend(climateTrend);
+        setClimateTrend(trend);
 
         const counts: Record<string, number> = {};
         plantsData.forEach((plant: any) => {
@@ -296,6 +299,26 @@ export default function DashboardClient({
         />
       )}
 
+      {/* Quick Actions */}
+<div className="grid grid-cols-2 gap-3">
+  <button
+    onClick={() => {
+      window.location.href = "/check-in";
+    }}
+    className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-3 text-sm font-bold shadow-sm transition-colors"
+  >
+    <Scale className="size-4" />
+    Log Reading
+  </button>
+  <button
+    onClick={() => setIsNutrientModalOpen(true)}
+    className="flex items-center justify-center gap-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 text-sm font-bold shadow-sm hover:border-emerald-500 transition-colors"
+  >
+    <FlaskConical className="size-4" />
+    Mix Nutrients
+  </button>
+</div>
+
       {/* Climate Card */}
 <ClimateCard
   reading={climateReading}
@@ -355,6 +378,10 @@ export default function DashboardClient({
           onRefresh={() => loadBriefing(true)}
         />
       </div>*/}
+<NutrientCalculatorModal
+  isOpen={isNutrientModalOpen}
+  onClose={() => setIsNutrientModalOpen(false)}
+/>
     </div>
   );
 }

@@ -164,55 +164,137 @@ export function averageVpd(readings: EnvironmentReading[]) {
 }
 // 6. FACTORY PRESET FEED LIBRARY (Retained)
 export const commercialFeedSchedules: FeedSchedule[] = [
+  // ============================================================
+  // ATHENA BLENDED LINE
+  // Blended is a two-part (Grow A/B or Bloom A/B) that includes Ca/Mg.
+  // Cal-Mag is optional unless using RO water or unbuffered coco.
+  // Verify doses at athenaag.com feeding charts.
+  // ============================================================
   {
-    id: "fox-farm-soil-veg",
+    id: "athena-veg",
+    brand: "Athena Blended",
+    stage: "vegetative",
+    label: "Athena Blended — Vegetative",
+    targetEc: 1.8,
+    targetPh: 5.8,
+    doses: [
+      { product: "Grow A", mlPerGallon: 6 },
+      { product: "Grow B", mlPerGallon: 6 },
+      { product: "Cleanse", mlPerGallon: 2.5 },
+    ],
+  },
+  {
+    id: "athena-flower",
+    brand: "Athena Blended",
+    stage: "flower",
+    label: "Athena Blended — Flower",
+    targetEc: 2.1,
+    targetPh: 5.8,
+    doses: [
+      { product: "Bloom A", mlPerGallon: 13 },
+      { product: "Bloom B", mlPerGallon: 13 },
+      { product: "Cleanse", mlPerGallon: 2.5 },
+      { product: "Cal-Mag (optional — only for RO or unbuffered coco)", mlPerGallon: 2 },
+    ],
+  },
+
+  // ============================================================
+  // FOX FARM TRIO
+  // Soil/coco line. Cal-Mag is assumed, especially in flower.
+  // Verify doses at foxfarm.com feeding schedules.
+  // ============================================================
+  {
+    id: "fox-farm-veg",
     brand: "Fox Farm",
     stage: "vegetative",
-    label: "Soil Trio - Vegetative",
+    label: "Fox Farm Trio — Vegetative",
     targetEc: 1.35,
     targetPh: 6.4,
     doses: [
       { product: "Grow Big", mlPerGallon: 10 },
-      { product: "Big Bloom", mlPerGallon: 15 }
-    ]
+      { product: "Big Bloom", mlPerGallon: 15 },
+      { product: "Cal-Mag", mlPerGallon: 3 },
+    ],
   },
   {
-    id: "fox-farm-soil-flower",
+    id: "fox-farm-flower",
     brand: "Fox Farm",
     stage: "flower",
-    label: "Soil Trio - Flower",
+    label: "Fox Farm Trio — Flower",
     targetEc: 1.85,
-    targetPh: 6.45,
+    targetPh: 6.4,
     doses: [
       { product: "Tiger Bloom", mlPerGallon: 10 },
       { product: "Big Bloom", mlPerGallon: 15 },
-      { product: "Grow Big", mlPerGallon: 5 }
-    ]
+      { product: "Grow Big", mlPerGallon: 5 },
+      { product: "Cal-Mag", mlPerGallon: 5 },
+    ],
   },
+
+  // ============================================================
+  // JACKS 3-2-1
+  // Ca/Mg comes from Calcium Nitrate + Epsom Salt, no Cal-Mag needed.
+  // Verify doses at jacksnutrients.com.
+  // ============================================================
   {
     id: "jacks-321-veg",
-    brand: "Jacks",
+    brand: "Jacks 3-2-1",
     stage: "vegetative",
-    label: "3-2-1 Base - Vegetative",
+    label: "Jacks 3-2-1 — Vegetative",
     targetEc: 1.55,
     targetPh: 5.9,
     doses: [
-      { product: "Part A", mlPerGallon: 3.6 },
+      { product: "Part A (5-12-26)", mlPerGallon: 3.6 },
       { product: "Calcium Nitrate", mlPerGallon: 2.4 },
-      { product: "Epsom Salt", mlPerGallon: 1.2 }
-    ]
+      { product: "Epsom Salt", mlPerGallon: 1.2 },
+    ],
   },
   {
-    id: "athena-blended-flower",
-    brand: "Athena",
+    id: "jacks-321-flower",
+    brand: "Jacks 3-2-1",
     stage: "flower",
-    label: "Blended Line - Flower",
-    targetEc: 2.1,
-    targetPh: 5.85,
+    label: "Jacks 3-2-1 — Flower",
+    targetEc: 1.8,
+    targetPh: 5.9,
     doses: [
-      { product: "Bloom A", mlPerGallon: 13 },
-      { product: "Bloom B", mlPerGallon: 13 },
-      { product: "Cleanse", mlPerGallon: 2.5 }
-    ]
-  }
+      { product: "Part A (5-12-26)", mlPerGallon: 3.6 },
+      { product: "Calcium Nitrate", mlPerGallon: 2.4 },
+      { product: "Epsom Salt", mlPerGallon: 1.2 },
+      { product: "MKP (0-52-34) — weeks 1-3 only", mlPerGallon: 0.5 },
+    ],
+  },
+
+  // ============================================================
+  // GENERAL HYDROPONICS FLORA SERIES
+  // Standard 3-part. CaliMagic required in coco/RO.
+  // Verify doses at generalhydroponics.com feedcharts.
+  // ============================================================
+  {
+    id: "gh-flora-veg",
+    brand: "General Hydroponics Flora",
+    stage: "vegetative",
+    label: "GH Flora — Vegetative",
+    targetEc: 1.6,
+    targetPh: 5.8,
+    doses: [
+      { product: "FloraMicro", mlPerGallon: 7.5 },
+      { product: "FloraGro", mlPerGallon: 10 },
+      { product: "FloraBloom", mlPerGallon: 2.5 },
+      { product: "CaliMagic", mlPerGallon: 5 },
+    ],
+  },
+  {
+    id: "gh-flora-flower",
+    brand: "General Hydroponics Flora",
+    stage: "flower",
+    label: "GH Flora — Flower",
+    targetEc: 2.0,
+    targetPh: 5.8,
+    doses: [
+      { product: "FloraMicro", mlPerGallon: 10 },
+      { product: "FloraGro", mlPerGallon: 2.5 },
+      { product: "FloraBloom", mlPerGallon: 15 },
+      { product: "CaliMagic", mlPerGallon: 5 },
+    ],
+  },
 ];
