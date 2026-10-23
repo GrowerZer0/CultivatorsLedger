@@ -33,7 +33,7 @@ import { fetchPlants } from '@/server/actions/plant-mgmt';
 import { OnboardingChecklist } from "@/components/onboarding/OnBoardingChecklist";
 import { WeightDrybackCard } from "@/components/dashboard/WeightDrybackCard";
 import { ClimateCard } from "@/components/dashboard/ClimateCard";
-import { getLatestClimateReading, type ClimateReading } from "@/server/actions/climate";
+import { getLatestClimateReading, getClimateTrend, type ClimateReading, type ClimatePoint } from "@/server/actions/climate";
 
 type Plant = {
   id: string;
@@ -75,6 +75,7 @@ export default function DashboardClient({
   const [plants, setPlants] = useState<Plant[]>([]);
   const [selectedPlantId, setSelectedPlantId] = useState<string | null>(null);
   const [climateReading, setClimateReading] = useState<ClimateReading | null>(null);
+  const [climateTrend, setClimateTrend] = useState<ClimatePoint[]>([]);
 
   // AI Briefing state
   const [briefingLoading, setBriefingLoading] = useState(false);
@@ -142,12 +143,14 @@ export default function DashboardClient({
           fetchPlants(),
           getLatestRoomReadings(),
           getLatestClimateReading(),
+          getClimateTrend(24),
         ]);
 
         setDbEnvironmentReadings(dashboardData.environmentReadings || []);
         setDbDryBackLogs(dashboardData.dryBackLogs || []);
         setLatestIrrigation(dashboardData.latestIrrigation || null);
         setClimateReading(climate);
+        setClimateTrend(climateTrend);
 
         const counts: Record<string, number> = {};
         plantsData.forEach((plant: any) => {
@@ -296,6 +299,7 @@ export default function DashboardClient({
       {/* Climate Card */}
 <ClimateCard
   reading={climateReading}
+  trend={climateTrend}
   onRefresh={() => loadData(true)}
   isLoading={loading}
 />
