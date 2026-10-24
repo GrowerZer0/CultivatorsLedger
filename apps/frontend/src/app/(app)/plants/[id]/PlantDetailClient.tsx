@@ -15,6 +15,7 @@ import {
   TrendingDown,
   Minus,
   Pencil,
+  Camera,
 } from "lucide-react";
 import {
   Line,
@@ -29,7 +30,8 @@ import {
 import { deletePlant } from "@/server/actions/plant-mgmt";
 import { EditPlantModal } from "@/components/facility/EditPlantModal";
 import { GROWTH_STAGES, getStageFromDays, getStageProgress } from "@/lib/growth-stages";
-import type { PlantWithDetails, DryBackLog, IrrigationEvent, PlantInsight } from "@/types/plant";
+import type { PlantWithDetails, DryBackLog, IrrigationEvent } from "@/types/plant";
+import { PhotoUploadModal } from "@/components/photos/PhotoUploadModal";
 
 interface PlantDetailClientProps {
   plant: PlantWithDetails;
@@ -40,14 +42,15 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [currentPlant, setCurrentPlant] = useState(plant);
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
 
   const handleDelete = async () => {
     if (!confirm(`Delete "${plant.name}"? This will permanently delete the plant and all its data.`)) return;
-    
+
     setIsDeleting(true);
     const result = await deletePlant(plant.id);
     setIsDeleting(false);
-    
+
     if (result.success) {
       router.push("/plants");
     } else {
@@ -73,12 +76,12 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
   const dryBackLogs = currentPlant?.dryBackLogs || [];
   const irrigationEvents = currentPlant?.irrigationEvents || [];
   const plantInsights = currentPlant?.plantInsights || [];
-  
+
   const latestLog = dryBackLogs[0];
   const weight = latestLog?.currentWeightLbs ?? null;
   const dryback = latestLog?.dryBackPercent ?? null;
-  
-  const daysSinceStart = currentPlant?.startDate 
+
+  const daysSinceStart = currentPlant?.startDate
     ? Math.floor((Date.now() - new Date(currentPlant.startDate).getTime()) / (1000 * 60 * 60 * 24))
     : 0;
 
@@ -93,11 +96,11 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
     const recent = dryBackLogs.slice(0, 3);
     const older = dryBackLogs.slice(3, 6);
     if (older.length === 0) return null;
-    
+
     const recentAvg = recent.reduce((sum, l) => sum + l.dryBackPercent, 0) / recent.length;
     const olderAvg = older.reduce((sum, l) => sum + l.dryBackPercent, 0) / older.length;
     const diff = recentAvg - olderAvg;
-    
+
     if (diff > 5) return { direction: "up", label: "Increasing", icon: TrendingUp };
     if (diff < -5) return { direction: "down", label: "Decreasing", icon: TrendingDown };
     return { direction: "stable", label: "Stable", icon: Minus };
@@ -106,11 +109,13 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
   const trend = getTrend();
 
   // Combine events for timeline
-  const allEvents = [...dryBackLogs, ...irrigationEvents].sort(
-    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-  );
+  const allEvents = [
+    ...dryBackLogs.map((log) => ({ kind: "weight" as const, data: log, timestamp: new Date(log.timestamp) })),
+    ...irrigationEvents.map((e) => ({ kind: "irrigation" as const, data: e, timestamp: new Date(e.timestamp) })),
+    ...(currentPlant.photos || []).map((p) => ({ kind: "photo" as const, data: p, timestamp: new Date(p.capturedAt) })),
+  ].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
-    // Chart data: dryback % over the last 7 days
+  // Chart data: dryback % over the last 7 days
   const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
   const dryBackChartData = dryBackLogs
     .filter((log) => new Date(log.timestamp).getTime() >= sevenDaysAgo)
@@ -132,27 +137,27 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
   const [allRooms, setAllRooms] = useState<any[]>([]);
 
   const handleOpenEdit = async () => {
-  setIsLoadingData(true);
-  try {
-    const [plantsRes, batchesRes, roomsRes] = await Promise.all([
-      fetch('/api/plants'),
-      fetch('/api/batches'),
-      fetch('/api/rooms'),
-    ]);
-    const plantsData = await plantsRes.json();
-    const batchesData = await batchesRes.json();
-    const roomsData = await roomsRes.json();
-    setAllPlants(plantsData);
-    setAllBatches(batchesData);
-    setAllRooms(roomsData);
-    setShowEditModal(true);
-  } catch (error) {
-    console.error('Failed to load data for edit:', error);
-    setShowEditModal(true);
-  } finally {
-    setIsLoadingData(false);
-  }
-};
+    setIsLoadingData(true);
+    try {
+      const [plantsRes, batchesRes, roomsRes] = await Promise.all([
+        fetch('/api/plants'),
+        fetch('/api/batches'),
+        fetch('/api/rooms'),
+      ]);
+      const plantsData = await plantsRes.json();
+      const batchesData = await batchesRes.json();
+      const roomsData = await roomsRes.json();
+      setAllPlants(plantsData);
+      setAllBatches(batchesData);
+      setAllRooms(roomsData);
+      setShowEditModal(true);
+    } catch (error) {
+      console.error('Failed to load data for edit:', error);
+      setShowEditModal(true);
+    } finally {
+      setIsLoadingData(false);
+    }
+  };
 
   const rooms = currentPlant?.room ? [{ id: currentPlant.room.id, name: currentPlant.room.name }] : [];
 
@@ -186,7 +191,14 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
             onClick={() => router.push(`/check-in?plantId=${currentPlant?.id}`)}
             className="px-3 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
           >
-            Log Check-in
+            Log Reading
+          </button>
+          <button
+            onClick={() => setIsPhotoModalOpen(true)}
+            className="px-3 py-1.5 text-xs font-bold bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg transition-colors flex items-center gap-1"
+          >
+            <Camera className="size-3.5" />
+            Add Photo
           </button>
           <button
             onClick={handleDelete}
@@ -220,22 +232,20 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
             <Activity className="size-4" />
             Dryback
           </div>
-          <div className={`text-2xl font-bold mt-1 ${
-            dryback !== null ? (
+          <div className={`text-2xl font-bold mt-1 ${dryback !== null ? (
               dryback > 80 ? 'text-red-500' :
-              dryback > 60 ? 'text-yellow-500' :
-              'text-green-500'
+                dryback > 60 ? 'text-yellow-500' :
+                  'text-green-500'
             ) : 'text-white'
-          }`}>
+            }`}>
             {dryback !== null ? `${Number(dryback).toFixed(1)}%` : "—"}
           </div>
           {trend && (
             <div className="flex items-center gap-1 text-xs">
-              <trend.icon className={`size-3 ${
-                trend.direction === 'up' ? 'text-yellow-500' :
-                trend.direction === 'down' ? 'text-green-500' :
-                'text-zinc-500'
-              }`} />
+              <trend.icon className={`size-3 ${trend.direction === 'up' ? 'text-yellow-500' :
+                  trend.direction === 'down' ? 'text-green-500' :
+                    'text-zinc-500'
+                }`} />
               <span className="text-zinc-600 dark:text-zinc-400">{trend.label}</span>
             </div>
           )}
@@ -325,7 +335,7 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
         </div>
       )}
 
-            {/* Dry-Back Trend Chart (last 7 days) */}
+      {/* Dry-Back Trend Chart (last 7 days) */}
       {dryBackChartData.length > 1 && (
         <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
           <div className="flex justify-between items-center mb-3">
@@ -371,7 +381,7 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
                     color: '#fff',
                     fontSize: '12px',
                   }}
-formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Dryback']}                />
+                  formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Dryback']} />
                 <Line
                   type="monotone"
                   dataKey="dryback"
@@ -382,30 +392,30 @@ formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Dryback']}              
                 />
 
                 {/* Irrigation markers */}
-{irrigationEvents
-  .filter((e) => new Date(e.timestamp).getTime() >= sevenDaysAgo)
-  .map((e) => {
-    const isoMatch = dryBackChartData.find(
-      (d) =>
-        Math.abs(
-          new Date(d.time).getTime() - new Date(e.timestamp).getTime()
-        ) < 5 * 60 * 1000
-    );
-    if (!isoMatch) return null;
-    return (
-      <ReferenceLine
-        key={`irrigation-${e.id}`}
-        x={isoMatch.time}
-        stroke="#3b82f6"
-        strokeDasharray="3 3"
-        label={{
-          value: "💧",
-          position: "top",
-          fontSize: 14,
-        }}
-      />
-    );
-  })}
+                {irrigationEvents
+                  .filter((e) => new Date(e.timestamp).getTime() >= sevenDaysAgo)
+                  .map((e) => {
+                    const isoMatch = dryBackChartData.find(
+                      (d) =>
+                        Math.abs(
+                          new Date(d.time).getTime() - new Date(e.timestamp).getTime()
+                        ) < 5 * 60 * 1000
+                    );
+                    if (!isoMatch) return null;
+                    return (
+                      <ReferenceLine
+                        key={`irrigation-${e.id}`}
+                        x={isoMatch.time}
+                        stroke="#3b82f6"
+                        strokeDasharray="3 3"
+                        label={{
+                          value: "💧",
+                          position: "top",
+                          fontSize: 14,
+                        }}
+                      />
+                    );
+                  })}
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -433,68 +443,151 @@ formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Dryback']}              
               <p className="text-xs mt-1">Start by logging a check-in or importing data.</p>
             </div>
           ) : (
-            allEvents.slice(0, 3).map((event, index) => {
-              const isWeight = 'currentWeightLbs' in event && event.currentWeightLbs !== null;
-              const date = new Date(event.timestamp);
-              const log = event as DryBackLog;
-              const irrigation = event as IrrigationEvent;
-              
-              return (
-                <div key={`${isWeight ? 'weight' : 'irrigation'}-${event.id}-${index}`} className="p-4 flex items-start gap-3 hover:bg-zinc-100 dark:hover:bg-zinc-800/30 transition-colors">
-                  <div className="shrink-0 mt-0.5">
-                    {isWeight ? (
-                      <div className="p-1.5 rounded-full bg-emerald-500/10 text-emerald-400">
-                        <Scale className="size-4" />
-                      </div>
-                    ) : (
-                      <div className="p-1.5 rounded-full bg-blue-500/10 text-blue-400">
-                        <Droplet className="size-4" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <div>
-                        {isWeight ? (
-                          <span className="font-medium text-zinc-900 dark:text-white">
-                            {Number(log.currentWeightLbs).toFixed(1)} lbs
-                            <span className={`ml-2 text-xs ${
-                              Number(log.dryBackPercent) > 80 ? 'text-red-400' :
-                              Number(log.dryBackPercent) > 60 ? 'text-yellow-400' :
-                              'text-green-400'
-                            }`}>
-                              ({Number(log.dryBackPercent).toFixed(1)}% dryback)
-                            </span>
-                          </span>
-                        ) : (
-                          <span className="font-medium text-zinc-900 dark:text-white">
-                            Irrigation
-                            {irrigation.moisturePercentage !== null && (
-                              <span className="ml-2 text-xs text-zinc-600 dark:text-zinc-400">
-                                ({Number(irrigation.moisturePercentage).toFixed(0)}% moisture)
-                              </span>
-                            )}
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-xs text-zinc-500">
-                        {date.toLocaleDateString()} {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    {isWeight && log.trainingEvent && log.trainingEvent !== "None" && (
-                      <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
-                        Training: {log.trainingEvent}
-                      </div>
-                    )}
-                    {event.notes && (
-                      <div className="text-xs text-zinc-500 mt-0.5 truncate">
-                        {event.notes}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })
+allEvents.slice(0,3).map((event, index) => {
+  const date = event.timestamp;
+
+  // ---- PHOTO ----
+  if (event.kind === "photo") {
+    const photo = event.data;
+    return (
+      <button
+        key={`photo-${photo.id}-${index}`}
+        onClick={() => {
+          if (photo.url) window.open(photo.url, "_blank");
+        }}
+        className="w-full p-4 flex items-start gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors text-left"
+      >
+        <div className="shrink-0">
+          {photo.url ? (
+            <img
+              src={photo.url}
+              alt={photo.note || "Plant photo"}
+              className="size-16 rounded-lg object-cover border border-zinc-200 dark:border-zinc-700"
+            />
+          ) : (
+            <div className="size-16 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+              <Camera className="size-6 text-zinc-400" />
+            </div>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-medium text-zinc-900 dark:text-white text-sm">
+              Photo
+              {photo.stageAtCapture && (
+                <span className="ml-2 text-xs text-zinc-500 capitalize">
+                  {photo.stageAtCapture}
+                  {photo.weekOfStage ? ` · Week ${photo.weekOfStage}` : ""}
+                </span>
+              )}
+            </span>
+            <span className="text-xs text-zinc-500">
+              {date.toLocaleDateString()}{" "}
+              {date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          </div>
+          {photo.note && (
+            <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+              {photo.note}
+            </p>
+          )}
+          {photo.weightAtCapture !== null && (
+            <p className="text-[10px] text-zinc-400 mt-0.5">
+              Weight at capture: {Number(photo.weightAtCapture).toFixed(2)} lbs
+            </p>
+          )}
+        </div>
+      </button>
+    );
+  }
+
+  // ---- WEIGHT ----
+  if (event.kind === "weight") {
+    const log = event.data;
+    return (
+      <div
+        key={`weight-${log.id}-${index}`}
+        className="p-4 flex items-start gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors"
+      >
+        <div className="shrink-0 mt-0.5">
+          <div className="p-1.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            <Scale className="size-4" />
+          </div>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-medium text-zinc-900 dark:text-white">
+              {Number(log.currentWeightLbs).toFixed(1)} lbs
+              <span
+                className={`ml-2 text-xs ${
+                  Number(log.dryBackPercent) > 80
+                    ? "text-red-500"
+                    : Number(log.dryBackPercent) > 60
+                    ? "text-amber-500"
+                    : "text-emerald-500"
+                }`}
+              >
+                ({Number(log.dryBackPercent).toFixed(1)}% dryback)
+              </span>
+            </span>
+            <span className="text-xs text-zinc-500">
+              {date.toLocaleDateString()}{" "}
+              {date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          </div>
+          {log.trainingEvent && log.trainingEvent !== "None" && (
+            <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
+              Training: {log.trainingEvent}
+            </div>
+          )}
+          {log.notes && (
+            <div className="text-xs text-zinc-500 mt-0.5 truncate">{log.notes}</div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ---- IRRIGATION ----
+  if (event.kind === "irrigation") {
+    const irrigation = event.data;
+    return (
+      <div
+        key={`irrigation-${irrigation.id}-${index}`}
+        className="p-4 flex items-start gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors"
+      >
+        <div className="shrink-0 mt-0.5">
+          <div className="p-1.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400">
+            <Droplet className="size-4" />
+          </div>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-medium text-zinc-900 dark:text-white">
+              Irrigation
+              {irrigation.moisturePercentage !== null && (
+                <span className="ml-2 text-xs text-zinc-600 dark:text-zinc-400">
+                  ({Number(irrigation.moisturePercentage).toFixed(0)}% moisture)
+                </span>
+              )}
+            </span>
+            <span className="text-xs text-zinc-500">
+              {date.toLocaleDateString()}{" "}
+              {date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </span>
+          </div>
+          {irrigation.notes && (
+            <div className="text-xs text-zinc-500 mt-0.5 truncate">
+              {irrigation.notes}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+})
           )}
         </div>
       </div>
@@ -507,11 +600,10 @@ formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Dryback']}              
             {plantInsights.slice(0, 3).map((insight) => (
               <div key={insight.id} className="bg-zinc-800/30 rounded-lg p-3 border border-zinc-300 dark:border-zinc-700/50">
                 <div className="flex items-center gap-2">
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                    insight.recommendationType === 'irrigate' ? 'bg-red-500/20 text-red-400' :
-                    insight.recommendationType === 'wait' ? 'bg-yellow-500/20 text-yellow-400' :
-                    'bg-blue-500/20 text-blue-400'
-                  }`}>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${insight.recommendationType === 'irrigate' ? 'bg-red-500/20 text-red-400' :
+                      insight.recommendationType === 'wait' ? 'bg-yellow-500/20 text-yellow-400' :
+                        'bg-blue-500/20 text-blue-400'
+                    }`}>
                     {insight.recommendationType}
                   </span>
                   <span className="text-xs text-zinc-500">
@@ -529,14 +621,20 @@ formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Dryback']}              
       )}
 
       {/* Edit Modal */}
-<EditPlantModal
-  open={showEditModal}
-  onClose={() => setShowEditModal(false)}
-  plant={currentPlant}
-  rooms={allRooms.length > 0 ? allRooms : rooms}
-  batches={allBatches}
-  allPlants={allPlants}
-  onPlantUpdated={handlePlantUpdated}
+      <EditPlantModal
+        open={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        plant={currentPlant}
+        rooms={allRooms.length > 0 ? allRooms : rooms}
+        batches={allBatches}
+        allPlants={allPlants}
+        onPlantUpdated={handlePlantUpdated}
+      />
+      <PhotoUploadModal
+  isOpen={isPhotoModalOpen}
+  onClose={() => setIsPhotoModalOpen(false)}
+  plantId={currentPlant.id}
+  plantName={currentPlant.name}
 />
     </div>
   );

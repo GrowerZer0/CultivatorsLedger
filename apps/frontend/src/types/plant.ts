@@ -20,6 +20,16 @@ export interface Plant {
   pendingFcStartTime: Date | null;
 }
 
+export interface PlantPhoto {
+  id: string;
+  url: string | null;
+  note: string | null;
+  stageAtCapture: string | null;
+  weekOfStage: number | null;
+  weightAtCapture: number | null;
+  capturedAt: string;
+}
+
 export interface DryBackLog {
   id: number;
   timestamp: Date;
@@ -82,6 +92,7 @@ export interface PlantWithDetails extends Omit<Plant, 'dryBackLogs' | 'irrigatio
   irrigationEvents: IrrigationEvent[];
   plantInsights: PlantInsight[];
   mirrorPlant: { id: string; name: string } | null;
+  photos: PlantPhoto[]; 
 }
 
 // Type guard to check if event is a DryBackLog

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { PlantDetailClient } from "./PlantDetailClient";
 import type { DryBackLog, IrrigationEvent, PlantInsight } from "@/types/plant";
 import { derivePlantStage } from "@/lib/plant-stage";
+import { getPhotoUrls } from "@/server/actions/photos";
 
 // Helper to convert Decimal to number
 function toNumber(value: any): number {
@@ -41,16 +42,19 @@ export default async function PlantDetailPage({
         orderBy: { createdAt: "desc" },
         take: 10,
       },
-      // Include mirrorPlant relation
       mirrorPlant: {
         select: { id: true, name: true },
       },
+      photos: { 
+        orderBy: { capturedAt: "desc" } },
     },
   });
 
   if (!plantData) {
     notFound();
   }
+
+  const photoUrls = await getPhotoUrls(plantData.photos.map(photo => photo.storagePath));
 
   const derived = derivePlantStage({
   startDate: plantData.startDate,
@@ -134,6 +138,15 @@ export default async function PlantDetailPage({
       outcome: insight.outcome,
       outcomeNotes: insight.outcomeNotes,
     })),
+      photos: plantData.photos.map((p) => ({
+    id: p.id,
+    url: photoUrls[p.storagePath] || null,
+    note: p.note,
+    stageAtCapture: p.stageAtCapture,
+    weekOfStage: p.weekOfStage,
+    weightAtCapture: p.weightAtCapture ? Number(p.weightAtCapture) : null,
+    capturedAt: p.capturedAt.toISOString(),
+      })),
   };
 
   return <PlantDetailClient plant={plant} />;

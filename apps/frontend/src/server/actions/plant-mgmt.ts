@@ -29,8 +29,21 @@ export async function getPlants() {
   const plants = await db.plant.findMany({
     where: { userId },
     orderBy: { createdAt: "asc" },
+    include: {
+      photos: {
+        orderBy: { capturedAt: "desc" },
+        take: 1,
+        select: { storagePath: true, capturedAt: true },
+      },
+    },
   });
-  return serializePrisma(plants);
+  return serializePrisma(
+    plants.map((p) => ({
+      ...p,
+      thumbnailPath: p.photos[0]?.storagePath ?? null,
+      photos: undefined,
+    }))
+  );
 }
 
 export async function getPlantsForBatch(batchId: unknown) {
@@ -207,7 +220,29 @@ export async function fetchPlants() {
       startDate: true,
       stage: true,
       flipDate: true,
+      photos: {
+        orderBy: { capturedAt: "desc" },
+        take: 1,
+        select: { storagePath: true },
+      },
     },
   });
-  return serializePrisma(plants);
+
+  const paths = plants
+    .map((p) => p.photos[0]?.storagePath)
+    .filter((p): p is string => !!p);
+
+  const { getPhotoUrls } = await import("./photos");
+  const urlByPath = await getPhotoUrls(paths);
+
+  return serializePrisma(
+    plants.map((p) => {
+      const sp = p.photos[0]?.storagePath;
+      return {
+        ...p,
+        thumbnailUrl: sp ? urlByPath[sp] ?? null : null,
+        photos: undefined,
+      };
+    })
+  );
 }

@@ -37,6 +37,7 @@ type Plant = {
   wetWeight?: number | null;
   dryTarget?: number | null;
   mirrorPlantId?: string | null;
+  thumbnailUrl?: string | null;
 };
 
 interface WeightDrybackCardProps {
@@ -279,8 +280,21 @@ function PlantRow({ state }: { state: PlantState }) {
     <div className="px-5 py-4">
       <Link href={`/plants/${plant.id}`} className="block">
         {/* Top row: name + weight + dryback */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
+<div className="flex items-start justify-between gap-4">
+  <div className="flex items-start gap-3 flex-1 min-w-0">
+    <div className="size-12 shrink-0 rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+      {plant.thumbnailUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={plant.thumbnailUrl}
+          alt={plant.name}
+          className="size-12 object-cover"
+        />
+      ) : (
+        <div className="size-12 grid place-items-center text-zinc-400 text-xs">—</div>
+      )}
+    </div>
+    <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
                 {plant.name}
@@ -328,6 +342,7 @@ function PlantRow({ state }: { state: PlantState }) {
               </div>
             </div>
           )}
+        </div>
         </div>
       </Link>
 
