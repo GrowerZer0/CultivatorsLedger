@@ -37,6 +37,7 @@ import { WeightDrybackCard } from "@/components/dashboard/WeightDrybackCard";
 import { ClimateCard } from "@/components/dashboard/ClimateCard";
 import { getLatestClimateReading, getClimateTrend, type ClimateReading, type ClimatePoint } from "@/server/actions/climate";
 import { NutrientCalculatorModal } from "@/components/nutrients/NutrientCalculatorModal";
+import { SensorStatusBanner, type SensorStatus } from "@/components/dashboard/SensorStatusBanner";
 
 type Plant = {
   id: string;
@@ -56,6 +57,7 @@ interface DashboardClientProps {
     recentLogs: any[];
     alerts: string[];
     summary: string;
+    sensorStatus: SensorStatus[];
   };
   onboardingState: {
     step: number;
@@ -66,6 +68,7 @@ interface DashboardClientProps {
 }
 
 export default function DashboardClient({ 
+  initialData,
   onboardingState,
   isOnboardingActive 
 }: DashboardClientProps) {
@@ -274,7 +277,7 @@ const [isNutrientModalOpen, setIsNutrientModalOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#0B0F19] text-gray-900 dark:text-zinc-100 p-4 space-y-6">
-      
+        <SensorStatusBanner sensors={initialData.sensorStatus} />
       {/* Toast */}
       {toast && (
         <div className="fixed top-20 right-4 z-50 max-w-sm animate-slide-in-right">
