@@ -5,6 +5,8 @@ import { PlantDetailClient } from "./PlantDetailClient";
 import type { DryBackLog, IrrigationEvent, PlantInsight } from "@/types/plant";
 import { derivePlantStage } from "@/lib/plant-stage";
 import { getPhotoUrls } from "@/server/actions/photos";
+import { canAccessFeature } from "@/lib/features";
+import { ExportButton } from "@/components/export/ExportButton";
 
 // Helper to convert Decimal to number
 function toNumber(value: any): number {
@@ -148,6 +150,14 @@ export default async function PlantDetailPage({
     capturedAt: p.capturedAt.toISOString(),
       })),
   };
+const canExport = await canAccessFeature("export_csv");
 
-  return <PlantDetailClient plant={plant} />;
+return (
+  <div className="max-w-5xl mx-auto">
+    <div className="flex justify-end px-4 pt-4">
+      <ExportButton mode="plant" plantId={plant.id} canExport={canExport} />
+    </div>
+    <PlantDetailClient plant={plant} />
+  </div>
+);
 }

@@ -5,12 +5,15 @@ import { fetchRooms } from "@/server/actions/facility-mgmt";
 import { fetchBatches } from "@/server/actions/batch-mgmt";
 import { OnboardingReturnButton } from "@/components/onboarding/OnboardingReturnButton";
 import { getPhotoUrls } from "@/server/actions/photos";
+import { ExportButton } from "@/components/export/ExportButton";
+import { canAccessFeature } from "@/lib/features";
 
 export default async function PlantsPage() {
-  const [plants, rooms, batches] = await Promise.all([
+  const [plants, rooms, batches, canExport] = await Promise.all([
     getPlants(),
     fetchRooms(),
     fetchBatches(),
+    canAccessFeature("export_csv"),
   ]);
 
   const paths = (plants as any[])
@@ -32,6 +35,7 @@ export default async function PlantsPage() {
           <p className="text-sm text-zinc-600 dark:text-zinc-400">Manage all your plants across rooms and batches</p>
         </div>
       </div>
+      <ExportButton mode="all" canExport={canExport} />
 
       <Suspense fallback={<div className="text-zinc-600 dark:text-zinc-400">Loading plants...</div>}>
         <PlantsClient initialPlants={plantsWithThumbs} rooms={rooms} batches={batches} />

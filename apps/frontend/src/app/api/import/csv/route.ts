@@ -96,13 +96,167 @@ export async function POST(request: NextRequest) {
     }
 
     const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
-    
-    // Get all existing plants
+        // Get all existing plants
     const existingPlants = await db.plant.findMany({
       where: { userId },
       select: { id: true, name: true }
     });
+    // ===== LONG FORMAT DETECTION =====
+// A long-format CSV has a plant_name column and a single weight column.
+// If detected, process it separately and return early.
+const longFormatPlantIdx = headers.findIndex(
+  (h) => h === "plant_name" || h === "plant" || h === "plant name",
+);
+const longFormatWeightIdx = headers.findIndex(
+  (h) => h === "weight_lbs" || h === "weight" || h === "current_weight",
+);
+const longFormatDateIdx = headers.findIndex(
+  (h) => h === "timestamp" || h === "date" || h === "datetime",
+);
 
+if (
+  longFormatPlantIdx !== -1 &&
+  longFormatWeightIdx !== -1 &&
+  longFormatDateIdx !== -1
+) {
+  let weightImported = 0;
+  let climateImported = 0;
+  const longErrors: string[] = [];
+
+  const tempCIdx = headers.findIndex((h) => h === "temperature_c");
+  const humidityIdx = headers.findIndex((h) => h === "humidity");
+  const kindIdx = headers.findIndex((h) => h === "kind");
+  const notesIdx = headers.findIndex((h) => h === "notes");
+
+  for (let i = 1; i < lines.length; i++) {
+    const cells = lines[i].split(",").map((c) => c.trim());
+    if (cells.length < headers.length) continue;
+
+    const ts = parseDate(cells[longFormatDateIdx]);
+    if (!ts) {
+      longErrors.push(`Row ${i + 1}: invalid timestamp`);
+      continue;
+    }
+
+    const kind = kindIdx !== -1 ? cells[kindIdx] : "";
+    const plantName = cells[longFormatPlantIdx];
+    const weightRaw = cells[longFormatWeightIdx];
+    const tempRaw = tempCIdx !== -1 ? cells[tempCIdx] : "";
+    const humidityRaw = humidityIdx !== -1 ? cells[humidityIdx] : "";
+    const notes = notesIdx !== -1 ? cells[notesIdx] : null;
+
+    // Climate rows: no plant needed
+    if (
+      kind === "climate" ||
+      (tempRaw && humidityRaw && !weightRaw)
+    ) {
+      const tempC = Number(tempRaw);
+      const rh = Number(humidityRaw);
+      if (!isNaN(tempC) && !isNaN(rh)) {
+        const room = await db.room.findFirst({ where: { userId } });
+        await db.climateLog.create({
+          data: {
+            timestamp: ts,
+            roomId: room?.id || "Default",
+            zoneId: "Main",
+            airTempC: tempC,
+            relativeHumidity: rh,
+            isManualEntry: true,
+            userId,
+            sourceType: "csv_import",
+          },
+        });
+        climateImported++;
+      }
+      continue;
+    }
+
+    // Weight rows: need a plant
+    if (!plantName || !weightRaw) continue;
+    const weight = Number(weightRaw);
+    if (isNaN(weight)) {
+      longErrors.push(`Row ${i + 1}: invalid weight`);
+      continue;
+    }
+
+    let matched = await findMatchingPlant(plantName, userId, existingPlants);
+
+    let plantId: string;
+    let fullPlant: {
+      id: string;
+      containerGallons: unknown;
+      wetWeight: unknown;
+      dryTarget: unknown;
+    };
+
+    if (matched) {
+      const full = await db.plant.findUnique({
+        where: { id: matched.id },
+        select: {
+          id: true,
+          containerGallons: true,
+          wetWeight: true,
+          dryTarget: true,
+        },
+      });
+      if (!full) continue;
+      plantId = full.id;
+      fullPlant = full;
+    } else {
+      const created = await db.plant.create({
+        data: { name: plantName, userId },
+        select: {
+          id: true,
+          containerGallons: true,
+          wetWeight: true,
+          dryTarget: true,
+        },
+      });
+      plantId = created.id;
+      fullPlant = created;
+      existingPlants.push({ id: created.id, name: plantName });
+    }
+
+    await db.dryBackLog.create({
+      data: {
+        timestamp: ts,
+        currentWeightLbs: weight,
+        plantId,
+        userId,
+        source: "csv_import",
+        sourceDevice: null,
+        containerGallons: Number(fullPlant.containerGallons) || 3,
+        wetWeightLbs: Number(fullPlant.wetWeight) || weight,
+        dryTargetWeightLbs: Number(fullPlant.dryTarget) || 0,
+        dryBackPercent: 0,
+        unit: "lbs",
+        notes: notes ?? `Imported from CSV (long format)`,
+      },
+    });
+    weightImported++;
+  }
+
+  await db.importHistory.create({
+    data: {
+      filename: file.name,
+      rowsImported: weightImported + climateImported,
+      importStatus: "completed",
+      userId,
+    },
+  });
+
+  revalidatePath("/plants");
+  revalidatePath("/dashboard");
+
+  return NextResponse.json({
+    success: true,
+    format: "long",
+    weightImported,
+    climateImported,
+    errors: longErrors.slice(0, 5),
+  });
+}
+// ===== END LONG FORMAT =====
     // Auto-detect weight columns
     const weightColumns: Array<{ index: number; name: string; plantName: string; detectedPlantId?: string | null }> = [];
     headers.forEach((header, index) => {
