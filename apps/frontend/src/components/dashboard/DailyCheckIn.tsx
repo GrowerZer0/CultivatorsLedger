@@ -1,66 +1,28 @@
 // apps/frontend/src/components/dashboard/DailyCheckIn.tsx
-
 "use client";
-import React, { useState, useTransition, useMemo, useEffect } from "react";
-import { recordDailyCheckInLog, DailyCheckInFormData } from "@/server/actions/check-in";
-import { deletePlant } from "@/server/actions/plant-mgmt";
-import { useRouter } from "next/navigation";
-import {
-  FileSpreadsheet,
-  Mic,
-  MicOff,
-  Camera,
-  Scale,
-  ThermometerSun,
-  Droplet,
-  Check,
-  Loader2,
-  Wind,
-  Layers,
-  Sparkles,
-  FlaskConical,
-  Trash2,
-} from "lucide-react";
-import { CSVImportModal } from "@/components/CSVImportModal";
-import { addManualClimateLog } from "@/server/actions/loggingreadings";
-import { AddPlantModal } from "@/components/facility/AddPlantModal";
-import { NutrientCalculatorModal } from "../nutrients/NutrientCalculatorModal";
 
-type TrainingEvent = DailyCheckInFormData["trainingEvent"];
-export interface PlantOption {
-  id: string;
-  name: string;
-  currentWeight: number | null;
-  roomId?: string | undefined;
-}
-export interface RoomOption {
-  id: string;
-  name: string;
-}
+import { useState, useTransition, useMemo, useEffect } from "react";
+import { recordDailyCheckInLog } from "@/server/actions/check-in";
+import { useRouter } from "next/navigation";
+import { Scale, ThermometerSun, Droplet, Check, Loader2, Wind, Layers } from "lucide-react";
+import { addManualClimateLog } from "@/server/actions/loggingreadings";
+
 interface DailyCheckInProps {
- plants: {
-   id:string;
-   name:string;
-   currentWeight:any;
-   strain:string|null;
-   roomId?:string | null;
- }[];
-   rooms: {
+  plants: {
+    id: string;
+    name: string;
+    currentWeight: any;
+    strain: string | null;
+    roomId?: string | null;
+  }[];
+  rooms: {
     id: string;
     name: string;
   }[];
   defaultRoomId?: string;
   defaultPlantId?: string;
 }
-const TRAINING_EVENTS: TrainingEvent[] = [
-  "None",
-  "Top",
-  "Defoliate",
-  "LST",
-  "Flip",
-  "Harvest",
-];
-// Helper: Calculate Vapor Pressure Deficit (VPD) in kPa
+
 function calculateVPD(tempF: number, rh: number): number | null {
   if (isNaN(tempF) || isNaN(rh) || rh < 0 || rh > 100) return null;
   const tempC = (tempF - 32) * (5 / 9);
@@ -69,697 +31,302 @@ function calculateVPD(tempF: number, rh: number): number | null {
   const vpd = vpsat - vpact;
   return Math.max(0, parseFloat(vpd.toFixed(2)));
 }
+
 interface PlantEntryState {
   weight: number | "";
-  watered: boolean;
-  fed: boolean;
-  trainingEvent: TrainingEvent;
-  notes: string;
-  photo: File | null;
-  audioBlob: Blob | null;
-  isRecording: boolean;
 }
+
 export function DailyCheckIn({
   rooms = [],
   plants = [],
   defaultRoomId,
-  defaultPlantId,
 }: DailyCheckInProps) {
-const initialPlantList: PlantOption[] = plants.map(p => ({
-  ...p,
-  currentWeight: p.currentWeight ? Number(p.currentWeight) : null,
-  roomId: p.roomId || undefined // Convert null to undefined
-}));
-const [plantList, setPlantList] = useState<PlantOption[]>(initialPlantList);
-const [showAddPlant, setShowAddPlant] = useState(false);
   const router = useRouter();
-  // 1. Room State
+
   const [selectedRoomId, setSelectedRoomId] = useState<string>(
-    (defaultRoomId && rooms.some((r: { id: string }) => r.id === defaultRoomId))
+    defaultRoomId && rooms.some((r) => r.id === defaultRoomId)
       ? defaultRoomId
-      : rooms[0]?.id || ""
-  );
-  const [selectedPlantId, setSelectedPlantId] = useState(
-    defaultPlantId || plants[0]?.id || ""
+      : rooms[0]?.id || "",
   );
 
-const [isNutrientModalOpen, setIsNutrientModalOpen] = useState(false);
-const [selectedPlantForNutrient, setSelectedPlantForNutrient] = useState<any>(null);
-
-const selectedPlant = plants.find(
-  (plant)=>plant.id === selectedPlantId
-);
-  // 2. Room Telemetry State
   const [temp, setTemp] = useState<string>("");
   const [rh, setRh] = useState<string>("");
-  const [isCsvSynced, setIsCsvSynced] = useState<boolean>(false);
-  // Calculate live VPD
-  const vpdValue = useMemo(() => {
-    const t = parseFloat(temp);
-    const r = parseFloat(rh);
-    return calculateVPD(t, r);
-  }, [temp, rh]);
-  // Filter plants for selected room
-  const roomPlants = useMemo(() => {
-    return plantList.filter(
-      (p) => !p.roomId || p.roomId === selectedRoomId || selectedRoomId === ""
-    );
-  }, [plantList, selectedRoomId]);
-  // 3. Dynamic Card State per Plant
   const [plantStates, setPlantStates] = useState<Record<string, PlantEntryState>>({});
-  const getPlantState = (plantId: string): PlantEntryState => {
-    return (
-      plantStates[plantId] || {
-        weight: "",
-        watered: false,
-        fed: false,
-        trainingEvent: "None",
-        notes: "",
-        photo: null,
-        audioBlob: null,
-        isRecording: false,
-      }
-    );
-  };
-  const updatePlantState = (
-    plantId: string,
-    updates: Partial<PlantEntryState>
-  ) => {
-    setPlantStates((prev) => ({
-      ...prev,
-      [plantId]: {
-        ...getPlantState(plantId),
-        ...updates,
-      },
-    }));
-  };
-  // UI & Action States
-  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{
     type: "success" | "error";
     message: string;
   } | null>(null);
-  const [csvReadingTime, setCsvReadingTime] = useState<string | null>(null);
 
-  // Refresh plants when the component mounts or when plants prop changes
+  const vpdValue = useMemo(() => {
+    return calculateVPD(parseFloat(temp), parseFloat(rh));
+  }, [temp, rh]);
+
+  const roomPlants = useMemo(() => {
+    return plants.filter(
+      (p) => !p.roomId || p.roomId === selectedRoomId || selectedRoomId === "",
+    );
+  }, [plants, selectedRoomId]);
+
+  // Reset plant states if the room changes
   useEffect(() => {
-    setPlantList(plants.map(p => ({
-      ...p,
-      currentWeight: p.currentWeight ? Number(p.currentWeight) : null,
-      roomId: p.roomId ?? undefined,
-    })));
-  }, [plants]);
+    setPlantStates({});
+  }, [selectedRoomId]);
 
-  // Select default plant if provided
-  useEffect(() => {
-    if (defaultPlantId && plantList.some(p => p.id === defaultPlantId)) {
-      setSelectedPlantId(defaultPlantId);
-    }
-  }, [defaultPlantId, plantList]);
+  const getPlantWeight = (plantId: string): number | "" => {
+    return plantStates[plantId]?.weight ?? "";
+  };
 
-const handleSubmit = (e: React.FormEvent) => {
-  e.preventDefault();
-  setFeedback(null);
-  startTransition(async () => {
-    try {
-      // 1. Save room-level climate telemetry, if entered
-      const tempF = parseFloat(temp);
-      const rhVal = parseFloat(rh);
-const hasClimate =
-  !isNaN(tempF) &&
-  !isNaN(rhVal) &&
-  Boolean(selectedRoomId);      if (hasClimate && selectedRoomId) {
-        const tempC = ((tempF - 32) * 5) / 9;
-        await addManualClimateLog({
-          roomId: selectedRoomId,
-          temperature: tempC,
-          humidity: rhVal,
-        });
-      }
-      // 2. Save plant check-in logs ONLY for plants that actually have data entered
-      let plantLogsRecorded = 0;
-      for (const plant of roomPlants) {
-        const st = getPlantState(plant.id);
-        
-        // Check if user filled out ANY plant-specific field
-        const hasWeight = typeof st.weight === "number" && st.weight > 0;
-        const hasNotes = Boolean(st.notes?.trim());
-const hasActions =
-  st.watered ||
-  st.fed ||
-  st.trainingEvent !== "None";
-          // Skip plants that were left untouched
-        if (!hasWeight && !hasNotes && !hasActions) continue;
-        const payload: DailyCheckInFormData = {
-          plantId: plant.id,
-          weight: st.weight === "" || st.weight === undefined ? undefined: st.weight,
-          watered: st.watered,
-          fed: st.fed,
-          trainingEvent: st.trainingEvent,
-          notes: st.notes.trim() || undefined,
-        };
-        const result = await recordDailyCheckInLog(payload);
-        if (!result.success) {
-          throw new Error(result.error || `Failed log for ${plant.name}`);
+  const setPlantWeight = (plantId: string, weight: number | "") => {
+    setPlantStates((prev) => ({
+      ...prev,
+      [plantId]: { weight },
+    }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setFeedback(null);
+
+    startTransition(async () => {
+      try {
+        // 1. Save room climate, if entered
+        const tempF = parseFloat(temp);
+        const rhVal = parseFloat(rh);
+        const hasClimate =
+          !isNaN(tempF) && !isNaN(rhVal) && Boolean(selectedRoomId);
+
+        if (hasClimate && selectedRoomId) {
+          const tempC = ((tempF - 32) * 5) / 9;
+          await addManualClimateLog({
+            roomId: selectedRoomId,
+            temperature: tempC,
+            humidity: rhVal,
+          });
         }
-        plantLogsRecorded++;
-      }
-      // Safeguard: Ensure at least climate data OR at least one plant entry was submitted
-      if (!hasClimate && plantLogsRecorded === 0) {
+
+        // 2. Save per-plant weight logs — only for plants with a weight entered
+        let plantLogsRecorded = 0;
+        for (const plant of roomPlants) {
+          const weight = getPlantWeight(plant.id);
+          const hasWeight = typeof weight === "number" && weight > 0;
+          if (!hasWeight) continue;
+
+          const result = await recordDailyCheckInLog({
+            plantId: plant.id,
+            weight: weight as number,
+            watered: false,
+            fed: false,
+            trainingEvent: "None",
+          });
+          if (!result.success) {
+            throw new Error(result.error || `Failed log for ${plant.name}`);
+          }
+          plantLogsRecorded++;
+        }
+
+        if (!hasClimate && plantLogsRecorded === 0) {
+          setFeedback({
+            type: "error",
+            message: "Enter room climate or at least one plant weight before saving.",
+          });
+          return;
+        }
+
+        setFeedback({
+          type: "success",
+          message: "Check-in saved. Redirecting…",
+        });
+        setPlantStates({});
+        setTemp("");
+        setRh("");
+        router.push("/dashboard?logged=true");
+        router.refresh();
+      } catch (err: any) {
         setFeedback({
           type: "error",
-          message: "Please enter room climate metrics or fill out at least one plant entry.",
+          message: err.message || "Failed to save check-in.",
         });
-        return;
       }
-      setFeedback({
-        type: "success",
-        message: "Check-in logged successfully! Redirecting...",
-      });
-      setPlantStates({});
-      setTemp("");
-      setRh("");
-      setIsCsvSynced(false);
-      router.push("/dashboard?logged=true");
-      router.refresh();
-    } catch (err: any) {
-      setFeedback({
-        type: "error",
-        message: err.message || "Failed to submit check-in logs.",
-      });
-    }
-  });
-};
-
-// Delete plant handler
-const handleDeletePlant = async (plantId: string, plantName: string) => {
-  const confirmed = window.confirm(
-    `Delete "${plantName}"? This will permanently delete the plant and all its associated data (logs, weights, check-ins). This cannot be undone.`
-  );
-
-  if (!confirmed) return;
-
-  try {
-    const result = await deletePlant(plantId);
-    
-    if (!result.success) {
-      alert(result.error || "Failed to delete plant");
-      return;
-    }
-
-    // Remove from local state
-    setPlantList((prev) => prev.filter((p) => p.id !== plantId));
-    
-    // Remove from plant states
-    setPlantStates((prev) => {
-      const newState = { ...prev };
-      delete newState[plantId];
-      return newState;
     });
-
-    // Show success feedback
-    setFeedback({
-      type: "success",
-      message: `"${plantName}" deleted successfully.`,
-    });
-
-    // Clear feedback after 3 seconds
-    setTimeout(() => setFeedback(null), 3000);
-  } catch (error) {
-    alert("Failed to delete plant. Please try again.");
-  }
-};
-
-// Refresh plants after CSV import
-const handleCsvImportSuccess = () => {
-  // Refetch plants data
-  const refreshData = async () => {
-    try {
-      const response = await fetch('/api/plants');
-      const freshPlants = await response.json();
-      setPlantList(freshPlants.map((p: any) => ({
-        ...p,
-        currentWeight: p.currentWeight ? Number(p.currentWeight) : null
-      })));
-    } catch (err) {
-      console.error("Failed to refresh plants after import:", err);
-      window.location.reload();
-    }
   };
-  refreshData();
-};
 
   return (
-    <>
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xl max-w-2xl mx-auto space-y-6">
-        {/* Card Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-100 dark:border-zinc-800 pb-4">
-          <div>
-            <h2 className="text-xl font-bold text-canopy dark:text-emerald-400">
-              Daily Operations Log
-            </h2>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400">
-              Record room telemetry and plant batch factors
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsCsvModalOpen(true)}
-            className="flex items-center justify-center gap-2 rounded-xl bg-mist dark:bg-zinc-800 px-3.5 py-2 text-xs font-bold text-canopy dark:text-emerald-400 hover:bg-canopy/10 dark:hover:bg-emerald-500/10 border border-canopy/20 dark:border-emerald-500/20 transition-all shrink-0"
-          >
-            <FileSpreadsheet className="size-4" />
-            <span>Import CSV</span>
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xl max-w-2xl mx-auto space-y-6">
+      <div>
+        <h2 className="text-xl font-bold text-canopy dark:text-emerald-400">
+          Daily Check-In
+        </h2>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+          Weight, room climate, save.
+        </p>
+      </div>
 
-          {/* Section 1: Room Selector */}
-          <div>
-            <label
-              htmlFor="room-selector"
-              className="text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider mb-1 flex items-center gap-1.5"
-            >
-              <Layers className="size-4 text-canopy dark:text-emerald-400" />
-              Room
-            </label>
-            <select
-              id="room-selector"
-              value={selectedRoomId}
-              onChange={(e) => setSelectedRoomId(e.target.value)}
-              className="w-full p-2.5 bg-mist/30 dark:bg-zinc-800 text-graphite dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-canopy dark:focus:ring-emerald-500 outline-none text-sm font-semibold"
-            >
-              {rooms.length === 0 ? (
-                <option value="" disabled>
-                  No rooms defined
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Room selector */}
+        <div>
+          <label
+            htmlFor="room-selector"
+            className="text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider mb-1 flex items-center gap-1.5"
+          >
+            <Layers className="size-4 text-canopy dark:text-emerald-400" />
+            Room
+          </label>
+          <select
+            id="room-selector"
+            value={selectedRoomId}
+            onChange={(e) => setSelectedRoomId(e.target.value)}
+            className="w-full p-2.5 bg-mist/30 dark:bg-zinc-800 text-graphite dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-canopy dark:focus:ring-emerald-500 outline-none text-sm font-semibold"
+          >
+            {rooms.length === 0 ? (
+              <option value="" disabled>
+                No rooms defined
+              </option>
+            ) : (
+              rooms.map((room) => (
+                <option key={room.id} value={room.id}>
+                  {room.name}
                 </option>
-              ) : (
-                rooms.map((room: RoomOption) => (
-                  <option key={room.id} value={room.id}>
-                    {room.name}
-                  </option>
-                ))
-              )}
-            </select>
-          </div>
-          {/* Section 2: Room Environmental Telemetry & Live VPD (With CSV Visual Feedback) */}
-          <div
-            className={`border rounded-xl p-4 transition-all ${
-              isCsvSynced
-                ? "bg-emerald-500/5 border-emerald-500/40 dark:border-emerald-500/50 shadow-sm"
-                : "bg-mist/20 dark:bg-zinc-800/50 border-zinc-200/80 dark:border-zinc-700/60"
-            }`}
-          >
-            {/* CSV Sync Badge */}
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-                Room Telemetry
-              </span>
-              {isCsvSynced && (
-                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold border border-emerald-500/20 animate-fade-in">
-                  <Sparkles className="size-3" />
-                  {csvReadingTime ? `Synced — ${csvReadingTime}` : "CSV Synced"}
-                </span>
-              )}
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-              <div>
-                <label className="text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                  <ThermometerSun className="size-4 text-clay dark:text-orange-400" />
-                  Temp (°F)
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  placeholder="75.5"
-                  value={temp}
-                  onChange={(e) => {
-                    setTemp(e.target.value);
-                    setIsCsvSynced(false);
-                  }}
-                  className="w-full p-2 bg-white dark:bg-zinc-900 text-graphite dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-canopy dark:focus:ring-emerald-500 outline-none text-sm font-semibold"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                  <Droplet className="size-4 text-blue-500" />
-                  RH (%)
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  placeholder="60.0"
-                  value={rh}
-                  onChange={(e) => {
-                    setRh(e.target.value);
-                    setIsCsvSynced(false);
-                  }}
-                  className="w-full p-2 bg-white dark:bg-zinc-900 text-graphite dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-canopy dark:focus:ring-emerald-500 outline-none text-sm font-semibold"
-                />
-              </div>
-              {/* VPD Metric Display */}
-              <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700/80">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
-                  <Wind className="size-3 text-canopy dark:text-emerald-400" />
-                  VPD Display
-                </span>
-                <span className="text-lg font-black text-canopy dark:text-emerald-400 mt-0.5">
-                  {vpdValue !== null ? `${vpdValue} kPa` : "--"}
-                </span>
-              </div>
-            </div>
-          </div>
-          {/* Section 3: Plant Cards Batch List */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider">
-                Plants in Room ({roomPlants.length})
-              </h3>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowAddPlant(true);
-                }}
-                className="
-                text-xs
-                font-bold
-                px-3
-                py-1.5
-                rounded-lg
-                bg-canopy
-                text-white
-                "
-              >
-                + Add Plant
-              </button>
-            </div>
-            {roomPlants.length === 0 ? (
-          <div
-            className="
-              border
-              border-dashed
-              border-zinc-300
-              dark:border-zinc-700
-              rounded-xl
-              py-10
-              px-6
-              text-center
-              bg-white
-              dark:bg-zinc-900/70
-              space-y-4
-            "
-          >
-            <div className="text-4xl">
-              🌱
-            </div>
+              ))
+            )}
+          </select>
+        </div>
 
+        {/* Room climate */}
+        <div className="border rounded-xl p-4 bg-mist/20 dark:bg-zinc-800/50 border-zinc-200/80 dark:border-zinc-700/60">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+            Room Climate (optional — skip if sensors are reporting)
+          </span>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center mt-3">
             <div>
-              <h3 className="text-base font-bold text-graphite dark:text-white">
-                No plants assigned
-              </h3>
+              <label className="text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <ThermometerSun className="size-4 text-clay dark:text-orange-400" />
+                Temp (°F)
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                placeholder="75.5"
+                value={temp}
+                onChange={(e) => setTemp(e.target.value)}
+                className="w-full p-2 bg-white dark:bg-zinc-900 text-graphite dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-canopy dark:focus:ring-emerald-500 outline-none text-sm font-semibold"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                <Droplet className="size-4 text-blue-500" />
+                RH (%)
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                placeholder="60.0"
+                value={rh}
+                onChange={(e) => setRh(e.target.value)}
+                className="w-full p-2 bg-white dark:bg-zinc-900 text-graphite dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-canopy dark:focus:ring-emerald-500 outline-none text-sm font-semibold"
+              />
+            </div>
+            <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700/80">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
+                <Wind className="size-3 text-canopy dark:text-emerald-400" />
+                VPD
+              </span>
+              <span className="text-lg font-black text-canopy dark:text-emerald-400 mt-0.5">
+                {vpdValue !== null ? `${vpdValue} kPa` : "--"}
+              </span>
+            </div>
+          </div>
+        </div>
 
+        {/* Per-plant weights */}
+        <div className="space-y-3">
+          <h3 className="text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase tracking-wider">
+            Plants in Room ({roomPlants.length})
+          </h3>
+
+          {roomPlants.length === 0 ? (
+            <div className="border border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl py-8 px-6 text-center bg-white dark:bg-zinc-900/70">
+              <div className="text-3xl">🌱</div>
               <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-                Add your first plant to begin today's check-in.
+                No plants in this room. Add one on the Plants page.
               </p>
             </div>
-
-            <button
-              type="button"
-              onClick={() => setShowAddPlant(true)}
-              className="
-                inline-flex
-                items-center
-                gap-2
-                rounded-lg
-                bg-canopy
-                px-4
-                py-2
-                text-sm
-                font-semibold
-                text-white
-                hover:opacity-90
-              "
-            >
-              + Add Plant
-            </button>
-          </div>
-            ) : (
-              roomPlants.map((plant) => {
-                const st = getPlantState(plant.id);
-                // Show current weight as a label if it exists
-                const currentWeight = plant.currentWeight ? Number(plant.currentWeight) : null;
-                
-                return (
-                  <div
-                    key={plant.id}
-                    className="border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 bg-white dark:bg-zinc-900/80 shadow-sm space-y-3 transition-all hover:border-canopy/40 dark:hover:border-emerald-500/40"
-                  >
-                    <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-2">
-                      <div>
-                        <span className="text-sm font-bold text-graphite dark:text-zinc-100">
-                          {plant.name}
-                        </span>
-                        {currentWeight !== null && (
-                          <span className="ml-2 text-xs text-zinc-500 dark:text-zinc-400">
-                            Current: {currentWeight.toFixed(1)} lbs
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">
-                          ID: {plant.id.slice(0, 8)}
-                        </span>
-                        {/* Delete Plant Button */}
-                        <button
-                          type="button"
-                          onClick={() => handleDeletePlant(plant.id, plant.name)}
-                          className="p-1.5 rounded-lg hover:bg-red-500/10 text-zinc-400 hover:text-red-500 transition-colors group"
-                          title="Delete plant and all associated data"
-                        >
-                          <Trash2 className="size-4 group-hover:text-red-500" />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-                          <Scale className="size-3.5 text-canopy dark:text-emerald-400" />
-                          Weight (lbs)
-                        </label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          placeholder={currentWeight !== null ? `Current: ${currentWeight.toFixed(1)}` : "e.g. 14.2"}
-                          value={st.weight}
-                          onChange={(e) =>
-                            updatePlantState(plant.id, {
-                              weight:
-                                e.target.value === ""
-                                  ? ""
-                                  : Number(e.target.value),
-                            })
-                          }
-                          className="w-full p-2 bg-mist/30 dark:bg-zinc-800 text-graphite dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-semibold outline-none focus:ring-2 focus:ring-canopy dark:focus:ring-emerald-500"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <span className="block text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
-                            Watered
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              updatePlantState(plant.id, {
-                                watered: !st.watered,
-                              })
-                            }
-                            className={`w-full py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                              st.watered
-                                ? "bg-canopy dark:bg-emerald-600 text-white"
-                                : "bg-mist dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"
-                            }`}
-                          >
-                            {st.watered ? "Yes" : "No"}
-                          </button>
-                        </div>
-                        <div>
-                          <span className="block text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
-                            Fed
-                          </span>
-                            <div className="flex items-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => updatePlantState(plant.id, { fed: !st.fed })}
-                                className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                                  st.fed
-                                    ? "bg-canopy dark:bg-emerald-600 text-white"
-                                    : "bg-mist dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400"
-                                }`}
-                              >
-                                {st.fed ? "Yes" : "No"}
-                              </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedPlantForNutrient(plant);
-                              setIsNutrientModalOpen(true);
-                            }}
-                            className="p-1.5 rounded-lg hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 transition-colors"
-                            title="Open nutrient calculator"
-                          >
-                            <FlaskConical className="size-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                      <span className="block text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">
-                        Training Event
+          ) : (
+            roomPlants.map((plant) => {
+              const currentWeight = plant.currentWeight
+                ? Number(plant.currentWeight)
+                : null;
+              const entered = getPlantWeight(plant.id);
+              return (
+                <div
+                  key={plant.id}
+                  className="border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 bg-white dark:bg-zinc-900/80 shadow-sm transition-all hover:border-canopy/40 dark:hover:border-emerald-500/40"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-bold text-graphite dark:text-zinc-100">
+                      {plant.name}
+                    </span>
+                    {currentWeight !== null && (
+                      <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                        Current: {currentWeight.toFixed(1)} lbs
                       </span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {TRAINING_EVENTS.map((event) => (
-                          <button
-                            key={event}
-                            type="button"
-                            onClick={() =>
-                              updatePlantState(plant.id, {
-                                trainingEvent: event,
-                              })
-                            }
-                            className={`py-1 px-2.5 rounded-full text-[10px] font-bold transition-colors ${
-                              st.trainingEvent === event
-                                ? "bg-canopy dark:bg-emerald-600 text-white"
-                                : "bg-mist dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
-                            }`}
-                          >
-                            {event}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
-                      <div className="sm:col-span-2">
-                        <input
-                          type="text"
-                          placeholder="Plant notes / observations..."
-                          maxLength={100}
-                          value={st.notes}
-                          onChange={(e) =>
-                            updatePlantState(plant.id, { notes: e.target.value })
-                          }
-                          className="w-full p-2 bg-mist/30 dark:bg-zinc-800 text-graphite dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs outline-none"
-                        />
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updatePlantState(plant.id, {
-                              isRecording: !st.isRecording,
-                            })
-                          }
-                          className={`p-2 rounded-lg border transition-all ${
-                            st.isRecording
-                              ? "bg-red-500/10 border-red-500 text-red-500 animate-pulse"
-                              : "border-zinc-200 dark:border-zinc-700 bg-mist/30 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
-                          }`}
-                          title="Record voice note"
-                        >
-                          {st.isRecording ? (
-                            <MicOff className="size-3.5" />
-                          ) : (
-                            <Mic className="size-3.5" />
-                          )}
-                        </button>
-                        <label
-                          className="flex-1 flex items-center justify-center p-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-mist/30 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 cursor-pointer hover:border-canopy dark:hover:border-emerald-500"
-                          title="Attach photo"
-                        >
-                          <Camera className="size-3.5 mr-1" />
-                          <span className="text-[10px] font-bold truncate max-w-[60px]">
-                            {st.photo ? st.photo.name : "Photo"}
-                          </span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) =>
-                              updatePlantState(plant.id, {
-                                photo: e.target.files?.[0] || null,
-                              })
-                            }
-                            className="hidden"
-                          />
-                        </label>
-                      </div>
-                    </div>
+                    )}
                   </div>
-                );
-              })
-            )}
-          </div>
-          {feedback && (
-            <p
-              className={`text-center text-xs font-bold ${
-                feedback.type === "success"
-                  ? "text-emerald-500"
-                  : "text-rose-500"
-              }`}
-            >
-              {feedback.message}
-            </p>
+                  <label className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                    <Scale className="size-3.5 text-canopy dark:text-emerald-400" />
+                    Weight (lbs)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    placeholder={
+                      currentWeight !== null
+                        ? `Current: ${currentWeight.toFixed(1)}`
+                        : "e.g. 14.2"
+                    }
+                    value={entered}
+                    onChange={(e) =>
+                      setPlantWeight(
+                        plant.id,
+                        e.target.value === "" ? "" : Number(e.target.value),
+                      )
+                    }
+                    className="w-full p-2 bg-mist/30 dark:bg-zinc-800 text-graphite dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm font-semibold outline-none focus:ring-2 focus:ring-canopy dark:focus:ring-emerald-500"
+                  />
+                </div>
+              );
+            })
           )}
-          <button
-            type="submit"
-            disabled={isPending || roomPlants.length === 0}
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-canopy dark:bg-emerald-600 py-3 text-sm font-bold text-white shadow-md hover:bg-canopy/90 dark:hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        </div>
+
+        {feedback && (
+          <p
+            className={`text-center text-xs font-bold ${
+              feedback.type === "success" ? "text-emerald-500" : "text-rose-500"
+            }`}
           >
-            {isPending ? (
-              <>
-                <Loader2 className="size-5 animate-spin" />
-                <span>Saving Batch Check-In...</span>
-              </>
-            ) : (
-              <>
-                <Check className="size-5" />
-                <span>Submit Batch Check-In</span>
-              </>
-            )}
-          </button>
-        </form>
-      </div>
-      <CSVImportModal
-        isOpen={isCsvModalOpen}
-        onClose={() => setIsCsvModalOpen(false)}
-        onImportSuccess={handleCsvImportSuccess}
-      />
+            {feedback.message}
+          </p>
+        )}
 
-      <AddPlantModal
-      open={showAddPlant}
-      onClose={() => setShowAddPlant(false)}
-      rooms={rooms}
-      defaultRoomId={selectedRoomId}
-      onPlantCreated={(plant)=>{
-        setPlantList(prev=>[
-          ...prev,
-          {
-            id: plant.id,
-            name: plant.name,
-            roomId: plant.roomId ?? undefined,
-            currentWeight: null
-          }
-        ]);
-      }}
-    />
-
-    <NutrientCalculatorModal
-  isOpen={isNutrientModalOpen}
-  onClose={() => {
-    setIsNutrientModalOpen(false);
-    setSelectedPlantForNutrient(null);
-  }}
-  plantStage={selectedPlantForNutrient?.stage}
-  plantStrain={selectedPlantForNutrient?.strain}
-/>
-    </>
+        <button
+          type="submit"
+          disabled={isPending || roomPlants.length === 0}
+          className="w-full flex items-center justify-center gap-2 rounded-xl bg-canopy dark:bg-emerald-600 py-3 text-sm font-bold text-white shadow-md hover:bg-canopy/90 dark:hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+        >
+          {isPending ? (
+            <>
+              <Loader2 className="size-5 animate-spin" />
+              <span>Saving…</span>
+            </>
+          ) : (
+            <>
+              <Check className="size-5" />
+              <span>Save Check-In</span>
+            </>
+          )}
+        </button>
+      </form>
+    </div>
   );
 }

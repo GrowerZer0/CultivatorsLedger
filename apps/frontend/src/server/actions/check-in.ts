@@ -99,9 +99,11 @@ export async function recordDailyCheckInLog(data: unknown) {
         });
       }
       // Create IrrigationEvent if there is any activity
-      const hasActivity = validated.watered || validated.fed ||
-        (validated.trainingEvent && validated.trainingEvent !== "None") ||
-        (validated.notes && validated.notes.trim().length > 0);
+const hasActivity = Boolean(
+  validated.watered ||
+  validated.fed ||
+  (validated.trainingEvent && validated.trainingEvent !== "None")
+);
       if (hasActivity) {
         await tx.irrigationEvent.create({
           data: {
