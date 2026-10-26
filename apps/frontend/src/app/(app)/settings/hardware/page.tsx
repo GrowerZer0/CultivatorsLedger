@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Plus, X, Trash2, RefreshCw, ChevronLeft, ChevronRight, Wifi, WifiOff } from "lucide-react";
+import { Plus, X, Trash2, RefreshCw, ChevronLeft, ChevronRight, Wifi, WifiOff, Lightbulb } from "lucide-react";
 import { SectionPanel } from "@/components/layout/SectionPanel";
 import { getSensors, createSensor, toggleSensor, deleteSensor, regenerateApiKey } from "@/server/actions/sensorconfig";
+import Link from "next/link";
 
 type Plant = {
   id: string;
@@ -208,6 +209,21 @@ export default function HardwareSettingsPage() {
             })}
           </div>
         )}
+          <div>
+          {/* Link to Lights Page */}
+          <Link 
+            href="/settings/hardware/lights"
+            className="flex items-center gap-3 p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:border-emerald-500 transition-colors"
+          >
+            <div className="p-2 bg-amber-500/10 rounded-lg">
+              <Lightbulb className="size-5 text-amber-500" />
+            </div>
+            <div>
+              <h3 className="font-bold text-zinc-900 dark:text-white">Grow Lights</h3>
+              <p className="text-xs text-zinc-500">Track intensity, distance, and schedule.</p>
+            </div>
+          </Link>
+        </div>
       </div>
 
       {/* Add Sensor Modal */}

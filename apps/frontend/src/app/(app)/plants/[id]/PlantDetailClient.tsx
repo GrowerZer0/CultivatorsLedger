@@ -177,6 +177,12 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
             {currentPlant?.strain && (
               <p className="text-sm text-zinc-600 dark:text-zinc-400">{currentPlant.strain}</p>
             )}
+              {currentPlant?.light && (
+    <span className="text-[10px] bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-400 px-2 py-0.5 rounded-full font-bold flex items-center gap-1 border border-amber-200 dark:border-amber-900/50">
+      💡 {currentPlant.light.wattage}W @ {currentPlant.light.dimmerPercent}%
+      {currentPlant.light.distanceInches ? ` · ${currentPlant.light.distanceInches}" away` : ""}
+    </span>
+  )}
           </div>
         </div>
         <div className="flex items-center gap-2">

@@ -56,7 +56,7 @@ model User {
   batchHarvests    BatchHarvest[]
   plants           Plant[]
   plantPhotos      PlantPhoto[]
-
+  light            Light[]
   @@map("users")
 }
 model SystemSetting {
@@ -247,6 +247,8 @@ model Plant {
   flipDate         DateTime?         @map("flip_date")
   pendingFcUpdate  Boolean   @default(false) @map("pending_fc_update")
   pendingFcStartTime  DateTime? @map("pending_fc_start_time")
+  lightId         String?  @map("light_id")
+  light           Light?   @relation(fields: [lightId], references: [id], onDelete: SetNull)
 
   @@map("plants")
 }
@@ -316,4 +318,26 @@ model Room {
   climateLogs ClimateLog[]
 
   @@map("rooms")
+}
+model Light {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name            String   // e.g., "VIVOSUN 200W"
+  wattage         Int      // e.g., 200
+  type            String   @default("led_full_spectrum") // "led_full_spectrum" | "led_bar" | "seedling_tray"
+  
+  // Current Settings
+  dimmerPercent   Int      @default(100) @map("dimmer_percent") // 0-100
+  distanceInches  Int?     @map("distance_inches")// Hanging height above canopy. Null for fixed-height seedling trays.
+  scheduleHoursOn Int      @default(18) @map("schedule_hours_on")  // 18 for veg/seedling, 12 for flower
+  
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  plants          Plant[]  // Relation to plants
+
+  @@map("lights")
 }

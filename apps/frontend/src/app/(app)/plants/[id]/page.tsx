@@ -49,6 +49,7 @@ export default async function PlantDetailPage({
       },
       photos: { 
         orderBy: { capturedAt: "desc" } },
+      light: true,
     },
   });
 
@@ -149,6 +150,14 @@ export default async function PlantDetailPage({
     weightAtCapture: p.weightAtCapture ? Number(p.weightAtCapture) : null,
     capturedAt: p.capturedAt.toISOString(),
       })),
+      light: plantData.light ? {
+      id: plantData.light.id,
+      name: plantData.light.name,
+      wattage: plantData.light.wattage,
+      dimmerPercent: plantData.light.dimmerPercent,
+      distanceInches: plantData.light.distanceInches,
+      scheduleHoursOn: plantData.light.scheduleHoursOn,
+    } : null,
   };
 const canExport = await canAccessFeature("export_csv");
 
