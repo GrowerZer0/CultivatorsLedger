@@ -2,11 +2,12 @@
 
 'use client';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   Layers,
-  Scale, 
+  Scale,
   FlaskConical,
+  Sprout,
 } from 'lucide-react';
 import {
   Area,
@@ -38,6 +39,7 @@ import { ClimateCard } from "@/components/dashboard/ClimateCard";
 import { getLatestClimateReading, getClimateTrend, type ClimateReading, type ClimatePoint } from "@/server/actions/climate";
 import { NutrientCalculatorModal } from "@/components/nutrients/NutrientCalculatorModal";
 import { SensorStatusBanner, type SensorStatus } from "@/components/dashboard/SensorStatusBanner";
+import { StartGrowModal } from "@/components/dashboard/StartGrowModal";
 
 type Plant = {
   id: string;
@@ -58,6 +60,9 @@ interface DashboardClientProps {
     alerts: string[];
     summary: string;
     sensorStatus: SensorStatus[];
+    rooms: any[];
+    batches: any[];
+    lights: any[];
   };
   onboardingState: {
     step: number;
@@ -67,12 +72,13 @@ interface DashboardClientProps {
   isOnboardingActive: boolean;
 }
 
-export default function DashboardClient({ 
+export default function DashboardClient({
   initialData,
   onboardingState,
-  isOnboardingActive 
+  isOnboardingActive
 }: DashboardClientProps) {
   const { setData } = useTelemetry();
+  const router = useRouter();
   // --- STATE ---
   const [dbEnvironmentReadings, setDbEnvironmentReadings] = useState<EnvironmentReading[]>([]);
   const [dbDryBackLogs, setDbDryBackLogs] = useState<DryBackLog[]>([]);
@@ -82,7 +88,10 @@ export default function DashboardClient({
   const [selectedPlantId, setSelectedPlantId] = useState<string | null>(null);
   const [climateReading, setClimateReading] = useState<ClimateReading | null>(null);
   const [climateTrend, setClimateTrend] = useState<ClimatePoint[]>([]);
-const [isNutrientModalOpen, setIsNutrientModalOpen] = useState(false);
+  const [rooms, setRooms] = useState<any[]>([]);
+  const [isNutrientModalOpen, setIsNutrientModalOpen] = useState(false);
+    const [isStartGrowModalOpen, setIsStartGrowModalOpen] = useState(false);
+
   // AI Briefing state
   const [briefingLoading, setBriefingLoading] = useState(false);
   const [lastBriefingTime, setLastBriefingTime] = useState<string>('Not yet generated');
@@ -131,7 +140,7 @@ const [isNutrientModalOpen, setIsNutrientModalOpen] = useState(false);
         console.error('Error checking onboarding:', error);
       }
     };
-    
+
     if (isOnboardingActive) {
       checkOnboarding();
     }
@@ -142,7 +151,7 @@ const [isNutrientModalOpen, setIsNutrientModalOpen] = useState(false);
     async (skipLoading = false) => {
       try {
         if (!skipLoading) setLoading(true);
-        
+
         const [dashboardData, roomsData, plantsData, readings, climate, trend] = await Promise.all([
           getDashboardData(),
           fetchRooms(),
@@ -277,7 +286,7 @@ const [isNutrientModalOpen, setIsNutrientModalOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#0B0F19] text-gray-900 dark:text-zinc-100 p-4 space-y-6">
-        <SensorStatusBanner sensors={initialData.sensorStatus} />
+      <SensorStatusBanner sensors={initialData.sensorStatus} />
       {/* Toast */}
       {toast && (
         <div className="fixed top-20 right-4 z-50 max-w-sm animate-slide-in-right">
@@ -302,33 +311,40 @@ const [isNutrientModalOpen, setIsNutrientModalOpen] = useState(false);
         />
       )}
 
-      {/* Quick Actions */}
-<div className="grid grid-cols-2 gap-3">
-  <button
-    onClick={() => {
-      window.location.href = "/check-in";
-    }}
-    className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-3 text-sm font-bold shadow-sm transition-colors"
-  >
-    <Scale className="size-4" />
-    Log Reading
-  </button>
-  <button
-    onClick={() => setIsNutrientModalOpen(true)}
-    className="flex items-center justify-center gap-2 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white px-4 py-3 text-sm font-bold shadow-sm hover:border-emerald-500 transition-colors"
-  >
-    <FlaskConical className="size-4" />
-    Mix Nutrients
-  </button>
-</div>
+      {/* Quick Actions Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
+        <button
+          onClick={() => router.push("/check-in")}
+          className="flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold transition-colors shadow-sm"
+        >
+          <Scale className="size-4" />
+          Log Reading
+        </button>
+
+        <button
+          onClick={() => setIsNutrientModalOpen(true)}
+          className="flex items-center justify-center gap-2 px-4 py-3 bg-zinc-800 dark:bg-zinc-700 hover:bg-zinc-700 dark:hover:bg-zinc-600 text-white rounded-xl text-sm font-bold transition-colors shadow-sm"
+        >
+          <FlaskConical className="size-4" />
+          Mix Nutrients
+        </button>
+
+        <button
+          onClick={() => setIsStartGrowModalOpen(true)}
+          className="flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-zinc-900 border border-emerald-500/30 hover:border-emerald-500 text-emerald-600 dark:text-emerald-400 rounded-xl text-sm font-bold transition-colors shadow-sm"
+        >
+          <Sprout className="size-4" />
+          Start New Grow
+        </button>
+      </div>
 
       {/* Climate Card */}
-<ClimateCard
-  reading={climateReading}
-  trend={climateTrend}
-  onRefresh={() => loadData(true)}
-  isLoading={loading}
-/>
+      <ClimateCard
+        reading={climateReading}
+        trend={climateTrend}
+        onRefresh={() => loadData(true)}
+        isLoading={loading}
+      />
 
       {/* VPD Chart */}
       <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl">
@@ -359,7 +375,7 @@ const [isNutrientModalOpen, setIsNutrientModalOpen] = useState(false);
         </div>
       </div>
 
-            {/* Weight & Dryback Card */}
+      {/* Weight & Dryback Card */}
       {plants.length > 0 && (
         <WeightDrybackCard
           plants={plants}
@@ -381,10 +397,19 @@ const [isNutrientModalOpen, setIsNutrientModalOpen] = useState(false);
           onRefresh={() => loadBriefing(true)}
         />
       </div>*/}
-<NutrientCalculatorModal
-  isOpen={isNutrientModalOpen}
-  onClose={() => setIsNutrientModalOpen(false)}
-/>
+
+      {/* Start New Grow Modal */}
+      <StartGrowModal
+        isOpen={isStartGrowModalOpen}
+        onClose={() => setIsStartGrowModalOpen(false)}
+        rooms={initialData.rooms || []}
+        batches={initialData.batches || []}
+        lights={initialData.lights || []}
+      />
+      <NutrientCalculatorModal
+        isOpen={isNutrientModalOpen}
+        onClose={() => setIsNutrientModalOpen(false)}
+      />
     </div>
   );
 }

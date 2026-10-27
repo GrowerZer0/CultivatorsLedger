@@ -32,12 +32,14 @@ import { EditPlantModal } from "@/components/facility/EditPlantModal";
 import { GROWTH_STAGES, getStageFromDays, getStageProgress } from "@/lib/growth-stages";
 import type { PlantWithDetails, DryBackLog, IrrigationEvent } from "@/types/plant";
 import { PhotoUploadModal } from "@/components/photos/PhotoUploadModal";
+import { SeedlingTracker } from "./SeedlingTracker";
 
 interface PlantDetailClientProps {
   plant: PlantWithDetails;
+  seedlingContext?: any
 }
 
-export function PlantDetailClient({ plant }: PlantDetailClientProps) {
+export function PlantDetailClient({ plant, seedlingContext }: PlantDetailClientProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -177,12 +179,12 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
             {currentPlant?.strain && (
               <p className="text-sm text-zinc-600 dark:text-zinc-400">{currentPlant.strain}</p>
             )}
-              {currentPlant?.light && (
-    <span className="text-[10px] bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-400 px-2 py-0.5 rounded-full font-bold flex items-center gap-1 border border-amber-200 dark:border-amber-900/50">
-      💡 {currentPlant.light.wattage}W @ {currentPlant.light.dimmerPercent}%
-      {currentPlant.light.distanceInches ? ` · ${currentPlant.light.distanceInches}" away` : ""}
-    </span>
-  )}
+            {currentPlant?.light && (
+              <span className="text-[10px] bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-400 px-2 py-0.5 rounded-full font-bold flex items-center gap-1 border border-amber-200 dark:border-amber-900/50">
+                💡 {currentPlant.light.wattage}W @ {currentPlant.light.dimmerPercent}%
+                {currentPlant.light.distanceInches ? ` · ${currentPlant.light.distanceInches}" away` : ""}
+              </span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -216,6 +218,16 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
         </div>
       </div>
 
+      {currentPlant?.stage === "seedling" && (
+        <div className="mb-6">
+          <SeedlingTracker
+            plantId={currentPlant.id}
+            lastPlugWeight={seedlingContext?.lastCheck?.plugWeightG || null}
+            light={currentPlant.light}
+          />
+        </div>
+      )}
+
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
@@ -239,18 +251,18 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
             Dryback
           </div>
           <div className={`text-2xl font-bold mt-1 ${dryback !== null ? (
-              dryback > 80 ? 'text-red-500' :
-                dryback > 60 ? 'text-yellow-500' :
-                  'text-green-500'
-            ) : 'text-white'
+            dryback > 80 ? 'text-red-500' :
+              dryback > 60 ? 'text-yellow-500' :
+                'text-green-500'
+          ) : 'text-white'
             }`}>
             {dryback !== null ? `${Number(dryback).toFixed(1)}%` : "—"}
           </div>
           {trend && (
             <div className="flex items-center gap-1 text-xs">
               <trend.icon className={`size-3 ${trend.direction === 'up' ? 'text-yellow-500' :
-                  trend.direction === 'down' ? 'text-green-500' :
-                    'text-zinc-500'
+                trend.direction === 'down' ? 'text-green-500' :
+                  'text-zinc-500'
                 }`} />
               <span className="text-zinc-600 dark:text-zinc-400">{trend.label}</span>
             </div>
@@ -449,151 +461,150 @@ export function PlantDetailClient({ plant }: PlantDetailClientProps) {
               <p className="text-xs mt-1">Start by logging a check-in or importing data.</p>
             </div>
           ) : (
-allEvents.slice(0,3).map((event, index) => {
-  const date = event.timestamp;
+            allEvents.slice(0, 3).map((event, index) => {
+              const date = event.timestamp;
 
-  // ---- PHOTO ----
-  if (event.kind === "photo") {
-    const photo = event.data;
-    return (
-      <button
-        key={`photo-${photo.id}-${index}`}
-        onClick={() => {
-          if (photo.url) window.open(photo.url, "_blank");
-        }}
-        className="w-full p-4 flex items-start gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors text-left"
-      >
-        <div className="shrink-0">
-          {photo.url ? (
-            <img
-              src={photo.url}
-              alt={photo.note || "Plant photo"}
-              className="size-16 rounded-lg object-cover border border-zinc-200 dark:border-zinc-700"
-            />
-          ) : (
-            <div className="size-16 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-              <Camera className="size-6 text-zinc-400" />
-            </div>
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2">
-            <span className="font-medium text-zinc-900 dark:text-white text-sm">
-              Photo
-              {photo.stageAtCapture && (
-                <span className="ml-2 text-xs text-zinc-500 capitalize">
-                  {photo.stageAtCapture}
-                  {photo.weekOfStage ? ` · Week ${photo.weekOfStage}` : ""}
-                </span>
-              )}
-            </span>
-            <span className="text-xs text-zinc-500">
-              {date.toLocaleDateString()}{" "}
-              {date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-            </span>
-          </div>
-          {photo.note && (
-            <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
-              {photo.note}
-            </p>
-          )}
-          {photo.weightAtCapture !== null && (
-            <p className="text-[10px] text-zinc-400 mt-0.5">
-              Weight at capture: {Number(photo.weightAtCapture).toFixed(2)} lbs
-            </p>
-          )}
-        </div>
-      </button>
-    );
-  }
+              // ---- PHOTO ----
+              if (event.kind === "photo") {
+                const photo = event.data;
+                return (
+                  <button
+                    key={`photo-${photo.id}-${index}`}
+                    onClick={() => {
+                      if (photo.url) window.open(photo.url, "_blank");
+                    }}
+                    className="w-full p-4 flex items-start gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors text-left"
+                  >
+                    <div className="shrink-0">
+                      {photo.url ? (
+                        <img
+                          src={photo.url}
+                          alt={photo.note || "Plant photo"}
+                          className="size-16 rounded-lg object-cover border border-zinc-200 dark:border-zinc-700"
+                        />
+                      ) : (
+                        <div className="size-16 rounded-lg bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                          <Camera className="size-6 text-zinc-400" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium text-zinc-900 dark:text-white text-sm">
+                          Photo
+                          {photo.stageAtCapture && (
+                            <span className="ml-2 text-xs text-zinc-500 capitalize">
+                              {photo.stageAtCapture}
+                              {photo.weekOfStage ? ` · Week ${photo.weekOfStage}` : ""}
+                            </span>
+                          )}
+                        </span>
+                        <span className="text-xs text-zinc-500">
+                          {date.toLocaleDateString()}{" "}
+                          {date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                      {photo.note && (
+                        <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                          {photo.note}
+                        </p>
+                      )}
+                      {photo.weightAtCapture !== null && (
+                        <p className="text-[10px] text-zinc-400 mt-0.5">
+                          Weight at capture: {Number(photo.weightAtCapture).toFixed(2)} lbs
+                        </p>
+                      )}
+                    </div>
+                  </button>
+                );
+              }
 
-  // ---- WEIGHT ----
-  if (event.kind === "weight") {
-    const log = event.data;
-    return (
-      <div
-        key={`weight-${log.id}-${index}`}
-        className="p-4 flex items-start gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors"
-      >
-        <div className="shrink-0 mt-0.5">
-          <div className="p-1.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-            <Scale className="size-4" />
-          </div>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2">
-            <span className="font-medium text-zinc-900 dark:text-white">
-              {Number(log.currentWeightLbs).toFixed(1)} lbs
-              <span
-                className={`ml-2 text-xs ${
-                  Number(log.dryBackPercent) > 80
-                    ? "text-red-500"
-                    : Number(log.dryBackPercent) > 60
-                    ? "text-amber-500"
-                    : "text-emerald-500"
-                }`}
-              >
-                ({Number(log.dryBackPercent).toFixed(1)}% dryback)
-              </span>
-            </span>
-            <span className="text-xs text-zinc-500">
-              {date.toLocaleDateString()}{" "}
-              {date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-            </span>
-          </div>
-          {log.trainingEvent && log.trainingEvent !== "None" && (
-            <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
-              Training: {log.trainingEvent}
-            </div>
-          )}
-          {log.notes && (
-            <div className="text-xs text-zinc-500 mt-0.5 truncate">{log.notes}</div>
-          )}
-        </div>
-      </div>
-    );
-  }
+              // ---- WEIGHT ----
+              if (event.kind === "weight") {
+                const log = event.data;
+                return (
+                  <div
+                    key={`weight-${log.id}-${index}`}
+                    className="p-4 flex items-start gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors"
+                  >
+                    <div className="shrink-0 mt-0.5">
+                      <div className="p-1.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                        <Scale className="size-4" />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium text-zinc-900 dark:text-white">
+                          {Number(log.currentWeightLbs).toFixed(1)} lbs
+                          <span
+                            className={`ml-2 text-xs ${Number(log.dryBackPercent) > 80
+                              ? "text-red-500"
+                              : Number(log.dryBackPercent) > 60
+                                ? "text-amber-500"
+                                : "text-emerald-500"
+                              }`}
+                          >
+                            ({Number(log.dryBackPercent).toFixed(1)}% dryback)
+                          </span>
+                        </span>
+                        <span className="text-xs text-zinc-500">
+                          {date.toLocaleDateString()}{" "}
+                          {date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                      {log.trainingEvent && log.trainingEvent !== "None" && (
+                        <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
+                          Training: {log.trainingEvent}
+                        </div>
+                      )}
+                      {log.notes && (
+                        <div className="text-xs text-zinc-500 mt-0.5 truncate">{log.notes}</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              }
 
-  // ---- IRRIGATION ----
-  if (event.kind === "irrigation") {
-    const irrigation = event.data;
-    return (
-      <div
-        key={`irrigation-${irrigation.id}-${index}`}
-        className="p-4 flex items-start gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors"
-      >
-        <div className="shrink-0 mt-0.5">
-          <div className="p-1.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400">
-            <Droplet className="size-4" />
-          </div>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2">
-            <span className="font-medium text-zinc-900 dark:text-white">
-              Irrigation
-              {irrigation.moisturePercentage !== null && (
-                <span className="ml-2 text-xs text-zinc-600 dark:text-zinc-400">
-                  ({Number(irrigation.moisturePercentage).toFixed(0)}% moisture)
-                </span>
-              )}
-            </span>
-            <span className="text-xs text-zinc-500">
-              {date.toLocaleDateString()}{" "}
-              {date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-            </span>
-          </div>
-          {irrigation.notes && (
-            <div className="text-xs text-zinc-500 mt-0.5 truncate">
-              {irrigation.notes}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
+              // ---- IRRIGATION ----
+              if (event.kind === "irrigation") {
+                const irrigation = event.data;
+                return (
+                  <div
+                    key={`irrigation-${irrigation.id}-${index}`}
+                    className="p-4 flex items-start gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors"
+                  >
+                    <div className="shrink-0 mt-0.5">
+                      <div className="p-1.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                        <Droplet className="size-4" />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium text-zinc-900 dark:text-white">
+                          Irrigation
+                          {irrigation.moisturePercentage !== null && (
+                            <span className="ml-2 text-xs text-zinc-600 dark:text-zinc-400">
+                              ({Number(irrigation.moisturePercentage).toFixed(0)}% moisture)
+                            </span>
+                          )}
+                        </span>
+                        <span className="text-xs text-zinc-500">
+                          {date.toLocaleDateString()}{" "}
+                          {date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                      {irrigation.notes && (
+                        <div className="text-xs text-zinc-500 mt-0.5 truncate">
+                          {irrigation.notes}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              }
 
-  return null;
-})
+              return null;
+            })
           )}
         </div>
       </div>
@@ -607,8 +618,8 @@ allEvents.slice(0,3).map((event, index) => {
               <div key={insight.id} className="bg-zinc-800/30 rounded-lg p-3 border border-zinc-300 dark:border-zinc-700/50">
                 <div className="flex items-center gap-2">
                   <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${insight.recommendationType === 'irrigate' ? 'bg-red-500/20 text-red-400' :
-                      insight.recommendationType === 'wait' ? 'bg-yellow-500/20 text-yellow-400' :
-                        'bg-blue-500/20 text-blue-400'
+                    insight.recommendationType === 'wait' ? 'bg-yellow-500/20 text-yellow-400' :
+                      'bg-blue-500/20 text-blue-400'
                     }`}>
                     {insight.recommendationType}
                   </span>
@@ -637,11 +648,11 @@ allEvents.slice(0,3).map((event, index) => {
         onPlantUpdated={handlePlantUpdated}
       />
       <PhotoUploadModal
-  isOpen={isPhotoModalOpen}
-  onClose={() => setIsPhotoModalOpen(false)}
-  plantId={currentPlant.id}
-  plantName={currentPlant.name}
-/>
+        isOpen={isPhotoModalOpen}
+        onClose={() => setIsPhotoModalOpen(false)}
+        plantId={currentPlant.id}
+        plantName={currentPlant.name}
+      />
     </div>
   );
 }

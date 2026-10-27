@@ -81,9 +81,13 @@ export async function createPlant(
       };
     }
 
-    const { success } = await defaultRatelimit.limit(userId);
-    if (!success) {
-      return { success: false, error: "Too many plant creations. Please wait." };
+try {
+  const { success } = await defaultRatelimit.limit(userId);
+  if (!success) {
+    return { success: false, error: "Too many plant creations. Please wait." };
+  }
+} catch (error) {
+  console.warn("Rate limiter failed (likely local dev missing Upstash env vars). Skipping limit.", error);
     }
     if (validated.roomId) {
       const roomExists = await db.room.findFirst({
@@ -93,6 +97,7 @@ export async function createPlant(
         throw new Error("Invalid room assignment");
       }
     }
+    const lightId = (data as any).lightId;
     const plant = await db.plant.create({
       data: {
         name: validated.name,
@@ -103,6 +108,7 @@ export async function createPlant(
         wetWeight: validated.wetWeight ?? null,
         dryTarget: validated.dryTarget ?? null,
         userId,
+        lightId: lightId || null,
       },
     });
 

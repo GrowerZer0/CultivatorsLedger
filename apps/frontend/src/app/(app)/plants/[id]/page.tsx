@@ -7,6 +7,8 @@ import { derivePlantStage } from "@/lib/plant-stage";
 import { getPhotoUrls } from "@/server/actions/photos";
 import { canAccessFeature } from "@/lib/features";
 import { ExportButton } from "@/components/export/ExportButton";
+import { SeedlingTracker } from "./SeedlingTracker";
+import { getSeedlingContext } from "@/server/actions/seedling";
 
 // Helper to convert Decimal to number
 function toNumber(value: any): number {
@@ -56,6 +58,7 @@ export default async function PlantDetailPage({
   if (!plantData) {
     notFound();
   }
+  const seedlingContext = await getSeedlingContext(id);
 
   const photoUrls = await getPhotoUrls(plantData.photos.map(photo => photo.storagePath));
 
@@ -153,10 +156,10 @@ export default async function PlantDetailPage({
       light: plantData.light ? {
       id: plantData.light.id,
       name: plantData.light.name,
-      wattage: plantData.light.wattage,
-      dimmerPercent: plantData.light.dimmerPercent,
-      distanceInches: plantData.light.distanceInches,
-      scheduleHoursOn: plantData.light.scheduleHoursOn,
+      wattage: Number(plantData.light.wattage),
+      dimmerPercent: Number(plantData.light.dimmerPercent),
+      distanceInches: Number(plantData.light.distanceInches),
+      scheduleHoursOn: Number(plantData.light.scheduleHoursOn),
     } : null,
   };
 const canExport = await canAccessFeature("export_csv");
@@ -166,7 +169,7 @@ return (
     <div className="flex justify-end px-4 pt-4">
       <ExportButton mode="plant" plantId={plant.id} canExport={canExport} />
     </div>
-    <PlantDetailClient plant={plant} />
+    <PlantDetailClient plant={plant} seedlingContext={seedlingContext} />
   </div>
 );
 }

@@ -49,9 +49,13 @@ export async function createBatch(data: unknown) {
     const validated = batchSchema.parse(data);
     const userId = await getUserId();
     // Rate limit: 10 creations per hour
-    const { success } = await defaultRatelimit.limit(userId);
-    if (!success) {
-      return { success: false, error: "Too many batch creations. Please wait." };
+    try {
+      const { success } = await defaultRatelimit.limit(userId);
+      if (!success) {
+        return { success: false, error: "Too many batch creations. Please wait." };
+      }
+    } catch (error) {
+      console.warn("Rate limiter failed. Skipping.", error);
     }
     // Additional fields not in schema (wetWeight, dryTarget, startDate, isActive)
     // We'll accept them as optional extras

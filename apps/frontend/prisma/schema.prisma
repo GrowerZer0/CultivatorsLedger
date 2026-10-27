@@ -57,6 +57,8 @@ model User {
   plants           Plant[]
   plantPhotos      PlantPhoto[]
   light            Light[]
+  seedlingChecks  SeedlingCheck[] 
+  
   @@map("users")
 }
 model SystemSetting {
@@ -249,7 +251,7 @@ model Plant {
   pendingFcStartTime  DateTime? @map("pending_fc_start_time")
   lightId         String?  @map("light_id")
   light           Light?   @relation(fields: [lightId], references: [id], onDelete: SetNull)
-
+    seedlingChecks  SeedlingCheck[]  
   @@map("plants")
 }
 model PlantInsight {
@@ -341,3 +343,21 @@ model Light {
 
   @@map("lights")
 }
+
+model SeedlingCheck {
+  id               String   @id @default(cuid())
+  plantId          String   @map("plant_id")
+  plant            Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  userId           String   @map("user_id")
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  checkedAt        DateTime @default(now()) @map("checked_at") @db.Timestamptz(6)
+  
+  plugWeightG      Int      @map("plug_weight_g")
+  saturatedWeightG Int?     @map("saturated_weight_g") // Set once you know the "watered" weight
+  symptoms         String[] // Array of strings: ["curl_down", "stretch", "none", etc.]
+  notes            String?
+
+  @@index([plantId, checkedAt])
+  @@map("seedling_checks")
+} 

@@ -4,6 +4,9 @@ import DashboardClient from "./DashboardClient";
 import { getOnboardingState } from "@/server/actions/onboarding";
 import { getPhotoUrls } from "@/server/actions/photos";
 import type { SensorStatus } from "@/components/dashboard/SensorStatusBanner";
+import { fetchRooms } from "@/server/actions/facility-mgmt";
+import { fetchBatches } from "@/server/actions/batch-mgmt";
+import { getLights } from "@/server/actions/lights";
 
 export default async function DashboardWrapper() {
   const userId = await getUserId();
@@ -15,6 +18,9 @@ export default async function DashboardWrapper() {
     sensorConfigs,
     latestWeight,
     latestClimate,
+    rooms, 
+    batches,
+    lights
   ] = await Promise.all([
     db.plant.findMany({
       where: { userId },
@@ -50,6 +56,9 @@ export default async function DashboardWrapper() {
       orderBy: { timestamp: "desc" },
       select: { timestamp: true },
     }),
+    fetchRooms(),
+    fetchBatches(),
+    getLights(),  
   ]);
 
   const thumbPaths = plants
@@ -132,6 +141,9 @@ export default async function DashboardWrapper() {
         alerts,
         summary: `${plants.length} plants, ${recentLogs.length} recent logs`,
         sensorStatus,
+        rooms: rooms,
+        batches: batches,
+        lights: lights,
       }}
       onboardingState={onboardingState}
       isOnboardingActive={isOnboardingActive}
