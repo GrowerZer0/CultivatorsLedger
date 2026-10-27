@@ -16,6 +16,7 @@ import {
   Minus,
   Pencil,
   Camera,
+  ArrowRight,
 } from "lucide-react";
 import {
   Line,
@@ -33,11 +34,13 @@ import { GROWTH_STAGES, getStageFromDays, getStageProgress } from "@/lib/growth-
 import type { PlantWithDetails, DryBackLog, IrrigationEvent } from "@/types/plant";
 import { PhotoUploadModal } from "@/components/photos/PhotoUploadModal";
 import { SeedlingTracker } from "./SeedlingTracker";
+import { AdvanceStageModal } from "./AdvanceStageModal";
+import { Light } from "@prisma/client";
 
 interface PlantDetailClientProps {
   plant: PlantWithDetails;
   seedlingContext?: any;
-  lights: any[];
+  lights?: Light[];
 }
 
 export function PlantDetailClient({ plant, seedlingContext, lights }: PlantDetailClientProps) {
@@ -46,6 +49,7 @@ export function PlantDetailClient({ plant, seedlingContext, lights }: PlantDetai
   const [showEditModal, setShowEditModal] = useState(false);
   const [currentPlant, setCurrentPlant] = useState(plant);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+const [isAdvanceStageOpen, setIsAdvanceStageOpen] = useState(false);
 
   const handleDelete = async () => {
     if (!confirm(`Delete "${plant.name}"? This will permanently delete the plant and all its data.`)) return;
@@ -196,6 +200,13 @@ export function PlantDetailClient({ plant, seedlingContext, lights }: PlantDetai
             <Pencil className="size-3.5" />
             Edit
           </button>
+          <button
+  onClick={() => setIsAdvanceStageOpen(true)}
+  className="px-3 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center gap-1"
+>
+  <ArrowRight className="size-3.5" />
+  Advance Stage
+</button>
           <button
             onClick={() => router.push(`/check-in?plantId=${currentPlant?.id}`)}
             className="px-3 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
@@ -655,6 +666,13 @@ export function PlantDetailClient({ plant, seedlingContext, lights }: PlantDetai
         plantId={currentPlant.id}
         plantName={currentPlant.name}
       />
+      <AdvanceStageModal
+  isOpen={isAdvanceStageOpen}
+  onClose={() => setIsAdvanceStageOpen(false)}
+  plantId={currentPlant.id}
+  currentStage={currentPlant.stage || "seedling"}
+  lightName={currentPlant.light?.name}
+/>
     </div>
   );
 }

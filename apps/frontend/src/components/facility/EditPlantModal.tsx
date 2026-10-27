@@ -32,7 +32,7 @@ interface EditPlantModalProps {
   plant: Plant | null;
   rooms: Room[];
   batches: Batch[];
-  lights: Light[];
+  lights?: Light[];
   allPlants?: Plant[];
   onPlantUpdated: (plant: Plant) => void;
 }
@@ -251,7 +251,7 @@ export function EditPlantModal({
               className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
             >
               <option value="">No Light</option>
-              {lights.map((light) => (
+              {lights?.map((light) => (
                 <option key={light.id} value={light.id}>
                   {light.name} ({light.wattage}W @ {light.dimmerPercent}%)
                 </option>

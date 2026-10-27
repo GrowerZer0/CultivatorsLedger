@@ -58,7 +58,8 @@ model User {
   plantPhotos      PlantPhoto[]
   light            Light[]
   seedlingChecks  SeedlingCheck[] 
-  
+  stageEvents     StageEvent[]
+
   @@map("users")
 }
 model SystemSetting {
@@ -251,7 +252,8 @@ model Plant {
   pendingFcStartTime  DateTime? @map("pending_fc_start_time")
   lightId         String?  @map("light_id")
   light           Light?   @relation(fields: [lightId], references: [id], onDelete: SetNull)
-    seedlingChecks  SeedlingCheck[]  
+  seedlingChecks  SeedlingCheck[]  
+  stageEvents     StageEvent[]
   @@map("plants")
 }
 model PlantInsight {
@@ -361,3 +363,21 @@ model SeedlingCheck {
   @@index([plantId, checkedAt])
   @@map("seedling_checks")
 } 
+
+model StageEvent {
+  id        String   @id @default(cuid())
+  plantId   String   @map("plant_id")
+  plant     Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  stage     String   @db.VarChar(30) // "seedling", "veg", "flower", "harvest", "dry", "cure"
+  startedAt DateTime @default(now()) @map("started_at") @db.Timestamptz(6)
+  endedAt   DateTime? @map("ended_at") @db.Timestamptz(6)
+  
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([plantId, startedAt])
+  @@map("stage_events")
+}
