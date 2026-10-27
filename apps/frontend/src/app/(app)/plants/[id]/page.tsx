@@ -9,6 +9,7 @@ import { canAccessFeature } from "@/lib/features";
 import { ExportButton } from "@/components/export/ExportButton";
 import { SeedlingTracker } from "./SeedlingTracker";
 import { getSeedlingContext } from "@/server/actions/seedling";
+import { getLights } from "@/server/actions/lights";
 
 // Helper to convert Decimal to number
 function toNumber(value: any): number {
@@ -28,7 +29,7 @@ export default async function PlantDetailPage({
 }) {
   const { id } = await params;
   const userId = await getUserId();
-  
+  const lights = await getLights();
   const plantData = await db.plant.findFirst({
     where: { id, userId },
     include: {
@@ -169,7 +170,7 @@ return (
     <div className="flex justify-end px-4 pt-4">
       <ExportButton mode="plant" plantId={plant.id} canExport={canExport} />
     </div>
-    <PlantDetailClient plant={plant} seedlingContext={seedlingContext} />
+    <PlantDetailClient plant={plant} seedlingContext={seedlingContext} lights={lights} />
   </div>
 );
 }

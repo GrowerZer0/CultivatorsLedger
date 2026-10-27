@@ -36,10 +36,11 @@ import { SeedlingTracker } from "./SeedlingTracker";
 
 interface PlantDetailClientProps {
   plant: PlantWithDetails;
-  seedlingContext?: any
+  seedlingContext?: any;
+  lights: any[];
 }
 
-export function PlantDetailClient({ plant, seedlingContext }: PlantDetailClientProps) {
+export function PlantDetailClient({ plant, seedlingContext, lights }: PlantDetailClientProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -644,6 +645,7 @@ export function PlantDetailClient({ plant, seedlingContext }: PlantDetailClientP
         plant={currentPlant}
         rooms={allRooms.length > 0 ? allRooms : rooms}
         batches={allBatches}
+        lights={lights}
         allPlants={allPlants}
         onPlantUpdated={handlePlantUpdated}
       />

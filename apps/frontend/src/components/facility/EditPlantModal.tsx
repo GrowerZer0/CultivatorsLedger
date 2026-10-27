@@ -19,10 +19,12 @@ type Plant = {
   startDate: string | Date | null;
   stage: string | null;
   flipDate: string | Date | null;
+  lightId?: string | null;
 };
 
 type Room = { id: string; name: string };
 type Batch = { id: string; name: string };
+type Light = { id: string; name: string; wattage: number; dimmerPercent: number };
 
 interface EditPlantModalProps {
   open: boolean;
@@ -30,6 +32,7 @@ interface EditPlantModalProps {
   plant: Plant | null;
   rooms: Room[];
   batches: Batch[];
+  lights: Light[];
   allPlants?: Plant[];
   onPlantUpdated: (plant: Plant) => void;
 }
@@ -47,6 +50,7 @@ export function EditPlantModal({
   plant,
   rooms,
   batches,
+  lights,
   allPlants = [],
   onPlantUpdated,
 }: EditPlantModalProps) {
@@ -68,6 +72,7 @@ export function EditPlantModal({
         startDate: plant.startDate ? new Date(plant.startDate).toISOString().split('T')[0] : null,
         stage: plant.stage || null,
         flipDate: plant.flipDate ? new Date(plant.flipDate).toISOString().split('T')[0] : null,
+        lightId: plant.lightId || null,
       });
     }
   }, [plant]);
@@ -91,6 +96,7 @@ export function EditPlantModal({
         startDate: formData.startDate ? new Date(formData.startDate) : null,
         stage: formData.stage || null,
         flipDate: formData.flipDate ? new Date(formData.flipDate) : null,
+        lightId: formData.lightId || null,
       };
 
       // Handle number fields with helper
@@ -235,6 +241,23 @@ export function EditPlantModal({
                 ))}
               </select>
             </div>
+          <div className="mt-3">
+            <label className="text-xs text-zinc-600 dark:text-zinc-400 flex items-center gap-1">
+              💡 Assigned Light
+            </label>
+            <select
+              value={formData.lightId || ""}
+              onChange={(e) => setFormData({ ...formData, lightId: e.target.value || null })}
+              className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+            >
+              <option value="">No Light</option>
+              {lights.map((light) => (
+                <option key={light.id} value={light.id}>
+                  {light.name} ({light.wattage}W @ {light.dimmerPercent}%)
+                </option>
+              ))}
+            </select>
+          </div>
           </div>
 
           {/* Weight Settings */}

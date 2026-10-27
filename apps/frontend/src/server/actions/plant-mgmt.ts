@@ -19,6 +19,7 @@ interface CreatedPlant {
   wetWeight: number | null;
   dryTarget: number | null;
   currentWeight: number | null;
+  lightId: string | null;
 }
 
 // ==========================================
@@ -121,6 +122,7 @@ try {
       containerGallons: plant.containerGallons || undefined,
       wetWeight: plant.wetWeight || undefined,
       dryTarget: plant.dryTarget || undefined,
+      lightId: plant.lightId || undefined,
     }, userId);
     const serializedPlant = serializePrisma(plant) as CreatedPlant;
 
@@ -145,7 +147,8 @@ export async function updatePlant(data: unknown) {
       mirrorPlantId: z.string().nullable().optional(),
       startDate: z.date().nullable().optional(),
       stage: z.string().nullable().optional(),
-        flipDate: z.date().nullable().optional(),
+      flipDate: z.date().nullable().optional(),
+      lightId: z.string().nullable().optional(),
     });
     const validated = updatePlantSchema.parse(data);
     const userId = await getUserId();
@@ -164,6 +167,7 @@ export async function updatePlant(data: unknown) {
     if (validated.mirrorPlantId !== undefined) updateData.mirrorPlantId = validated.mirrorPlantId;
     if (validated.stage !== undefined) updateData.stage = validated.stage;
     if (validated.flipDate !== undefined) updateData.flipDate = validated.flipDate;
+    if (validated.lightId !== undefined) updateData.lightId = validated.lightId;
     // Handle startDate - only set if not null, otherwise skip (keep existing)
     if (validated.startDate !== undefined && validated.startDate !== null) {
       updateData.startDate = validated.startDate;
@@ -222,6 +226,7 @@ export async function fetchPlants() {
       wetWeight: true,
       dryTarget: true,
       currentWeight: true,
+      lightId: true,
       mirrorPlantId: true,
       startDate: true,
       stage: true,
