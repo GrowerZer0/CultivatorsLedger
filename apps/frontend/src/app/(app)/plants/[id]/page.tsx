@@ -10,6 +10,7 @@ import { ExportButton } from "@/components/export/ExportButton";
 import { SeedlingTracker } from "./SeedlingTracker";
 import { getSeedlingContext } from "@/server/actions/seedling";
 import { getLights } from "@/server/actions/lights";
+import { serializePrisma } from "@/lib/serializePrisma";
 
 // Helper to convert Decimal to number
 function toNumber(value: any): number {
@@ -68,6 +69,12 @@ export default async function PlantDetailPage({
   flipDate: plantData.flipDate,
   manualStage: plantData.stage,
 });
+  // If the database stage is a lifecycle stage (harvest, dry, cure), use it.
+  // Otherwise, fall back to the derived stage (veg, flower).
+  const lifecycleStages = ["seedling", "harvest", "dry", "cure"];
+  const finalStage = lifecycleStages.includes(plantData.stage?.toLowerCase() || "") 
+    ? plantData.stage 
+    : derived.stage;
 
   // Convert Decimal to number for client component with proper typing
   const plant = {
@@ -89,7 +96,7 @@ export default async function PlantDetailPage({
     mirrorPlant: plantData.mirrorPlant || null,
     room: plantData.room ? { id: plantData.room.id, name: plantData.room.name } : null,
     batch: plantData.batch ? { id: plantData.batch.id, name: plantData.batch.name } : null,
-    stage: derived.stage,
+    stage: finalStage,
     flipDate: plantData.flipDate,
     pendingFcUpdate: plantData.pendingFcUpdate,
     pendingFcStartTime: plantData.pendingFcStartTime,
@@ -170,7 +177,7 @@ return (
     <div className="flex justify-end px-4 pt-4">
       <ExportButton mode="plant" plantId={plant.id} canExport={canExport} />
     </div>
-    <PlantDetailClient plant={plant} seedlingContext={seedlingContext} lights={lights} />
+    <PlantDetailClient plant={serializePrisma(plant)} seedlingContext={serializePrisma(seedlingContext)} lights={serializePrisma(lights)} />
   </div>
 );
 }

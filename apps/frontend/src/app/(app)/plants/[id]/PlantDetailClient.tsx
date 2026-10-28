@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -17,6 +17,7 @@ import {
   Pencil,
   Camera,
   ArrowRight,
+  Scissors,
 } from "lucide-react";
 import {
   Line,
@@ -36,6 +37,7 @@ import { PhotoUploadModal } from "@/components/photos/PhotoUploadModal";
 import { SeedlingTracker } from "./SeedlingTracker";
 import { AdvanceStageModal } from "./AdvanceStageModal";
 import { Light } from "@prisma/client";
+import { DryCureTracker } from "./DryCureTracker";
 
 interface PlantDetailClientProps {
   plant: PlantWithDetails;
@@ -48,8 +50,12 @@ export function PlantDetailClient({ plant, seedlingContext, lights }: PlantDetai
   const [isDeleting, setIsDeleting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [currentPlant, setCurrentPlant] = useState(plant);
+  // Sync the local state with the server whenever the page refreshes
+  useEffect(() => {
+    setCurrentPlant(plant);
+  }, [plant]);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
-const [isAdvanceStageOpen, setIsAdvanceStageOpen] = useState(false);
+  const [isAdvanceStageOpen, setIsAdvanceStageOpen] = useState(false);
 
   const handleDelete = async () => {
     if (!confirm(`Delete "${plant.name}"? This will permanently delete the plant and all its data.`)) return;
@@ -95,8 +101,22 @@ const [isAdvanceStageOpen, setIsAdvanceStageOpen] = useState(false);
   // Growth Stage
   const detectedStage = currentPlant?.stage || getStageFromDays(daysSinceStart);
   const stageConfig = GROWTH_STAGES[detectedStage as keyof typeof GROWTH_STAGES];
-  const stageProgress = getStageProgress(daysSinceStart, detectedStage as any);
+  // Calculate days in the CURRENT stage
+  let daysInCurrentStage = 0;
+  if (detectedStage === "flowering" && currentPlant.flipDate) {
+    daysInCurrentStage = Math.floor((Date.now() - new Date(currentPlant.flipDate).getTime()) / (1000 * 60 * 60 * 24));
+  } else if (detectedStage === "dry" || detectedStage === "cure") {
+    // Fallback: use updatedAt since that's when the stage last changed
+    daysInCurrentStage = Math.floor((Date.now() - new Date(currentPlant.updatedAt).getTime()) / (1000 * 60 * 60 * 24));
+  } else if (currentPlant.startDate) {
+    daysInCurrentStage = Math.floor((Date.now() - new Date(currentPlant.startDate).getTime()) / (1000 * 60 * 60 * 24));
+  }
 
+  const isStandardStage = ["seedling", "vegetative", "flowering"].includes(detectedStage?.toLowerCase() || "");
+  
+  const stageProgress = isStandardStage 
+    ? getStageProgress(daysSinceStart, detectedStage as any) 
+    : getStageProgress(daysSinceStart, detectedStage as any, daysInCurrentStage);
   // Calculate dryback trend
   const getTrend = () => {
     if (dryBackLogs.length < 3) return null;
@@ -201,12 +221,12 @@ const [isAdvanceStageOpen, setIsAdvanceStageOpen] = useState(false);
             Edit
           </button>
           <button
-  onClick={() => setIsAdvanceStageOpen(true)}
-  className="px-3 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center gap-1"
->
-  <ArrowRight className="size-3.5" />
-  Advance Stage
-</button>
+            onClick={() => setIsAdvanceStageOpen(true)}
+            className="px-3 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center gap-1"
+          >
+            <ArrowRight className="size-3.5" />
+            Advance Stage
+          </button>
           <button
             onClick={() => router.push(`/check-in?plantId=${currentPlant?.id}`)}
             className="px-3 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
@@ -230,6 +250,7 @@ const [isAdvanceStageOpen, setIsAdvanceStageOpen] = useState(false);
         </div>
       </div>
 
+      {/* Seedling Tracker */}
       {currentPlant?.stage === "seedling" && (
         <div className="mb-6">
           <SeedlingTracker
@@ -237,6 +258,27 @@ const [isAdvanceStageOpen, setIsAdvanceStageOpen] = useState(false);
             lastPlugWeight={seedlingContext?.lastCheck?.plugWeightG || null}
             light={currentPlant.light}
           />
+        </div>
+      )}
+
+      {/* Dry / Cure Tracker */}
+      {["dry", "cure"].includes(currentPlant?.stage || "") && (
+        <div className="mb-6">
+          <DryCureTracker
+            plantId={currentPlant.id}
+            stage={currentPlant.stage!}
+            lastWeight={null} 
+          />
+        </div>
+      )}
+      {currentPlant.stage === "dry" && (
+        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl p-4 mb-6">
+          <h3 className="text-sm font-bold text-amber-900 dark:text-amber-300 flex items-center gap-2">
+            <Scissors className="size-4" /> Plant is Drying
+          </h3>
+          <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+            Target: 60°F / 60% RH. Wait for the stems to snap before curing.
+          </p>
         </div>
       )}
 
@@ -667,12 +709,12 @@ const [isAdvanceStageOpen, setIsAdvanceStageOpen] = useState(false);
         plantName={currentPlant.name}
       />
       <AdvanceStageModal
-  isOpen={isAdvanceStageOpen}
-  onClose={() => setIsAdvanceStageOpen(false)}
-  plantId={currentPlant.id}
-  currentStage={currentPlant.stage || "seedling"}
-  lightName={currentPlant.light?.name}
-/>
+        isOpen={isAdvanceStageOpen}
+        onClose={() => setIsAdvanceStageOpen(false)}
+        plantId={currentPlant.id}
+        currentStage={currentPlant.stage || "seedling"}
+        lightName={currentPlant.light?.name}
+      />
     </div>
   );
 }
