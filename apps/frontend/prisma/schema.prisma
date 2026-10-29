@@ -254,6 +254,8 @@ model Plant {
   light           Light?   @relation(fields: [lightId], references: [id], onDelete: SetNull)
   seedlingChecks  SeedlingCheck[]  
   stageEvents     StageEvent[]
+  substrate     String? @default("happy_frog") @map("substrate")
+  nutrientLine  String? @default("gh_flora") @map("nutrient_line")
   @@map("plants")
 }
 model PlantInsight {

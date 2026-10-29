@@ -38,6 +38,7 @@ import { SeedlingTracker } from "./SeedlingTracker";
 import { AdvanceStageModal } from "./AdvanceStageModal";
 import { Light } from "@prisma/client";
 import { DryCureTracker } from "./DryCureTracker";
+import { CultivationDashboard } from "@/components/plant/CultivationDashboard";
 
 interface PlantDetailClientProps {
   plant: PlantWithDetails;
@@ -187,6 +188,19 @@ export function PlantDetailClient({ plant, seedlingContext, lights }: PlantDetai
   };
 
   const rooms = currentPlant?.room ? [{ id: currentPlant.room.id, name: currentPlant.room.name }] : [];
+    // Calculate the current week based on the stage and start date
+  let currentWeek = 1;
+  if (detectedStage === "vegetative" && currentPlant.startDate) {
+    const days = Math.floor((Date.now() - new Date(currentPlant.startDate).getTime()) / (1000 * 60 * 60 * 24));
+    currentWeek = Math.floor(days / 7) + 1;
+  } else if (detectedStage === "flowering" && currentPlant.flipDate) {
+    const days = Math.floor((Date.now() - new Date(currentPlant.flipDate).getTime()) / (1000 * 60 * 60 * 24));
+    currentWeek = Math.floor(days / 7) + 1;
+  } else if (currentPlant.stageEvents?.[0]) {
+    // Fallback for dry/cure using the StageEvent timestamp
+    const days = Math.floor((Date.now() - new Date((currentPlant as any).stageEvents[0].startedAt).getTime()) / (1000 * 60 * 60 * 24));
+    currentWeek = Math.floor(days / 7) + 1;
+  }
 
   return (
     <div className="max-w-5xl mx-auto p-4 space-y-6">
@@ -364,6 +378,14 @@ export function PlantDetailClient({ plant, seedlingContext, lights }: PlantDetai
           </div>
         </div>
       </div>
+
+      {/* Dynamic Cultivation Dashboard */}
+      <CultivationDashboard 
+        stage={(detectedStage as any) || "seedling"}
+        week={currentWeek}
+        substrate={currentPlant.substrate || "happy_frog"}
+        nutrientLine={currentPlant.nutrientLine || "gh_flora"}
+      />
 
       {/* Room & Batch Info */}
       {(currentPlant?.room || currentPlant?.batch) && (

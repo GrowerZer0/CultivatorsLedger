@@ -92,15 +92,24 @@ export interface PlantWithDetails extends Omit<Plant, 'dryBackLogs' | 'irrigatio
   irrigationEvents: IrrigationEvent[];
   plantInsights: PlantInsight[];
   mirrorPlant: { id: string; name: string } | null;
-  photos: PlantPhoto[]; 
+  photos: PlantPhoto[];
+  
+  substrate?: string;
+  nutrientLine?: string;
+  stageEvents?: {
+    id: string;
+    stage: string;
+    startedAt: string;
+  }[];
+
   light?: {
-  id: string;
-  name: string;
-  wattage: number;
-  dimmerPercent: number;
-  distanceInches: number | null;
-  scheduleHoursOn: number;
-} | null;
+    id: string;
+    name: string;
+    wattage: number;
+    dimmerPercent: number;
+    distanceInches: number | null;
+    scheduleHoursOn: number;
+  } | null;
 }
 
 // Type guard to check if event is a DryBackLog

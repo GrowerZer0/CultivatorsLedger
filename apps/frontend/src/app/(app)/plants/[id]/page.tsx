@@ -23,10 +23,10 @@ function toNumberOrNull(value: any): number | null {
   return Number(value);
 }
 
-export default async function PlantDetailPage({ 
-  params 
-}: { 
-  params: Promise<{ id: string }> 
+export default async function PlantDetailPage({
+  params
+}: {
+  params: Promise<{ id: string }>
 }) {
   const { id } = await params;
   const userId = await getUserId();
@@ -34,6 +34,7 @@ export default async function PlantDetailPage({
   const plantData = await db.plant.findFirst({
     where: { id, userId },
     include: {
+      light: true,
       dryBackLogs: {
         orderBy: { timestamp: "desc" },
         take: 50,
@@ -51,9 +52,14 @@ export default async function PlantDetailPage({
       mirrorPlant: {
         select: { id: true, name: true },
       },
-      photos: { 
-        orderBy: { capturedAt: "desc" } },
-      light: true,
+      photos: {
+        orderBy: { capturedAt: "desc" }
+      },
+      stageEvents: {
+        where: { endedAt: null },
+        orderBy: { startedAt: "desc" },
+        take: 1,
+      },
     },
   });
 
@@ -65,15 +71,15 @@ export default async function PlantDetailPage({
   const photoUrls = await getPhotoUrls(plantData.photos.map(photo => photo.storagePath));
 
   const derived = derivePlantStage({
-  startDate: plantData.startDate,
-  flipDate: plantData.flipDate,
-  manualStage: plantData.stage,
-});
+    startDate: plantData.startDate,
+    flipDate: plantData.flipDate,
+    manualStage: plantData.stage,
+  });
   // If the database stage is a lifecycle stage (harvest, dry, cure), use it.
   // Otherwise, fall back to the derived stage (veg, flower).
   const lifecycleStages = ["seedling", "harvest", "dry", "cure"];
-  const finalStage = lifecycleStages.includes(plantData.stage?.toLowerCase() || "") 
-    ? plantData.stage 
+  const finalStage = lifecycleStages.includes(plantData.stage?.toLowerCase() || "")
+    ? plantData.stage
     : derived.stage;
 
   // Convert Decimal to number for client component with proper typing
@@ -152,16 +158,21 @@ export default async function PlantDetailPage({
       outcome: insight.outcome,
       outcomeNotes: insight.outcomeNotes,
     })),
-      photos: plantData.photos.map((p) => ({
-    id: p.id,
-    url: photoUrls[p.storagePath] || null,
-    note: p.note,
-    stageAtCapture: p.stageAtCapture,
-    weekOfStage: p.weekOfStage,
-    weightAtCapture: p.weightAtCapture ? Number(p.weightAtCapture) : null,
-    capturedAt: p.capturedAt.toISOString(),
-      })),
-      light: plantData.light ? {
+    stageEvents: plantData.stageEvents.map((event: any) => ({
+      id: event.id,
+      stage: event.stage,
+      startedAt: event.startedAt.toISOString(),
+    })),
+    photos: plantData.photos.map((p) => ({
+      id: p.id,
+      url: photoUrls[p.storagePath] || null,
+      note: p.note,
+      stageAtCapture: p.stageAtCapture,
+      weekOfStage: p.weekOfStage,
+      weightAtCapture: p.weightAtCapture ? Number(p.weightAtCapture) : null,
+      capturedAt: p.capturedAt.toISOString(),
+    })),
+    light: plantData.light ? {
       id: plantData.light.id,
       name: plantData.light.name,
       wattage: Number(plantData.light.wattage),
@@ -170,14 +181,14 @@ export default async function PlantDetailPage({
       scheduleHoursOn: Number(plantData.light.scheduleHoursOn),
     } : null,
   };
-const canExport = await canAccessFeature("export_csv");
+  const canExport = await canAccessFeature("export_csv");
 
-return (
-  <div className="max-w-5xl mx-auto">
-    <div className="flex justify-end px-4 pt-4">
-      <ExportButton mode="plant" plantId={plant.id} canExport={canExport} />
+  return (
+    <div className="max-w-5xl mx-auto">
+      <div className="flex justify-end px-4 pt-4">
+        <ExportButton mode="plant" plantId={plant.id} canExport={canExport} />
+      </div>
+      <PlantDetailClient plant={serializePrisma(plant)} seedlingContext={serializePrisma(seedlingContext)} lights={serializePrisma(lights)} />
     </div>
-    <PlantDetailClient plant={serializePrisma(plant)} seedlingContext={serializePrisma(seedlingContext)} lights={serializePrisma(lights)} />
-  </div>
-);
+  );
 }
