@@ -11,6 +11,7 @@ import { SeedlingTracker } from "./SeedlingTracker";
 import { getSeedlingContext } from "@/server/actions/seedling";
 import { getLights } from "@/server/actions/lights";
 import { serializePrisma } from "@/lib/serializePrisma";
+import { getLatestClimateReading } from "@/server/actions/climate";
 
 // Helper to convert Decimal to number
 function toNumber(value: any): number {
@@ -67,7 +68,7 @@ export default async function PlantDetailPage({
     notFound();
   }
   const seedlingContext = await getSeedlingContext(id);
-
+  const latestClimate = await getLatestClimateReading();
   const photoUrls = await getPhotoUrls(plantData.photos.map(photo => photo.storagePath));
 
   const derived = derivePlantStage({
@@ -188,7 +189,12 @@ export default async function PlantDetailPage({
       <div className="flex justify-end px-4 pt-4">
         <ExportButton mode="plant" plantId={plant.id} canExport={canExport} />
       </div>
-      <PlantDetailClient plant={serializePrisma(plant)} seedlingContext={serializePrisma(seedlingContext)} lights={serializePrisma(lights)} />
+      <PlantDetailClient 
+      plant={serializePrisma(plant)} 
+      seedlingContext={serializePrisma(seedlingContext)} 
+      lights={serializePrisma(lights)}
+      latestClimate={latestClimate} 
+           />
     </div>
   );
 }

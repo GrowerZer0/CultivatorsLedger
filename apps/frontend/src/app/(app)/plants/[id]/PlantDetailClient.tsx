@@ -44,9 +44,10 @@ interface PlantDetailClientProps {
   plant: PlantWithDetails;
   seedlingContext?: any;
   lights?: Light[];
+    latestClimate?: { vpd: number; humidity: number; temperatureF: number } | null;
 }
 
-export function PlantDetailClient({ plant, seedlingContext, lights }: PlantDetailClientProps) {
+export function PlantDetailClient({ plant, seedlingContext, lights, latestClimate }: PlantDetailClientProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -385,6 +386,7 @@ export function PlantDetailClient({ plant, seedlingContext, lights }: PlantDetai
         week={currentWeek}
         substrate={currentPlant.substrate || "happy_frog"}
         nutrientLine={currentPlant.nutrientLine || "gh_flora"}
+        currentVpd={latestClimate?.vpd}
       />
 
       {/* Room & Batch Info */}
