@@ -387,6 +387,7 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
         substrate={currentPlant.substrate || "happy_frog"}
         nutrientLine={currentPlant.nutrientLine || "gh_flora"}
         currentVpd={latestClimate?.vpd}
+        currentDryback={dryback} 
       />
 
       {/* Room & Batch Info */}

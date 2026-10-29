@@ -12,9 +12,7 @@ import {
   Tooltip,
 } from "recharts";
 import type { ClimateReading, ClimatePoint } from "@/server/actions/climate";
-
-const VPD_MIN = 1.0;
-const VPD_MAX = 1.5;
+import { getEnvironmentTargets } from "@/lib/cultivation-rules";
 
 function getMinutesAgo(iso: string): number {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 1000 / 60);
@@ -31,13 +29,16 @@ function formatAgo(minutes: number): string {
 interface ClimateCardProps {
   reading: ClimateReading | null;
   trend?: ClimatePoint[];
+  stage?: string;
   onRefresh?: () => void;
   isLoading?: boolean;
 }
 
-export function ClimateCard({ reading, trend = [], onRefresh, isLoading }: ClimateCardProps) {
+export function ClimateCard({ reading, trend = [], stage, onRefresh, isLoading }: ClimateCardProps) {
   const [minutesAgo, setMinutesAgo] = useState(0);
-
+  const targets = getEnvironmentTargets(stage as any);
+  const VPD_MIN = targets.vpdMin;
+  const VPD_MAX = targets.vpdMax;
   useEffect(() => {
     if (!reading) return;
     const update = () => setMinutesAgo(getMinutesAgo(reading.timestamp));

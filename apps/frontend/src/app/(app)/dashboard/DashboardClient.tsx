@@ -342,6 +342,7 @@ export default function DashboardClient({
       <ClimateCard
         reading={climateReading}
         trend={climateTrend}
+        stage={plants[0]?.stage || "vegetative"} 
         onRefresh={() => loadData(true)}
         isLoading={loading}
       />

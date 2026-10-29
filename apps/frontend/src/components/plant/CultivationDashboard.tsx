@@ -1,4 +1,4 @@
-import { getEnvironmentTargets, getWeeklyActions, getFeedSchedule, type Stage } from "@/lib/cultivation-rules";
+import { getEnvironmentTargets, getWeeklyActions, getFeedSchedule, getWateringStatus, type Stage } from "@/lib/cultivation-rules";
 import { Droplet, Leaf, Sun, FlaskConical, CheckCircle2, AlertTriangle } from "lucide-react";
 
 interface Props {
@@ -7,12 +7,14 @@ interface Props {
   substrate: string;
   nutrientLine: string;
   currentVpd?: number | null;
+  currentDryback?: number | null;
 }
 
-export function CultivationDashboard({ stage, week, substrate, nutrientLine, currentVpd }: Props) {
+export function CultivationDashboard({ stage, week, substrate, nutrientLine, currentVpd, currentDryback }: Props) {
   const env = getEnvironmentTargets(stage);
   const actions = getWeeklyActions(stage, week);
   const feed = getFeedSchedule(substrate, nutrientLine, stage, week);
+  const waterStatus = getWateringStatus(currentDryback ?? null);
 
   // Determine if the current VPD is in range
   const isVpdInRange = currentVpd !== null && currentVpd !== undefined 
@@ -33,6 +35,20 @@ export function CultivationDashboard({ stage, week, substrate, nutrientLine, cur
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Watering Alert */}
+      <div className={`p-4 rounded-xl border ${
+        waterStatus.severity === "critical" ? "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900/50" :
+        waterStatus.severity === "warning" ? "bg-amber-50 border-amber-200 dark:bg-amber-950/20 dark:border-amber-900/50" :
+        "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/20 dark:border-emerald-900/50"
+      }`}>
+        <h3 className={`text-sm font-bold ${
+          waterStatus.severity === "critical" ? "text-red-800 dark:text-red-300" :
+          waterStatus.severity === "warning" ? "text-amber-800 dark:text-amber-300" :
+          "text-emerald-800 dark:text-emerald-300"
+        }`}>
+          {waterStatus.message}
+        </h3>
+      </div>
         {/* Environment */}
         <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-xl border border-blue-200 dark:border-blue-900/50">
           <div className="flex items-center justify-between mb-2">

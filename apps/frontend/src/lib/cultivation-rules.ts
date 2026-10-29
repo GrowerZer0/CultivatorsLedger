@@ -12,6 +12,9 @@ export function getEnvironmentTargets(stage: Stage) {
       return { vpdMin: 0.8, vpdMax: 1.2, rhTarget: 60, note: "Target 60°F / 60% RH. Keep dark." };
     case "cure":
       return { vpdMin: 0, vpdMax: 0, rhTarget: 62, note: "Target 62% RH in jars." };
+      default:
+              // Fallback for "harvest" or any unknown stage
+      return { vpdMin: 0.8, vpdMax: 1.2, rhTarget: 60, note: "Standard environment." };
   }
 }
 
@@ -62,4 +65,32 @@ export function getFeedSchedule(substrate: string, nutrientLine: string, stage: 
   
   // Fallback for other setups
   return "Follow your standard feed chart for this week.";
+}
+
+export function getWateringStatus(drybackPercent: number | null) {
+  if (drybackPercent === null) {
+    return { needsWater: false, message: "No weight data yet.", severity: "none" };
+  }
+  
+  if (drybackPercent >= 80) {
+    return { 
+      needsWater: true, 
+      message: "🚨 CRITICAL: Water now! Dryback is past 80%.", 
+      severity: "critical" 
+    };
+  }
+  
+  if (drybackPercent >= 60) {
+    return { 
+      needsWater: true, 
+      message: "⚠️ Heads up: Dryback is at 60%. Time to water.", 
+      severity: "warning" 
+    };
+  }
+  
+  return { 
+    needsWater: false, 
+    message: "✅ Moisture is good. No water needed.", 
+    severity: "good" 
+  };
 }
