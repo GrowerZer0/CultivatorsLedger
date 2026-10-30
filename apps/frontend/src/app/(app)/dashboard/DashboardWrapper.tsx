@@ -7,6 +7,7 @@ import type { SensorStatus } from "@/components/dashboard/SensorStatusBanner";
 import { fetchRooms } from "@/server/actions/facility-mgmt";
 import { fetchBatches } from "@/server/actions/batch-mgmt";
 import { getLights } from "@/server/actions/lights";
+import { getActionCenterData } from "@/server/actions/action-center";
 
 export default async function DashboardWrapper() {
   const userId = await getUserId();
@@ -20,7 +21,8 @@ export default async function DashboardWrapper() {
     latestClimate,
     rooms, 
     batches,
-    lights
+    lights,
+    actionItems
   ] = await Promise.all([
     db.plant.findMany({
       where: { userId },
@@ -58,7 +60,8 @@ export default async function DashboardWrapper() {
     }),
     fetchRooms(),
     fetchBatches(),
-    getLights(),  
+    getLights(), 
+    getActionCenterData(), 
   ]);
 
   const thumbPaths = plants
@@ -144,6 +147,7 @@ export default async function DashboardWrapper() {
         rooms: rooms,
         batches: batches,
         lights: lights,
+        actionItems,
       }}
       onboardingState={onboardingState}
       isOnboardingActive={isOnboardingActive}

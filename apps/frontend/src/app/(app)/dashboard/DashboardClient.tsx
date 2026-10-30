@@ -39,6 +39,7 @@ import { getLatestClimateReading, getClimateTrend, type ClimateReading, type Cli
 import { NutrientCalculatorModal } from "@/components/nutrients/NutrientCalculatorModal";
 import { SensorStatusBanner, type SensorStatus } from "@/components/dashboard/SensorStatusBanner";
 import { StartGrowModal } from "@/components/dashboard/StartGrowModal";
+import { ActionCenter } from "@/components/dashboard/ActionCenter";
 
 type Plant = {
   id: string;
@@ -62,6 +63,7 @@ interface DashboardClientProps {
     rooms: any[];
     batches: any[];
     lights: any[];
+    actionItems: any[];
   };
   onboardingState: {
     step: number;
@@ -307,6 +309,8 @@ export default function DashboardClient({
           }}
         />
       )}
+            {/* Action Center */}
+      <ActionCenter items={initialData.actionItems || []} />
 
       {/* Quick Actions Row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
