@@ -23,14 +23,13 @@ import {
   type EnvironmentReading,
   type DryBackLog,
   calculateDryBack,
-} from '@/lib/cultivation';
+} from '@/lib/cultivation-engine';
 import {
   getDashboardData,
   getLatestRoomReadings,
 } from '@/server/actions/loggingreadings';
 import { generateDailyBriefing } from '@/server/actions/dailyinsights';
 import { useTelemetry } from '@/lib/telemetry-context';
-import { MorningBrief } from '@/components/MorningBrief';
 import { fetchRooms } from '@/server/actions/facility-mgmt';
 import { fetchPlants } from '@/server/actions/plant-mgmt';
 import { OnboardingChecklist } from "@/components/onboarding/OnBoardingChecklist";
@@ -95,7 +94,6 @@ export default function DashboardClient({
   // AI Briefing state
   const [briefingLoading, setBriefingLoading] = useState(false);
   const [lastBriefingTime, setLastBriefingTime] = useState<string>('Not yet generated');
-  const [briefingSnapshot, setBriefingSnapshot] = useState<string | null>(null);
   const [briefingAttention, setBriefingAttention] = useState<string[]>([]);
   const [briefingActions, setBriefingActions] = useState<string[]>([]);
   const hasLoaded = useRef(false);
@@ -239,7 +237,6 @@ export default function DashboardClient({
     try {
       const result = await generateDailyBriefing(force);
       if (result.success) {
-        setBriefingSnapshot(result.snapshot || null);
         setBriefingAttention(result.attention || []);
         setBriefingActions(result.actions || []);
         setLastBriefingTime(
@@ -387,17 +384,6 @@ export default function DashboardClient({
         />
       )}
 
-      {/* Daily AI Briefing 
-      <div>
-        <MorningBrief
-          snapshot={briefingSnapshot}
-          attention={briefingAttention}
-          actions={briefingActions}
-          lastBriefingTime={lastBriefingTime}
-          isRefreshing={briefingLoading}
-          onRefresh={() => loadBriefing(true)}
-        />
-      </div>*/}
 
       {/* Start New Grow Modal */}
       <StartGrowModal

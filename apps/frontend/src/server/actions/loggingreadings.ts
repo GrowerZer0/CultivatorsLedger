@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getUserId } from "@/lib/session";
 import type { DryBackLog as PrismaDryBackLog } from "@prisma/client";
-import { TrainingEvent } from "@/lib/cultivation";
+import { TrainingEvent } from "@/lib/cultivation-engine";
 import { trackEvent } from "@/lib/analytics/server";
 
 // Helper: compute VPD (kPa) from temp (°C) and RH (%)

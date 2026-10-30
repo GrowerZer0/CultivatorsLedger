@@ -1,4 +1,4 @@
-import { getEnvironmentTargets, getWeeklyActions, getFeedSchedule, getWateringStatus, type Stage } from "@/lib/cultivation-rules";
+import { getEnvironmentTargets, getWeeklyActions, getFeedSchedule, getWateringStatus, type Stage } from "@/lib/cultivation-engine";
 import { Droplet, Leaf, Sun, FlaskConical, CheckCircle2, AlertTriangle } from "lucide-react";
 
 interface Props {

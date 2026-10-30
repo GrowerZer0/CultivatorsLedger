@@ -14,7 +14,7 @@ import {
   commercialFeedSchedules,
   type FeedSchedule,
   type NutrientDose,
-} from "@/lib/cultivation";
+} from "@/lib/cultivation-engine";
 
 interface NutrientCalculatorProps {
   plantStage?: string;

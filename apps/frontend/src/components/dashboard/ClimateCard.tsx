@@ -12,7 +12,7 @@ import {
   Tooltip,
 } from "recharts";
 import type { ClimateReading, ClimatePoint } from "@/server/actions/climate";
-import { getEnvironmentTargets } from "@/lib/cultivation-rules";
+import { getEnvironmentTargets } from "@/lib/cultivation-engine";
 
 function getMinutesAgo(iso: string): number {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 1000 / 60);
