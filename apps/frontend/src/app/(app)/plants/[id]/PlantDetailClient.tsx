@@ -311,97 +311,101 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
       )}
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 text-xs">
-            <Scale className="size-4" />
-            Current Weight
+      {isStandardStage && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
+            <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 text-xs">
+              <Scale className="size-4" />
+              Current Weight
+            </div>
+            <div className="text-2xl font-bold text-zinc-900 dark:text-white mt-1">
+              {formatWeight(weight, latestLog?.sourceDevice)}
+            </div>
+            {currentPlant?.wetWeight && (
+              <div className="text-xs text-zinc-500">
+                Wet: {formatWeight(Number(currentPlant.wetWeight), latestLog?.sourceDevice)}
+              </div>
+            )}
           </div>
-          <div className="text-2xl font-bold text-zinc-900 dark:text-white mt-1">
-            {formatWeight(weight, latestLog?.sourceDevice)}
+
+          <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
+            <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 text-xs">
+              <Activity className="size-4" />
+              Dryback
+            </div>
+            <div className={`text-2xl font-bold mt-1 ${dryback !== null ? (
+              dryback > 80 ? 'text-red-500' :
+                dryback > 60 ? 'text-yellow-500' :
+                  'text-green-500'
+            ) : 'text-white'
+              }`}>
+              {dryback !== null ? `${Number(dryback).toFixed(1)}%` : "—"}
+            </div>
+            {trend && (
+              <div className="flex items-center gap-1 text-xs">
+                <trend.icon className={`size-3 ${trend.direction === 'up' ? 'text-yellow-500' :
+                  trend.direction === 'down' ? 'text-green-500' :
+                    'text-zinc-500'
+                  }`} />
+                <span className="text-zinc-600 dark:text-zinc-400">{trend.label}</span>
+              </div>
+            )}
           </div>
-          {currentPlant?.wetWeight && (
+
+          <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
+            <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 text-xs">
+              <Calendar className="size-4" />
+              Days in Grow
+            </div>
+            <div className="text-2xl font-bold text-zinc-900 dark:text-white mt-1">
+              {daysSinceStart > 0 ? daysSinceStart : "—"}
+            </div>
             <div className="text-xs text-zinc-500">
-              Wet: {formatWeight(Number(currentPlant.wetWeight), latestLog?.sourceDevice)}
+              Since {currentPlant?.startDate ? new Date(currentPlant.startDate).toLocaleDateString() : 'N/A'}
             </div>
-          )}
-        </div>
+          </div>
 
-        <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 text-xs">
-            <Activity className="size-4" />
-            Dryback
-          </div>
-          <div className={`text-2xl font-bold mt-1 ${dryback !== null ? (
-            dryback > 80 ? 'text-red-500' :
-              dryback > 60 ? 'text-yellow-500' :
-                'text-green-500'
-          ) : 'text-white'
-            }`}>
-            {dryback !== null ? `${Number(dryback).toFixed(1)}%` : "—"}
-          </div>
-          {trend && (
-            <div className="flex items-center gap-1 text-xs">
-              <trend.icon className={`size-3 ${trend.direction === 'up' ? 'text-yellow-500' :
-                trend.direction === 'down' ? 'text-green-500' :
-                  'text-zinc-500'
-                }`} />
-              <span className="text-zinc-600 dark:text-zinc-400">{trend.label}</span>
+          <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
+            <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 text-xs">
+              <Sprout className="size-4" />
+              Growth Stage
             </div>
-          )}
-        </div>
+            <div className="text-2xl font-bold mt-1">
+              <span className={stageConfig?.color || 'text-white'}>
+                {stageConfig?.icon || '🌱'} {stageConfig?.label || detectedStage}
+              </span>
+            </div>
+            <div className="text-xs text-zinc-500">
+              {Math.round(stageProgress)}% through stage
+            </div>
+          </div>
 
-        <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 text-xs">
-            <Calendar className="size-4" />
-            Days in Grow
-          </div>
-          <div className="text-2xl font-bold text-zinc-900 dark:text-white mt-1">
-            {daysSinceStart > 0 ? daysSinceStart : "—"}
-          </div>
-          <div className="text-xs text-zinc-500">
-            Since {currentPlant?.startDate ? new Date(currentPlant.startDate).toLocaleDateString() : 'N/A'}
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 text-xs">
-            <Sprout className="size-4" />
-            Growth Stage
-          </div>
-          <div className="text-2xl font-bold mt-1">
-            <span className={stageConfig?.color || 'text-white'}>
-              {stageConfig?.icon || '🌱'} {stageConfig?.label || detectedStage}
-            </span>
-          </div>
-          <div className="text-xs text-zinc-500">
-            {Math.round(stageProgress)}% through stage
+          <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
+            <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 text-xs">
+              <Droplet className="size-4" />
+              Logs
+            </div>
+            <div className="text-2xl font-bold text-zinc-900 dark:text-white mt-1">
+              {dryBackLogs.length}
+            </div>
+            <div className="text-xs text-zinc-500">
+              {irrigationEvents.length} irrigations
+            </div>
           </div>
         </div>
-
-        <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
-          <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 text-xs">
-            <Droplet className="size-4" />
-            Logs
-          </div>
-          <div className="text-2xl font-bold text-zinc-900 dark:text-white mt-1">
-            {dryBackLogs.length}
-          </div>
-          <div className="text-xs text-zinc-500">
-            {irrigationEvents.length} irrigations
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* Dynamic Cultivation Dashboard */}
-      <CultivationDashboard 
-        stage={(detectedStage as any) || "seedling"}
-        week={currentWeek}
-        substrate={currentPlant.substrate || "happy_frog"}
-        nutrientLine={currentPlant.nutrientLine || "gh_flora"}
-        currentVpd={latestClimate?.vpd}
-        currentDryback={dryback} 
-      />
+      {isStandardStage && (
+        <CultivationDashboard 
+          stage={(detectedStage as any) || "seedling"}
+          week={currentWeek}
+          substrate={currentPlant.substrate || "happy_frog"}
+          nutrientLine={currentPlant.nutrientLine || "gh_flora"}
+          currentVpd={latestClimate?.vpd}
+          currentDryback={dryback} 
+        />
+      )}
 
       {/* Room & Batch Info */}
       {(currentPlant?.room || currentPlant?.batch) && (
@@ -446,8 +450,8 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
       )}
 
       {/* Dry-Back Trend Chart (last 7 days) */}
-      {dryBackChartData.length > 1 && (
-        <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
+      {isStandardStage && dryBackChartData.length > 1 && (
+          <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
           <div className="flex justify-between items-center mb-3">
             <div>
               <h2 className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Dry-Back Trend</h2>

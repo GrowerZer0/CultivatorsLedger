@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
 
       // Fallback if no plant found
       if (!plant) {
-        const plants = await db.plant.findMany({ where: { userId: sensor.userId }, take: 1 });
+        const plants = await db.plant.findMany({ where: { userId: sensor.userId, archivedAt: null }, take: 1 });
         if (plants.length > 0) plant = plants[0];
       }
 

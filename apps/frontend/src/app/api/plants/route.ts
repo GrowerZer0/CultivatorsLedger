@@ -10,7 +10,7 @@ export async function GET() {
     }
 
     const plants = await db.plant.findMany({
-      where: { userId },
+      where: { userId, archivedAt: null },
       select: { 
         id: true, 
         name: true,

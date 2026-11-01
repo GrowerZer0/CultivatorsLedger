@@ -11,7 +11,7 @@ export async function getActionCenterData() {
   const plants = await db.plant.findMany({
     where: { 
       userId,
-      // Only show plants that are actively growing (not harvested)
+      archivedAt: null,
       stage: { notIn: ["harvest", "dry", "cure"] }
     },
     include: {

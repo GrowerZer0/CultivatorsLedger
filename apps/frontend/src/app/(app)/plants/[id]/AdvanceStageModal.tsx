@@ -77,8 +77,9 @@ export function AdvanceStageModal({
       setLoading(false);
       if (res.success) {
         onClose();
-        router.push("/plants"); // Send them back to the plant list
-      } else {
+        router.refresh();
+        router.push("/plants");
+        } else {
         alert(res.error);
       }
       return;
@@ -262,14 +263,18 @@ export function AdvanceStageModal({
           >
             Cancel
           </button>
-          <button
-            onClick={handleAdvance}
-            disabled={loading}
-            className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center gap-2 transition-colors"
+          <button 
+            onClick={handleAdvance} 
+            disabled={loading} 
+            className={`px-4 py-2 rounded-lg text-white text-sm font-bold flex items-center gap-2 transition-colors ${
+              nextStage === "archived" ? "bg-zinc-800 hover:bg-zinc-700" : "bg-emerald-600 hover:bg-emerald-500"
+            }`}
           >
             {loading ? (
               <Loader2 className="size-4 animate-spin" />
-            ) : isHarvestTransition ? (
+            ) : nextStage === "archived" ? (
+              "Archive Grow"
+            ) : nextStage === "dry" ? (
               "Harvest & Start Dry"
             ) : (
               `Move to ${nextStage}`

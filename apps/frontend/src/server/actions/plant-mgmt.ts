@@ -215,7 +215,7 @@ export async function deletePlant(plantId: unknown) {
 export async function fetchPlants() {
   const userId = await getUserId();
   const plants = await prisma.plant.findMany({
-    where: { userId },
+    where: { userId, archivedAt: null },
     select: {
       id: true,
       name: true,
