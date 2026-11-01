@@ -10,7 +10,7 @@ import { Prisma } from "@prisma/client";
 // Keep in sync with CROP_STAGE_TARGETS.maxDryBack expectations in cultivation.ts.
 const DRY_TARGET_COEFF = 0.22;
 
-const STAGE_ORDER = ["seedling", "vegetative", "flowering", "dry", "cure"] as const;
+const STAGE_ORDER = ["seedling", "vegetative", "flowering", "dry", "cure", "archived"] as const;
 type Stage = (typeof STAGE_ORDER)[number];
 
 // Stages that "occupy" a plant slot for subscription gating.

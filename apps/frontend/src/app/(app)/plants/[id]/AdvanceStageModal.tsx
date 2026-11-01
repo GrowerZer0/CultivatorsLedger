@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ArrowRight, X, Loader2, Lightbulb, Scissors } from "lucide-react";
 import { advancePlantStage, revertPlantStage } from "@/server/actions/stages";
 import { useRouter } from "next/navigation";
+import { archivePlant } from "@/server/actions/plant-mgmt";
 
 interface AdvanceStageModalProps {
   isOpen: boolean;
@@ -16,7 +17,7 @@ interface AdvanceStageModalProps {
 // "harvest" is not a stage — it is an event captured on the flowering → dry
 // transition. See stages.ts: advancePlantStage requires harvestData when
 // newStage === "dry".
-const STAGE_ORDER = ["seedling", "vegetative", "flowering", "dry", "cure"];
+const STAGE_ORDER = ["seedling", "vegetative", "flowering", "dry", "cure", "archived"];
 
 export function AdvanceStageModal({
   isOpen,
@@ -64,21 +65,29 @@ export function AdvanceStageModal({
   // The flowering → dry transition is the harvest moment.
   const isHarvestTransition = nextStage === "dry";
 
-  const handleAdvance = async () => {
-    let harvestData: { wetWeightLbs: number; dryingMethod: string } | undefined;
-
-    if (isHarvestTransition) {
-      const parsed = parseFloat(wetWeight);
-      if (!Number.isFinite(parsed) || parsed <= 0) {
-        return alert("Enter a valid wet weight (in lbs) to start the dry phase.");
-      }
-      if (!dryingMethod) {
-        return alert("Select a drying method.");
-      }
-      harvestData = { wetWeightLbs: parsed, dryingMethod };
+ const handleAdvance = async () => {
+    if (nextStage === "dry" && !wetWeight) {
+      return alert("Please enter the wet weight before starting the dry phase.");
     }
 
     setLoading(true);
+
+    if (nextStage === "archived") {
+      const res = await archivePlant(plantId);
+      setLoading(false);
+      if (res.success) {
+        onClose();
+        router.push("/plants"); // Send them back to the plant list
+      } else {
+        alert(res.error);
+      }
+      return;
+    }
+
+    const harvestData = nextStage === "dry" 
+      ? { wetWeightLbs: parseFloat(wetWeight), dryingMethod }
+      : undefined;
+
     const res = await advancePlantStage(plantId, nextStage, updateLight, harvestData);
     setLoading(false);
 
@@ -209,9 +218,19 @@ export function AdvanceStageModal({
           </div>
         )}
 
+                {/* Archive Confirmation UI */}
+        {nextStage === "archived" && (
+          <div className="mb-6 p-4 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl space-y-2 text-center">
+            <p className="text-sm font-bold text-zinc-900 dark:text-white">Finish this grow?</p>
+            <p className="text-xs text-zinc-500">
+              This will hide the plant from your dashboard and plants list. You can still view it and export its data from the Archived Grows page.
+            </p>
+          </div>
+        )}
+
         {/* LIGHT UPDATE — shown for every transition where a light exists */}
-        {lightName && (
-          <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl">
+        {lightName && nextStage !== "dry" && nextStage !== "archived" && (
+                    <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl">
             <div className="flex items-start gap-3">
               <Lightbulb className="size-5 text-amber-500 shrink-0 mt-0.5" />
               <div className="flex-1">
