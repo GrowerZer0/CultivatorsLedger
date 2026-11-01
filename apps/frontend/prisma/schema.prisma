@@ -217,6 +217,8 @@ model SensorConfig {
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   plantId    String?   @map("plant_id")
   plant      Plant?    @relation(fields: [plantId], references: [id], onDelete: SetNull)
+  roomId     String?   @map("room_id")
+  room       Room?     @relation(fields: [roomId], references: [id], onDelete: SetNull)
   @@map("sensor_configs")
 }
 model Plant {
@@ -322,6 +324,7 @@ model Room {
   batches     Batch[]
   plants      Plant[]
   climateLogs ClimateLog[]
+  sensorConfigs SensorConfig[]
 
   @@map("rooms")
 }

@@ -155,12 +155,14 @@ export default function HardwareSettingsPage() {
                 <div key={sensor.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 flex flex-col space-y-3">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h4 className="text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-                                                {sensor.name}
+<Link href={`/settings/hardware/${sensor.id}`} className="hover:underline group">
+  <h4 className="text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-2 group-hover:text-emerald-500 transition-colors">
+    {sensor.name}
                         {sensor.type === 'esp32-loadcell' && (
                           <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400">Load Cell</span>
                         )}
                       </h4>
+</Link>
                       <div className="flex items-center gap-2 mt-1">
                         <span className={`text-xs ${status.color} flex items-center gap-1`}>
                           {status.icon} {status.label}

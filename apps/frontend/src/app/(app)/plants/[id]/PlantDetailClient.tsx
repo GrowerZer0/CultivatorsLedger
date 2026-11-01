@@ -58,7 +58,19 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
   }, [plant]);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [isAdvanceStageOpen, setIsAdvanceStageOpen] = useState(false);
-
+  const formatWeight = (lbs: number | null, sourceDevice?: string | null) => {
+    if (lbs === null || lbs === undefined) return "—";
+    
+    // Force grams if it's the Small Load Cell OR if the plant is a seedling
+    const isSmallScale = sourceDevice?.toLowerCase().includes("small");
+    const isSeedling = currentPlant?.stage === "seedling";
+    
+    if (isSmallScale || isSeedling) {
+      return `${(lbs * 453.592).toFixed(1)} g`;
+    }
+    
+    return `${Number(lbs).toFixed(1)} lbs`;
+  };
   const handleDelete = async () => {
     if (!confirm(`Delete "${plant.name}"? This will permanently delete the plant and all its data.`)) return;
 
@@ -305,11 +317,11 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
             Current Weight
           </div>
           <div className="text-2xl font-bold text-zinc-900 dark:text-white mt-1">
-            {weight !== null ? `${Number(weight).toFixed(1)} lbs` : "—"}
+            {formatWeight(weight, latestLog?.sourceDevice)}
           </div>
           {currentPlant?.wetWeight && (
             <div className="text-xs text-zinc-500">
-              Wet: {Number(currentPlant.wetWeight).toFixed(1)} lbs
+              Wet: {formatWeight(Number(currentPlant.wetWeight), latestLog?.sourceDevice)}
             </div>
           )}
         </div>
@@ -614,15 +626,8 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-medium text-zinc-900 dark:text-white">
-                          {Number(log.currentWeightLbs).toFixed(1)} lbs
-                          <span
-                            className={`ml-2 text-xs ${Number(log.dryBackPercent) > 80
-                              ? "text-red-500"
-                              : Number(log.dryBackPercent) > 60
-                                ? "text-amber-500"
-                                : "text-emerald-500"
-                              }`}
-                          >
+                          {formatWeight(Number(log.currentWeightLbs), log.sourceDevice)}
+                          <span className="ml-2 text-xs text-emerald-500">
                             ({Number(log.dryBackPercent).toFixed(1)}% dryback)
                           </span>
                         </span>
@@ -631,11 +636,6 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
                           {date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </span>
                       </div>
-                      {log.trainingEvent && log.trainingEvent !== "None" && (
-                        <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
-                          Training: {log.trainingEvent}
-                        </div>
-                      )}
                       {log.notes && (
                         <div className="text-xs text-zinc-500 mt-0.5 truncate">{log.notes}</div>
                       )}

@@ -23,10 +23,24 @@ export async function getSensors() {
     where: { userId },
     include: {
       plant: {
-        select: { name: true },
+        select: { id: true, name: true },
+      },
+      room: {
+        select: { id: true, name: true },
       },
     },
     orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function getSensorById(id: string) {
+  const userId = await getUserId();
+  return await db.sensorConfig.findFirst({
+    where: { id, userId },
+    include: {
+      plant: { select: { id: true, name: true } },
+      room: { select: { id: true, name: true } },
+    },
   });
 }
 
@@ -98,4 +112,41 @@ export async function regenerateApiKey(sensorId: string) {
   
   revalidatePath("/settings/hardware");
   return { ...updated, apiKey: newKey };
+}
+
+// ==========================================
+// SENSOR ASSIGNMENT
+// ==========================================
+export async function updateSensorAssignment(
+  sensorId: string, 
+  type: "plant" | "room", 
+  targetId: string | null
+) {
+  try {
+    const userId = await getUserId();
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    // Verify ownership
+    const sensor = await db.sensorConfig.findFirst({ where: { id: sensorId, userId } });
+    if (!sensor) return { success: false, error: "Sensor not found" };
+
+    if (type === "plant") {
+      await db.sensorConfig.update({
+        where: { id: sensorId },
+        data: { plantId: targetId, roomId: null }, 
+      });
+    } else {
+      await db.sensorConfig.update({
+        where: { id: sensorId },
+        data: { roomId: targetId, plantId: null }, 
+      });
+    }
+    
+    revalidatePath(`/settings/hardware/${sensorId}`);
+    revalidatePath(`/settings/hardware`);
+    return { success: true };
+  } catch (err) {
+    console.error("updateSensorAssignment error:", err);
+    return { success: false, error: "Failed to update assignment" };
+  }
 }

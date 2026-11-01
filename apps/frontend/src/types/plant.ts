@@ -40,6 +40,7 @@ export interface DryBackLog {
   trainingEvent: string | null;
   notes: string | null;
   source: string;
+  sourceDevice?: string | null; 
   plantId: string | null;
   batchId: string | null;
   containerGallons: number;
