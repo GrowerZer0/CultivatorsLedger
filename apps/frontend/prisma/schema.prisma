@@ -258,6 +258,8 @@ model Plant {
   stageEvents     StageEvent[]
   substrate     String? @default("happy_frog") @map("substrate")
   nutrientLine  String? @default("gh_flora") @map("nutrient_line")
+  dryingMethod String? @map("drying_method")
+    archivedAt DateTime? @map("archived_at") @db.Timestamptz(6)
   @@map("plants")
 }
 model PlantInsight {

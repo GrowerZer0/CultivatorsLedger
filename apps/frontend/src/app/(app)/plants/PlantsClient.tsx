@@ -17,6 +17,7 @@ type Plant = {
   containerGallons: number | null;
   currentWeight: number | null;
   thumbnailUrl: string | null;
+  stage: string | null; 
 };
 
 type Room = { id: string; name: string };
@@ -119,6 +120,7 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
                 containerGallons: null,
                 currentWeight: null,
                 thumbnailUrl: null,
+                stage: null,
               },
             ]);
             setAddPlantOpen(false);
@@ -236,9 +238,13 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
     </div>
   </div>
   <div className="flex items-center gap-3 text-xs text-zinc-500 shrink-0">
-    {plant.currentWeight !== null && (
-      <span>Current: {Number(plant.currentWeight).toFixed(1)} lbs</span>
-    )}
+{plant.currentWeight !== null && (
+  <span>
+    Current: {plant.stage === "seedling" 
+      ? `${(Number(plant.currentWeight) * 453.592).toFixed(1)} g`
+      : `${Number(plant.currentWeight).toFixed(1)} lbs`}
+  </span>
+)}
     <div className="flex items-center gap-2">
       {plant.roomId && (
         <span
@@ -298,11 +304,13 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
       <span className="text-emerald-400">{roomName}</span>
       <span className="text-blue-400">{plant.batchId ? "In batch" : "No batch"}</span>
     </div>
-    {plant.currentWeight !== null && (
-      <p className="text-xs text-zinc-500 mt-1">
-        Current: {Number(plant.currentWeight).toFixed(1)} lbs
-      </p>
-    )}
+{plant.currentWeight !== null && (
+  <span>
+    Current: {plant.stage === "seedling" 
+      ? `${(Number(plant.currentWeight) * 453.592).toFixed(1)} g`
+      : `${Number(plant.currentWeight).toFixed(1)} lbs`}
+  </span>
+)}
     <div className="flex items-center gap-3 mt-2">
       {plant.roomId && (
         <span
@@ -353,6 +361,7 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
               containerGallons: null,
               currentWeight: null,
               thumbnailUrl: null,
+              stage: null,
             },
           ]);
           setAddPlantOpen(false);

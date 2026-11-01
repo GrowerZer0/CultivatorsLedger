@@ -28,7 +28,7 @@ interface CreatedPlant {
 export async function getPlants() {
   const userId = await getUserId();
   const plants = await db.plant.findMany({
-    where: { userId },
+    where: { userId, archivedAt: null },
     orderBy: { createdAt: "asc" },
     include: {
       photos: {
@@ -256,4 +256,23 @@ export async function fetchPlants() {
       };
     })
   );
+}
+
+export async function archivePlant(plantId: string) {
+  try {
+    const userId = await getUserId();
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    await db.plant.update({
+      where: { id: plantId, userId },
+      data: { archivedAt: new Date() },
+    });
+
+    revalidatePath("/plants");
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (error) {
+    console.error("archivePlant error:", error);
+    return { success: false, error: "Failed to archive plant." };
+  }
 }

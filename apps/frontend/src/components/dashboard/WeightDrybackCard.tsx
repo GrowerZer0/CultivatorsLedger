@@ -38,6 +38,7 @@ type Plant = {
   dryTarget?: number | null;
   mirrorPlantId?: string | null;
   thumbnailUrl?: string | null;
+   stage?: string | null; 
 };
 
 interface WeightDrybackCardProps {
@@ -314,12 +315,18 @@ function PlantRow({ state }: { state: PlantState }) {
             {currentWeight !== null && (
               <div className="flex items-baseline gap-3 mt-1">
                 <span className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
-                  {Number(currentWeight).toFixed(2)}
+                  {plant.stage === "seedling" 
+                    ? (Number(currentWeight) * 453.592).toFixed(1)
+                    : Number(currentWeight).toFixed(2)}
                 </span>
-                <span className="text-xs text-zinc-500 dark:text-zinc-400">lbs</span>
+                <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                  {plant.stage === "seedling" ? "g" : "lbs"}
+                </span>
                 {wetWeight !== null && (
                   <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
-                    FC {Number(wetWeight).toFixed(2)}
+                    FC {plant.stage === "seedling"
+                      ? `${(Number(wetWeight) * 453.592).toFixed(1)} g`
+                      : Number(wetWeight).toFixed(2)}
                   </span>
                 )}
               </div>

@@ -25,7 +25,7 @@ export default async function DashboardWrapper() {
     actionItems
   ] = await Promise.all([
     db.plant.findMany({
-      where: { userId },
+      where: { userId, archivedAt: null },
       include: {
         dryBackLogs: {
           orderBy: { timestamp: "desc" },

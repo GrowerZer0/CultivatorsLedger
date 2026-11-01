@@ -29,7 +29,6 @@ import {
   YAxis,
   ReferenceLine,
 } from "recharts";
-import { deletePlant } from "@/server/actions/plant-mgmt";
 import { EditPlantModal } from "@/components/facility/EditPlantModal";
 import { GROWTH_STAGES, getStageFromDays, getStageProgress } from "@/lib/growth-stages";
 import type { PlantWithDetails, DryBackLog, IrrigationEvent } from "@/types/plant";
@@ -39,6 +38,7 @@ import { AdvanceStageModal } from "./AdvanceStageModal";
 import { Light } from "@prisma/client";
 import { DryCureTracker } from "./DryCureTracker";
 import { CultivationDashboard } from "@/components/plant/CultivationDashboard";
+import { archivePlant, deletePlant } from "@/server/actions/plant-mgmt";
 
 interface PlantDetailClientProps {
   plant: PlantWithDetails;
@@ -52,7 +52,8 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
   const [isDeleting, setIsDeleting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [currentPlant, setCurrentPlant] = useState(plant);
-  // Sync the local state with the server whenever the page refreshes
+  const normalizedStage = (currentPlant?.stage || "seedling").toLowerCase();
+    // Sync the local state with the server whenever the page refreshes
   useEffect(() => {
     setCurrentPlant(plant);
   }, [plant]);
@@ -65,6 +66,12 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
     const isSmallScale = sourceDevice?.toLowerCase().includes("small");
     const isSeedling = currentPlant?.stage === "seedling";
     
+    const handleArchive = async () => {
+    if (!confirm("Are you sure? This will hide the plant from your dashboard but keep all data for export.")) return;
+    const res = await archivePlant(currentPlant.id);
+    if (res.success) router.push("/plants");
+    else alert(res.error);
+  };
     if (isSmallScale || isSeedling) {
       return `${(lbs * 453.592).toFixed(1)} g`;
     }
@@ -83,6 +90,12 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
     } else {
       alert(result.error || "Failed to delete plant");
     }
+  };
+    const handleArchive = async () => {
+    if (!confirm("Archive this grow? It will be hidden from the dashboard but kept in history.")) return;
+    const res = await archivePlant(currentPlant.id);
+    if (res.success) router.push("/plants");
+    else alert(res.error);
   };
 
   const handlePlantUpdated = (updatedPlant: any) => {
@@ -274,6 +287,14 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
           >
             <Trash2 className="size-4" />
           </button>
+                    {normalizedStage === "cure" && (
+            <button
+              onClick={handleArchive}
+              className="px-3 py-1.5 text-xs font-bold bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors"
+            >
+              Archive Grow
+            </button>
+          )}
         </div>
       </div>
 
@@ -370,7 +391,7 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
           </div>
           <div className="text-2xl font-bold mt-1">
             <span className={stageConfig?.color || 'text-white'}>
-              {stageConfig?.icon || '🌱'} {stageConfig?.label || 'Unknown'}
+              {stageConfig?.icon || '🌱'} {stageConfig?.label || detectedStage}
             </span>
           </div>
           <div className="text-xs text-zinc-500">
