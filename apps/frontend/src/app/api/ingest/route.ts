@@ -83,11 +83,15 @@ export async function POST(request: NextRequest) {
       // Route the data based on the Sensor Name
       let plant = null;
       if (sensor.name.toLowerCase().includes("small")) {
-        // Route to the most recently started seedling
+        // Route to the newest plant that isn't finished
         plant = await db.plant.findFirst({
-          where: { userId: sensor.userId, stage: "seedling" },
-          orderBy: { startDate: "desc" },
+          where: { 
+            userId: sensor.userId, 
+            stage: { notIn: ["harvest", "dry", "cure"] } 
+          },
+          orderBy: { createdAt: "desc" }, // Get the newest plant
         });
+
       } else if (sensor.name.toLowerCase().includes("large") || sensor.name.toLowerCase().includes("load cell")) {
         // Route to the most recently updated veg/flower plant
         plant = await db.plant.findFirst({
