@@ -60,45 +60,50 @@ export async function POST(request: NextRequest) {
     // HANDLE WEIGHT DATA (ESP32 Load Cell)
     // ==========================================
     if (isWeightData) {
-      const weight = body.weight || body.currentWeight || body.weightLbs;
+      let weight = body.weight || body.currentWeight || body.weightLbs;
+      
+      // 1. Convert grams to pounds if the unit is grams
+      if (body.unit === "g") {
+        weight = weight / 453.592;
+      }
       
       if (weight === undefined || weight === null || isNaN(weight)) {
         return NextResponse.json({ error: 'Invalid weight value' }, { status: 400 });
       }
 
-      // Find which plant this sensor is associated with
+      // 2. Extract the field capacity from the payload (in grams or lbs)
+      let payloadFieldCapacityLbs = null;
+      if (body.fieldCapacity && body.fieldCapacity > 0) {
+        // If the ESP32 sent grams, convert FC to pounds
+        payloadFieldCapacityLbs = body.unit === "g" 
+          ? body.fieldCapacity / 453.592 
+          : body.fieldCapacity;
+      }
+
+      // Route the data based on the Sensor Name
       let plant = null;
-      
-      // Try to find plant by name matching sensor name
-      const plantName = sensor.name.replace(/ load cell/i, '').replace(/ sensor/i, '').trim();
-      if (plantName) {
+      if (sensor.name.toLowerCase().includes("small")) {
+        // Route to the most recently started seedling
         plant = await db.plant.findFirst({
-          where: { 
-            name: { contains: plantName, mode: 'insensitive' },
-            userId: sensor.userId,
-          },
+          where: { userId: sensor.userId, stage: "seedling" },
+          orderBy: { startDate: "desc" },
+        });
+      } else if (sensor.name.toLowerCase().includes("large") || sensor.name.toLowerCase().includes("load cell")) {
+        // Route to the most recently updated veg/flower plant
+        plant = await db.plant.findFirst({
+          where: { userId: sensor.userId, stage: { in: ["vegetative", "flowering"] } },
+          orderBy: { updatedAt: "desc" },
         });
       }
 
-      // If no plant found, try to find any plant
+      // Fallback if no plant found
       if (!plant) {
-        const plants = await db.plant.findMany({
-          where: { userId: sensor.userId },
-          take: 1,
-        });
-        if (plants.length > 0) {
-          plant = plants[0];
-        }
+        const plants = await db.plant.findMany({ where: { userId: sensor.userId }, take: 1 });
+        if (plants.length > 0) plant = plants[0];
       }
 
       if (!plant) {
-        // No plant found - create a default plant
-        plant = await db.plant.create({
-          data: {
-            name: `Plant from ${sensor.name}`,
-            userId: sensor.userId,
-          },
-        });
+        return NextResponse.json({ error: 'No plants found to assign weight to.' }, { status: 404 });
       }
 
       // Get the latest log to calculate dryback percent
@@ -212,9 +217,9 @@ export async function POST(request: NextRequest) {
         dryTarget = Number(plant.dryTarget) || 0;
       } else {
         // Bootstrap: read from ESP32 payload
-        const payloadFieldCapacityG = body.fieldCapacity_g;
-        if (payloadFieldCapacityG && payloadFieldCapacityG > 50) {
-          wetWeight = payloadFieldCapacityG / 453.592;
+        // Bootstrap: read from ESP32 payload
+        if (payloadFieldCapacityLbs && payloadFieldCapacityLbs > 0.1) {
+          wetWeight = payloadFieldCapacityLbs;
         } else if (latestLog) {
           wetWeight = Number(latestLog.wetWeightLbs) || 0;
           dryTarget = Number(latestLog.dryTargetWeightLbs) || 0;
