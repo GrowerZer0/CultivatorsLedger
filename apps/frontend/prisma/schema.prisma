@@ -396,7 +396,7 @@ model CureEvent {
   plant        Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
   userId       String   @map("user_id")
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  eventType    String   @default("burp") // "burp" | future: "jar_check", "boveda_swap"
+  eventType    String   @default("burp") @map("event_type")
   durationMins Int?     @map("duration_mins")
   notes        String?
   occurredAt   DateTime @default(now()) @map("occurred_at")
