@@ -73,6 +73,13 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
 
     return `${Number(lbs).toFixed(1)} lbs`;
   };
+  // Recompute dryback from weights so we never display a stale stored value.
+  const computeDryback = (log: { wetWeightLbs: number; currentWeightLbs: number }) => {
+    const wet = Number(log.wetWeightLbs);
+    const cur = Number(log.currentWeightLbs);
+    if (!Number.isFinite(wet) || wet <= 0 || !Number.isFinite(cur)) return null;
+    return Math.max(0, ((wet - cur) / wet) * 100);
+  };
   const handleDelete = async () => {
     if (!confirm(`Delete "${plant.name}"? This will permanently delete the plant and all its data.`)) return;
 
@@ -108,7 +115,7 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
 
   const latestLog = dryBackLogs[0];
   const weight = latestLog?.currentWeightLbs ?? null;
-  const dryback = latestLog?.dryBackPercent ?? null;
+  const dryback = latestLog ? computeDryback(latestLog) : null;
 
   const daysSinceStart = currentPlant?.startDate
     ? Math.floor((Date.now() - new Date(currentPlant.startDate).getTime()) / (1000 * 60 * 60 * 24))
@@ -140,8 +147,8 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
     const older = dryBackLogs.slice(3, 6);
     if (older.length === 0) return null;
 
-    const recentAvg = recent.reduce((sum, l) => sum + l.dryBackPercent, 0) / recent.length;
-    const olderAvg = older.reduce((sum, l) => sum + l.dryBackPercent, 0) / older.length;
+    const recentAvg = recent.reduce((sum, l) => sum + (computeDryback(l) ?? 0), 0) / recent.length;
+    const olderAvg = older.reduce((sum, l) => sum + (computeDryback(l) ?? 0), 0) / older.length;
     const diff = recentAvg - olderAvg;
 
     if (diff > 5) return { direction: "up", label: "Increasing", icon: TrendingUp };
@@ -158,20 +165,30 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
     ...(currentPlant.photos || []).map((p) => ({ kind: "photo" as const, data: p, timestamp: new Date(p.capturedAt) })),
   ].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
-  // Chart data: dryback % over the last 7 days
+  // Chart data: dryback % over the last 7 days.
   const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
   const dryBackChartData = dryBackLogs
     .filter((log) => new Date(log.timestamp).getTime() >= sevenDaysAgo)
     .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-    .map((log) => ({
-      time: new Date(log.timestamp).toLocaleString([], {
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-      }),
-      dryback: Number(log.dryBackPercent),
-    }));
+    .map((log) => {
+      const wet = Number(log.wetWeightLbs);
+      const current = Number(log.currentWeightLbs);
+      const computed =
+        wet > 0 && Number.isFinite(current)
+          ? Math.max(0, ((wet - current) / wet) * 100)
+          : 0;
+      return {
+        // Keep a raw timestamp for irrigation-marker matching (see below)
+        ts: new Date(log.timestamp).getTime(),
+        time: new Date(log.timestamp).toLocaleString([], {
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+        }),
+        dryback: Number(computed.toFixed(1)),
+      };
+    });
 
   // Fetch all plants and batches for the edit modal
   const [allPlants, setAllPlants] = useState<any[]>([]);
@@ -281,7 +298,7 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
 
       {/* Quick Stats */}
       {isStandardStage && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <button
             type="button"
             onClick={() => setIsScaleSettingsOpen(true)}
@@ -359,19 +376,6 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
               {Math.round(stageProgress)}% through stage
             </div>
           </div>
-
-          <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
-            <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 text-xs">
-              <Droplet className="size-4" />
-              Logs
-            </div>
-            <div className="text-2xl font-bold text-zinc-900 dark:text-white mt-1">
-              {dryBackLogs.length}
-            </div>
-            <div className="text-xs text-zinc-500">
-              {irrigationEvents.length} irrigations
-            </div>
-          </div>
         </div>
       )}
 
@@ -423,101 +427,103 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
         </div>
       )}
 
-      {/* Dry-Back Trend Chart (last 7 days) */}
-      {isStandardStage && dryBackChartData.length > 1 && (
-        <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
-          <div className="flex justify-between items-center mb-3">
-            <div>
-              <h2 className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Dry-Back Trend</h2>
-              <p className="text-[10px] text-zinc-500">Last 7 days</p>
+      {/* Dry-Back Trend Chart (last 7 days) — veg/flower only.
+    Seedlings use the SeedlingTracker above, not dryback % */}
+      {["vegetative", "flowering"].includes(normalizedStage) &&
+        dryBackChartData.length > 1 && (
+          <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
+            <div className="flex justify-between items-center mb-3">
+              <div>
+                <h2 className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Dry-Back Trend</h2>
+                <p className="text-[10px] text-zinc-500">Last 7 days</p>
+              </div>
+              <span className="text-[10px] font-mono text-zinc-500">
+                {dryBackChartData.length} points
+              </span>
             </div>
-            <span className="text-[10px] font-mono text-zinc-500">
-              {dryBackChartData.length} points
-            </span>
-          </div>
-          <div className="h-56 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={dryBackChartData}
-                margin={{ top: 5, right: 5, bottom: 5, left: -25 }}
-              >
-                <CartesianGrid stroke="#1F2937" className="opacity-40" strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="time"
-                  stroke="#4B5563"
-                  fontSize={10}
-                  tickLine={false}
-                  interval="preserveStartEnd"
-                />
-                <YAxis
-                  stroke="#4B5563"
-                  fontSize={10}
-                  tickLine={false}
-                  domain={[0, 'auto']}
-                  label={{
-                    value: 'Dryback %',
-                    angle: -90,
-                    position: 'insideLeft',
-                    fill: '#9CA3AF',
-                    fontSize: 10,
-                  }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#111827',
-                    borderColor: '#374151',
-                    color: '#fff',
-                    fontSize: '12px',
-                  }}
-                  formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Dryback']} />
-                <Line
-                  type="monotone"
-                  dataKey="dryback"
-                  stroke="#10B981"
-                  strokeWidth={2}
-                  dot={false}
-                  connectNulls
-                />
+            <div className="h-56 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={dryBackChartData}
+                  margin={{ top: 5, right: 5, bottom: 5, left: -25 }}
+                >
+                  <CartesianGrid stroke="#1F2937" className="opacity-40" strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="time"
+                    stroke="#4B5563"
+                    fontSize={10}
+                    tickLine={false}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    stroke="#4B5563"
+                    fontSize={10}
+                    tickLine={false}
+                    domain={[0, 'auto']}
+                    label={{
+                      value: 'Dryback %',
+                      angle: -90,
+                      position: 'insideLeft',
+                      fill: '#9CA3AF',
+                      fontSize: 10,
+                    }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#111827',
+                      borderColor: '#374151',
+                      color: '#fff',
+                      fontSize: '12px',
+                    }}
+                    formatter={(value) => [`${Number(value).toFixed(1)}%`, 'Dryback']} />
+                  <Line
+                    type="monotone"
+                    dataKey="dryback"
+                    stroke="#10B981"
+                    strokeWidth={2}
+                    dot={false}
+                    connectNulls
+                  />
 
-                {/* Irrigation markers */}
-                {irrigationEvents
-                  .filter((e) => new Date(e.timestamp).getTime() >= sevenDaysAgo)
-                  .map((e) => {
-                    const isoMatch = dryBackChartData.find(
-                      (d) =>
-                        Math.abs(
-                          new Date(d.time).getTime() - new Date(e.timestamp).getTime()
-                        ) < 5 * 60 * 1000
-                    );
-                    if (!isoMatch) return null;
-                    return (
-                      <ReferenceLine
-                        key={`irrigation-${e.id}`}
-                        x={isoMatch.time}
-                        stroke="#3b82f6"
-                        strokeDasharray="3 3"
-                        label={{
-                          value: "💧",
-                          position: "top",
-                          fontSize: 14,
-                        }}
-                      />
-                    );
-                  })}
-              </LineChart>
-            </ResponsiveContainer>
+                  {/* Irrigation markers — match on epoch ms, not formatted strings */}
+                  {irrigationEvents
+                    .filter((e) => new Date(e.timestamp).getTime() >= sevenDaysAgo)
+                    .map((e) => {
+                      const eventMs = new Date(e.timestamp).getTime();
+                      const match = dryBackChartData.find(
+                        (d) => Math.abs(d.ts - eventMs) < 5 * 60 * 1000,
+                      );
+                      if (!match) return null;
+                      return (
+                        <ReferenceLine
+                          key={`irrigation-${e.id}`}
+                          x={match.time}
+                          stroke="#3b82f6"
+                          strokeDasharray="3 3"
+                          label={{
+                            value: "💧",
+                            position: "top",
+                            fontSize: 14,
+                          }}
+                        />
+                      );
+                    })}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Show message if no data in the last 7 days */}
-      {dryBackChartData.length === 0 && dryBackLogs.length > 0 && (
-        <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 text-center">
-          <p className="text-xs text-zinc-500">
-            No dryback readings in the last 7 days.
-          </p>
-        </div>
-      )}
+      {["vegetative", "flowering"].includes(normalizedStage) &&
+        dryBackChartData.length === 0 &&
+        dryBackLogs.length > 0 && (
+          <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 text-center">
+            <p className="text-xs text-zinc-500">
+              No dryback readings in the last 7 days.
+            </p>
+          </div>
+        )}
 
       {/* Activity Timeline */}
       <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
@@ -606,9 +612,14 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-medium text-zinc-900 dark:text-white">
                           {formatWeight(Number(log.currentWeightLbs), log.sourceDevice)}
-                          <span className="ml-2 text-xs text-emerald-500">
-                            ({Number(log.dryBackPercent).toFixed(1)}% dryback)
-                          </span>
+                          {(() => {
+                            const computed = computeDryback(log);
+                            return computed !== null ? (
+                              <span className="ml-2 text-xs text-emerald-500">
+                                ({computed.toFixed(1)}% dryback)
+                              </span>
+                            ) : null;
+                          })()}
                         </span>
                         <span className="text-xs text-zinc-500">
                           {date.toLocaleDateString()}{" "}

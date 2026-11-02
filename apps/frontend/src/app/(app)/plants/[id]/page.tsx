@@ -117,6 +117,7 @@ export default async function PlantDetailPage({
       trainingEvent: log.trainingEvent,
       notes: log.notes,
       source: log.source || 'manual',
+      sourceDevice: log.sourceDevice ?? null,
       plantId: log.plantId,
       batchId: log.batchId,
       containerGallons: toNumber(log.containerGallons),
