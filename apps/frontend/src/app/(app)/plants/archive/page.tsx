@@ -1,7 +1,8 @@
 import { db } from "@/lib/db";
 import { getUserId } from "@/lib/session";
 import Link from "next/link";
-import { ArrowLeft, Download } from "lucide-react";
+import { Archive, ArrowLeft, Download } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default async function ArchivePage() {
   const userId = await getUserId();
@@ -21,7 +22,15 @@ export default async function ArchivePage() {
       </div>
 
       {archivedPlants.length === 0 ? (
-        <p className="text-zinc-500">No archived grows yet.</p>
+        <EmptyState
+          icon={Archive}
+          title="No archived grows"
+          description="When you harvest and finish a grow, it moves here. You'll be able to review weights, dryback trends, and print a summary report."
+          action={{
+            label: "Back to Active Plants",
+            href: "/plants",
+          }}
+        />
       ) : (
         <div className="grid gap-4">
           {archivedPlants.map((plant) => (

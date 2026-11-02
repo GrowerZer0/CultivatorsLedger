@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Search, Sprout, AlertTriangle, CheckCircle2, Scale } from "lucide-react";
+import { EmptyState } from "../ui/EmptyState";
 
 interface PickerPlant {
     id: string;
@@ -51,25 +52,20 @@ export function PlantPicker({ plants, returnTo }: PlantPickerProps) {
         return { ...p, hasFc, dryback, useGrams, weightDisplay: display(cur), fcDisplay: display(p.wetWeight) };
     });
 
-    if (plants.length === 0) {
-        return (
-            <div className="text-center py-16 border border-dashed border-zinc-300 dark:border-zinc-700 rounded-2xl bg-white dark:bg-zinc-900">
-                <Sprout className="size-8 text-zinc-400 mx-auto mb-3" />
-                <p className="text-sm font-bold text-zinc-700 dark:text-zinc-300">
-                    No plants to log against
-                </p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                    Start a grow first, then come back here to log a reading.
-                </p>
-                <Link
-                    href="/dashboard"
-                    className="inline-block mt-4 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
-                >
-                    Back to dashboard
-                </Link>
-            </div>
-        );
-    }
+if (plants.length === 0) {
+  return (
+    <EmptyState
+      icon={Sprout}
+      title="No plants to log against"
+      description="Start a grow first, then come back here to log a reading."
+      variant="compact"
+      action={{
+        label: "Go to Dashboard",
+        href: "/dashboard",
+      }}
+    />
+  );
+}
 
     return (
         <div className="space-y-3">

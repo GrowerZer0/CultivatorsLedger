@@ -9,7 +9,7 @@ import { fetchRooms } from "@/server/actions/facility-mgmt";
 import { AddPlantModal } from "@/components/facility/AddPlantModal";
 import { EditPlantModal } from "@/components/facility/EditPlantModal";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
-import { Pencil, Plus } from "lucide-react";
+import { Pencil, Plus, Sprout } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -18,6 +18,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 type Plant = {
   id: string;
@@ -145,7 +146,7 @@ export default function BatchPage() {
   const avgDryBack =
     batch.dryBackLogs?.length > 0
       ? batch.dryBackLogs.reduce((acc: number, log: any) => acc + Number(log.dryBackPercent), 0) /
-        batch.dryBackLogs.length
+      batch.dryBackLogs.length
       : 0;
 
   const daysSinceStart = Math.floor(
@@ -220,11 +221,11 @@ export default function BatchPage() {
             <h1 className="text-3xl font-bold text-zinc-900 dark:text-white mb-1">{batch.name}</h1>
             <p className="text-zinc-600 dark:text-zinc-400 flex items-center gap-3 flex-wrap">
               {batch.cultivar && <span>{batch.cultivar}</span>}
-{batch.roomId && (
-  <span>
-    • Room: {rooms.find((r) => r.id === batch.roomId)?.name || "Unknown Room"}
-  </span>
-)}
+              {batch.roomId && (
+                <span>
+                  • Room: {rooms.find((r) => r.id === batch.roomId)?.name || "Unknown Room"}
+                </span>
+              )}
               {/* Move Room Dropdown */}
               <select
                 value={batch.roomId || ""}
@@ -362,8 +363,16 @@ export default function BatchPage() {
 
         {plants.length === 0 ? (
           <div className="py-8 text-center">
-            <p className="text-zinc-500">No plants assigned.</p>
-            <p className="text-xs text-zinc-600 mt-1">Add plants to begin daily check‑ins.</p>
+            <EmptyState
+              icon={Sprout}
+              title="No plants in this batch"
+              description="Add plants to this batch to track their dryback and share a harvest cycle."
+              variant="compact"
+              action={{
+                label: "Add a Plant",
+                onClick: () => setIsAddPlantModalOpen(true),
+              }}
+            />
           </div>
         ) : (
           <div className="divide-y divide-zinc-800">

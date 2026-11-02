@@ -16,7 +16,9 @@ import {
   Check,
   X,
   Plus,
+  Sprout,
 } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 type Room = {
   id: string;
@@ -84,7 +86,7 @@ export default function RoomDetailPage() {
         fetchPlants(),
         fetchBatches(),
       ]);
-      
+
       // Store all rooms and batches for dropdowns
       setAllRooms(roomsData);
       setAllBatches(batchesData);
@@ -131,7 +133,7 @@ export default function RoomDetailPage() {
     }
   }, [params?.id]);
 
-    // Auto-open plant modal if new room and no plants/batches exist
+  // Auto-open plant modal if new room and no plants/batches exist
   useEffect(() => {
     if (isNewRoom && !loading && plants.length === 0) {
       // Show the batch creation prompt instead of auto-opening
@@ -139,14 +141,14 @@ export default function RoomDetailPage() {
     }
   }, [isNewRoom, loading, plants.length]);
 
-useEffect(() => {
-  if (isAddPlantModalOpen) {
-    fetch('/api/plants')
-      .then(res => res.json())
-      .then(data => setExistingPlants(data))
-      .catch(err => console.error('Failed to fetch plants:', err));
-  }
-}, [isAddPlantModalOpen]);
+  useEffect(() => {
+    if (isAddPlantModalOpen) {
+      fetch('/api/plants')
+        .then(res => res.json())
+        .then(data => setExistingPlants(data))
+        .catch(err => console.error('Failed to fetch plants:', err));
+    }
+  }, [isAddPlantModalOpen]);
 
   useEffect(() => {
     loadData();
@@ -222,7 +224,7 @@ useEffect(() => {
 
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
-            <Breadcrumbs
+      <Breadcrumbs
         segments={[
           { label: "Dashboard", href: "/dashboard" },
           { label: "Rooms", href: "/rooms" },
@@ -230,8 +232,8 @@ useEffect(() => {
         ]}
       />
       {/* ===== ONBOARDING PROMPT ===== */}
-{plants.length === 0 && (
-          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-6 mb-4">
+      {plants.length === 0 && (
+        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-6 mb-4">
           <h3 className="text-lg font-bold text-zinc-900 dark:text-white">🌱 Let's set up this room</h3>
           <p className="text-sm text-zinc-400 mt-1">
             Start by creating a batch, then add plants to it.
@@ -259,20 +261,20 @@ useEffect(() => {
           </p>
         </div>
       )}
-    {/* ===== BATCH MISSING PROMPT (HAS PLANTS, NO BATCH) ===== */}
-    {!isNewRoom && plants.length > 0 && !batchExists && (
-    <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-4">
-      <p className="text-sm text-yellow-400 font-medium">
-        ⚡ Plants exist but no batch found. Create a batch to group them.
-      </p>
-      <button
-        onClick={() => setIsAddBatchModalOpen(true)}
-        className="mt-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white font-bold rounded-lg text-sm transition-colors"
-      >
-        Create Batch
-      </button>
-    </div>
-  )}
+      {/* ===== BATCH MISSING PROMPT (HAS PLANTS, NO BATCH) ===== */}
+      {!isNewRoom && plants.length > 0 && !batchExists && (
+        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-4">
+          <p className="text-sm text-yellow-400 font-medium">
+            ⚡ Plants exist but no batch found. Create a batch to group them.
+          </p>
+          <button
+            onClick={() => setIsAddBatchModalOpen(true)}
+            className="mt-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white font-bold rounded-lg text-sm transition-colors"
+          >
+            Create Batch
+          </button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -281,29 +283,29 @@ useEffect(() => {
             {plants.length} plant{plants.length !== 1 ? "s" : ""}
           </p>
           <p>
-          <button
-            onClick={() => setIsAddPlantModalOpen(true)}
-            className="rounded-xl bg-emerald-600 px-3 py-1 text-xs font-bold text-white hover:bg-emerald-700 transition-colors"
-          >
-            + Add Plant
-          </button>
+            <button
+              onClick={() => setIsAddPlantModalOpen(true)}
+              className="rounded-xl bg-emerald-600 px-3 py-1 text-xs font-bold text-white hover:bg-emerald-700 transition-colors"
+            >
+              + Add Plant
+            </button>
           </p>
         </div>
         <div>
-        <button
-          onClick={async () => {
-            if (!confirm(`Delete room "${room.name}"? All plants and batches will be unassigned.`)) return;
-            const res = await deleteRoom(room.id);
-            if (res.success) {
-              router.push("/rooms");
-            } else {
-              alert(res.error || "Failed to delete room.");
-            }
-          }}
+          <button
+            onClick={async () => {
+              if (!confirm(`Delete room "${room.name}"? All plants and batches will be unassigned.`)) return;
+              const res = await deleteRoom(room.id);
+              if (res.success) {
+                router.push("/rooms");
+              } else {
+                alert(res.error || "Failed to delete room.");
+              }
+            }}
             className=" bg-red-600 px-3 py-1 text-xs font-bold text-white hover:bg-red-700 rounded-full transition-colors ml-2"
-        >
-          Delete Room
-        </button>
+          >
+            Delete Room
+          </button>
         </div>
       </div>
 
@@ -478,7 +480,16 @@ useEffect(() => {
         <h2 className="text-sm font-bold text-zinc-400 mb-3">Plants in this Room</h2>
         {plants.length === 0 ? (
           <div className="py-8 text-center">
-            <p className="text-zinc-500">No plants assigned.</p>
+            <EmptyState
+              icon={Sprout}
+              title="No plants in this room"
+              description="Assign a plant to this room to start tracking environment and dryback."
+              variant="compact"
+              action={{
+                label: "Add a Plant",
+                onClick: () => setIsAddPlantModalOpen(true),
+              }}
+            />
             <p className="text-xs text-zinc-600 mt-1">Add plants to begin tracking.</p>
           </div>
         ) : (
@@ -568,16 +579,16 @@ useEffect(() => {
       {/* ===== MODALS ===== */}
 
       {/* Add Plant Modal */}
-<AddPlantModal
-  open={isAddPlantModalOpen}
-  onClose={() => setIsAddPlantModalOpen(false)}
-  rooms={[{ id: room.id, name: room.name }]}
-  defaultRoomId={room.id}
-  existingPlants={existingPlants}
-  onPlantCreated={(plant) => {
-    setPlants((prev) => [...prev, plant as Plant]);
-  }}
-/>
+      <AddPlantModal
+        open={isAddPlantModalOpen}
+        onClose={() => setIsAddPlantModalOpen(false)}
+        rooms={[{ id: room.id, name: room.name }]}
+        defaultRoomId={room.id}
+        existingPlants={existingPlants}
+        onPlantCreated={(plant) => {
+          setPlants((prev) => [...prev, plant as Plant]);
+        }}
+      />
 
       {/* Edit Plant Modal */}
       <EditPlantModal
@@ -597,7 +608,7 @@ useEffect(() => {
       />
 
       {/* Add Batch Modal */}
-        <AddBatchModal
+      <AddBatchModal
         open={isAddBatchModalOpen}
         onClose={() => setIsAddBatchModalOpen(false)}
         rooms={[{ id: room.id, name: room.name }]}

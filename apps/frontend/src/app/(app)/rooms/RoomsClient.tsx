@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { Home } from "lucide-react";
 import { RoomCard } from "@/components/facility/RoomCard";
 import { AddRoomModal } from "@/components/facility/AddRoomModal";
 import { AddPlantModal } from "@/components/facility/AddPlantModal";
 import { deleteRoom } from "@/server/actions/facility-mgmt";
 import { fetchPlants } from "@/server/actions/plant-mgmt";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface Room {
   id: string;
@@ -75,22 +77,17 @@ export function RoomsClient({ rooms, plantCounts, latestReadings }: RoomsClientP
   };
 
   if (localRooms.length === 0) {
-    return (
-      <>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-zinc-100">
-            No rooms yet.
-          </h2>
-          <p className="mt-2 text-gray-500 dark:text-zinc-400 max-w-md">
-            Create your first room to start tracking plants.
-          </p>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="mt-6 inline-flex items-center rounded-lg bg-emerald-600 px-6 py-3 text-sm font-bold text-white hover:bg-emerald-700 transition-colors"
-          >
-            Add Room
-          </button>
-        </div>
+  return (
+    <>
+      <EmptyState
+        icon={Home}
+        title="No rooms yet"
+        description="Rooms group your plants by environment. Create one to start tracking temperature, humidity, and VPD targets."
+        action={{
+          label: "Create Your First Room",
+          onClick: () => setIsModalOpen(true),
+        }}
+      />
         <AddRoomModal
           open={isModalOpen}
           onClose={() => setIsModalOpen(false)}
