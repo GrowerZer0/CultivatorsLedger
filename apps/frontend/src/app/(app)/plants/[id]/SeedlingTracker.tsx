@@ -99,34 +99,7 @@ export function SeedlingTracker({ plantId, lastPlugWeight, light }: SeedlingTrac
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Weight Input */}
-        <div>
-          <label className="text-xs font-bold text-zinc-600 dark:text-zinc-300 uppercase flex items-center gap-1.5 mb-1">
-            <Scale className="size-3.5" /> Plug Weight (Grams)
-          </label>
-          <input
-            type="number"
-            placeholder={lastPlugWeight ? `Last: ${lastPlugWeight}g` : "e.g. 54"}
-            value={weight}
-            onChange={(e) => setWeight(e.target.value)}
-            className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl font-semibold text-lg"
-          />
-          <p className="text-[10px] text-zinc-500 mt-1">Target: 40g (water) to 65g (saturated).</p>
-        </div>
 
-        {/* Light Context (Read-Only) */}
-        <div className="p-2.5 bg-amber-500/5 border border-amber-500/20 rounded-xl">
-          <label className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase flex items-center gap-1.5 mb-1">
-            💡 Light Context
-          </label>
-          {light ? (
-            <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">
-              {light.dimmerPercent}% Intensity · {light.distanceInches || "?"}" away
-            </p>
-          ) : (
-            <p className="text-sm text-zinc-500">No light assigned</p>
-          )}
-        </div>
       </div>
 
       {/* Symptoms */}

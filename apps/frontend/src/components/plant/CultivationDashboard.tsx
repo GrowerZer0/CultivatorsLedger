@@ -4,16 +4,20 @@ import { Droplet, Leaf, Sun, FlaskConical, CheckCircle2, AlertTriangle } from "l
 interface Props {
   stage: Stage;
   week: number;
-  substrate: string;
-  nutrientLine: string;
+  substrate?: string | null;
+  nutrientLine?: string | null;
   currentVpd?: number | null;
   currentDryback?: number | null;
+  light?: {
+    dimmerPercent: number;
+    distanceInches?: number;
+  } | null;
 }
 
-export function CultivationDashboard({ stage, week, substrate, nutrientLine, currentVpd, currentDryback }: Props) {
+export function CultivationDashboard({ stage, week, substrate, nutrientLine, currentVpd, currentDryback, light }: Props) {
   const env = getEnvironmentTargets(stage);
   const actions = getWeeklyActions(stage, week);
-  const feed = getFeedSchedule(substrate, nutrientLine, stage, week);
+  const feed = getFeedSchedule(substrate ?? "", nutrientLine ?? "", stage, week);
   const waterStatus = getWateringStatus(currentDryback ?? null);
 
   // Determine if the current VPD is in range
@@ -29,7 +33,7 @@ export function CultivationDashboard({ stage, week, substrate, nutrientLine, cur
             <Leaf className="size-5" /> {stage} · Week {week}
           </h2>
           <p className="text-xs text-zinc-500 mt-1">
-            Based on {substrate.replace('_', ' ')} + {nutrientLine.replace('_', ' ')}
+            Based on {substrate?.replace('_', ' ') || 'N/A'} + {nutrientLine?.replace('_', ' ') || 'N/A'}
           </p>
         </div>
       </div>
@@ -88,6 +92,20 @@ export function CultivationDashboard({ stage, week, substrate, nutrientLine, cur
           <p className="text-sm text-amber-900 dark:text-amber-200">
             {feed}
           </p>
+        </div>
+
+              {/* Light Context (Read-Only) */}
+        <div className="p-2.5 bg-amber-500/5 border border-amber-500/20 rounded-xl">
+          <label className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase flex items-center gap-1.5 mb-1">
+            💡 Lighting
+          </label>
+          {light ? (
+            <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">
+              {light.dimmerPercent}% Intensity · {light.distanceInches || "?"}" away
+            </p>
+          ) : (
+            <p className="text-sm text-zinc-500">No light assigned</p>
+          )}
         </div>
       </div>
 

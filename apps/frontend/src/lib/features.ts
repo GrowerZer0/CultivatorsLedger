@@ -62,7 +62,7 @@ export async function getPlantCount(userId?: string): Promise<number> {
   if (!id) return 0;
 
   const count = await db.plant.count({
-    where: { userId: id },
+    where: { userId: id, stage: { in: ["seedling", "vegetative", "flowering"] } },
   });
   return count;
 }

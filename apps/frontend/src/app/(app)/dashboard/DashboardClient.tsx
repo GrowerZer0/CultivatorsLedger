@@ -4,21 +4,10 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams, useRouter } from "next/navigation";
 import {
-  Layers,
   Scale,
   FlaskConical,
   Sprout,
 } from 'lucide-react';
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-  ReferenceArea,
-} from 'recharts';
 import {
   type EnvironmentReading,
   type DryBackLog,
@@ -348,34 +337,6 @@ export default function DashboardClient({
         isLoading={loading}
       />
 
-      {/* VPD Chart */}
-      <div className="bg-white/90 dark:bg-zinc-900/90 border border-gray-200/80 dark:border-zinc-800/80 rounded-2xl p-5 shadow-xl">
-        <div className="flex justify-between items-center mb-3">
-          <div className="flex items-center gap-2">
-            <Layers className="size-4 text-cyan-400" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500">Atmospheric VPD</h3>
-          </div>
-          <span className="text-[10px] font-mono text-gray-400 dark:text-zinc-500">Continuous feed</span>
-        </div>
-        <div className="h-64 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={dbEnvironmentReadings} margin={{ top: 5, right: 5, bottom: 5, left: -25 }}>
-              <CartesianGrid stroke="#1F2937" className="opacity-40" strokeDasharray="3 3" />
-              <XAxis dataKey="recordedAt" stroke="var(--axis-color)" fontSize={10} tickLine={false} />
-              <YAxis stroke="#4B5563" fontSize={10} tickLine={false} label={{ value: 'VPD (kPa)', angle: -90, position: 'insideLeft', fill: '#9CA3AF', fontSize: 10 }} />
-              <Tooltip contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', color: '#fff', fontSize: '12px' }} />
-              <ReferenceArea y1={0.8} y2={1.2} fill="#10B981" fillOpacity={0.1} stroke="#10B981" strokeOpacity={0.2} strokeDasharray="3 3" label={{ value: 'Target', position: 'top', fill: '#10B981', fontSize: 10, fontWeight: 'bold' }} />
-              <Area type="monotone" dataKey="vpd" name="VPD" stroke="#06B6D4" fill="url(#colorVpd)" strokeWidth={2} />
-              <defs>
-                <linearGradient id="colorVpd" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#06B6D4" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
 
       {/* Weight & Dryback Card */}
       {plants.length > 0 && (
@@ -387,7 +348,6 @@ export default function DashboardClient({
           lastRefreshTime={new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         />
       )}
-
 
       {/* Start New Grow Modal */}
       <StartGrowModal

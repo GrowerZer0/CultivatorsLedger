@@ -39,12 +39,12 @@ import { Light } from "@prisma/client";
 import { DryCureTracker } from "./DryCureTracker";
 import { CultivationDashboard } from "@/components/plant/CultivationDashboard";
 import { deletePlant } from "@/server/actions/plant-mgmt";
-
+import { ScaleSettingsModal } from "@/components/facility/ScaleSettingsModal";
 interface PlantDetailClientProps {
   plant: PlantWithDetails;
   seedlingContext?: any;
   lights?: Light[];
-    latestClimate?: { vpd: number; humidity: number; temperatureF: number } | null;
+  latestClimate?: { vpd: number; humidity: number; temperatureF: number } | null;
 }
 
 export function PlantDetailClient({ plant, seedlingContext, lights, latestClimate }: PlantDetailClientProps) {
@@ -53,7 +53,8 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
   const [showEditModal, setShowEditModal] = useState(false);
   const [currentPlant, setCurrentPlant] = useState(plant);
   const normalizedStage = (currentPlant?.stage || "seedling").toLowerCase();
-    // Sync the local state with the server whenever the page refreshes
+  const [isScaleSettingsOpen, setIsScaleSettingsOpen] = useState(false);
+  // Sync the local state with the server whenever the page refreshes
   useEffect(() => {
     setCurrentPlant(plant);
   }, [plant]);
@@ -61,15 +62,15 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
   const [isAdvanceStageOpen, setIsAdvanceStageOpen] = useState(false);
   const formatWeight = (lbs: number | null, sourceDevice?: string | null) => {
     if (lbs === null || lbs === undefined) return "—";
-    
+
     // Force grams if it's the Small Load Cell OR if the plant is a seedling
     const isSmallScale = sourceDevice?.toLowerCase().includes("small");
     const isSeedling = currentPlant?.stage === "seedling";
-    
+
     if (isSmallScale || isSeedling) {
       return `${(lbs * 453.592).toFixed(1)} g`;
     }
-    
+
     return `${Number(lbs).toFixed(1)} lbs`;
   };
   const handleDelete = async () => {
@@ -128,9 +129,9 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
   }
 
   const isStandardStage = ["seedling", "vegetative", "flowering"].includes(detectedStage?.toLowerCase() || "");
-  
-  const stageProgress = isStandardStage 
-    ? getStageProgress(daysSinceStart, detectedStage as any) 
+
+  const stageProgress = isStandardStage
+    ? getStageProgress(daysSinceStart, detectedStage as any)
     : getStageProgress(daysSinceStart, detectedStage as any, daysInCurrentStage);
   // Calculate dryback trend
   const getTrend = () => {
@@ -202,7 +203,7 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
   };
 
   const rooms = currentPlant?.room ? [{ id: currentPlant.room.id, name: currentPlant.room.name }] : [];
-    // Calculate the current week based on the stage and start date
+  // Calculate the current week based on the stage and start date
   let currentWeek = 1;
   if (detectedStage === "vegetative" && currentPlant.startDate) {
     const days = Math.floor((Date.now() - new Date(currentPlant.startDate).getTime()) / (1000 * 60 * 60 * 24));
@@ -278,56 +279,35 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
         </div>
       </div>
 
-      {/* Seedling Tracker */}
-      {currentPlant?.stage === "seedling" && (
-        <div className="mb-6">
-          <SeedlingTracker
-            plantId={currentPlant.id}
-            lastPlugWeight={seedlingContext?.lastCheck?.plugWeightG || null}
-            light={currentPlant.light}
-          />
-        </div>
-      )}
-
-      {/* Dry / Cure Tracker */}
-      {["dry", "cure"].includes(currentPlant?.stage || "") && (
-        <div className="mb-6">
-          <DryCureTracker
-            plantId={currentPlant.id}
-            stage={currentPlant.stage!}
-            lastWeight={null} 
-          />
-        </div>
-      )}
-      {currentPlant.stage === "dry" && (
-        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl p-4 mb-6">
-          <h3 className="text-sm font-bold text-amber-900 dark:text-amber-300 flex items-center gap-2">
-            <Scissors className="size-4" /> Plant is Drying
-          </h3>
-          <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-            Target: 60°F / 60% RH. Wait for the stems to snap before curing.
-          </p>
-        </div>
-      )}
-
       {/* Quick Stats */}
       {isStandardStage && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
-            <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 text-xs">
-              <Scale className="size-4" />
-              Current Weight
+          <button
+            type="button"
+            onClick={() => setIsScaleSettingsOpen(true)}
+            title="Open Scale Settings — set Field Capacity or re-tare"
+            className="group text-left bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 hover:border-amber-500/60 hover:bg-zinc-50 dark:hover:bg-zinc-900/80 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+          >
+            <div className="flex items-center justify-between gap-2 text-zinc-600 dark:text-zinc-400 text-xs">
+              <div className="flex items-center gap-2">
+                <Scale className="size-4" />
+                Current Weight
+              </div>
+              <Pencil className="size-3 opacity-0 group-hover:opacity-100 text-amber-500 transition-opacity" />
             </div>
             <div className="text-2xl font-bold text-zinc-900 dark:text-white mt-1">
               {formatWeight(weight, latestLog?.sourceDevice)}
             </div>
-            {currentPlant?.wetWeight && (
+            {currentPlant?.wetWeight ? (
               <div className="text-xs text-zinc-500">
                 Wet: {formatWeight(Number(currentPlant.wetWeight), latestLog?.sourceDevice)}
               </div>
+            ) : (
+              <div className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                ⚠️ FC not set — tap to fix
+              </div>
             )}
-          </div>
-
+          </button>
           <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
             <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 text-xs">
               <Activity className="size-4" />
@@ -397,61 +377,55 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
 
       {/* Dynamic Cultivation Dashboard */}
       {isStandardStage && (
-        <CultivationDashboard 
+        <CultivationDashboard
           stage={(detectedStage as any) || "seedling"}
           week={currentWeek}
-          substrate={currentPlant.substrate || "happy_frog"}
-          nutrientLine={currentPlant.nutrientLine || "gh_flora"}
+          substrate={currentPlant.substrate || null}
+          nutrientLine={currentPlant.nutrientLine || null}
           currentVpd={latestClimate?.vpd}
-          currentDryback={dryback} 
+          currentDryback={dryback}
+          light={currentPlant.light ? {
+            dimmerPercent: currentPlant.light.dimmerPercent,
+            distanceInches: currentPlant.light.distanceInches ?? undefined
+          } : null}
         />
       )}
 
-      {/* Room & Batch Info */}
-      {(currentPlant?.room || currentPlant?.batch) && (
-        <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 flex flex-wrap gap-4">
-          {currentPlant?.room && (
-            <div>
-              <span className="text-xs text-zinc-500">Room</span>
-              <Link href={`/rooms/${currentPlant.room.id}`} className="block text-sm text-emerald-400 hover:underline">
-                {currentPlant.room.name}
-              </Link>
-            </div>
-          )}
-          {currentPlant?.batch && (
-            <div>
-              <span className="text-xs text-zinc-500">Batch</span>
-              <Link href={`/batches/${currentPlant.batch.id}`} className="block text-sm text-emerald-400 hover:underline">
-                {currentPlant.batch.name}
-              </Link>
-            </div>
-          )}
-          {currentPlant?.containerGallons && (
-            <div>
-              <span className="text-xs text-zinc-500">Container</span>
-              <div className="text-sm text-zinc-900 dark:text-white">{currentPlant.containerGallons} gal</div>
-            </div>
-          )}
-          {currentPlant?.dryTarget && (
-            <div>
-              <span className="text-xs text-zinc-500">Dry Target</span>
-              <div className="text-sm text-zinc-900 dark:text-white">{Number(currentPlant.dryTarget).toFixed(1)} lbs</div>
-            </div>
-          )}
-          {currentPlant?.mirrorPlant && (
-            <div>
-              <span className="text-xs text-zinc-500">Mirroring</span>
-              <Link href={`/plants/${currentPlant.mirrorPlant.id}`} className="block text-sm text-emerald-400 hover:underline">
-                {currentPlant.mirrorPlant.name}
-              </Link>
-            </div>
-          )}
+      {/* Seedling Tracker */}
+      {currentPlant?.stage === "seedling" && (
+        <div className="mb-6">
+          <SeedlingTracker
+            plantId={currentPlant.id}
+            lastPlugWeight={seedlingContext?.lastCheck?.plugWeightG || null}
+            light={currentPlant.light}
+          />
+        </div>
+      )}
+
+      {/* Dry / Cure Tracker */}
+      {["dry", "cure"].includes(currentPlant?.stage || "") && (
+        <div className="mb-6">
+          <DryCureTracker
+            plantId={currentPlant.id}
+            stage={currentPlant.stage!}
+            lastWeight={null}
+          />
+        </div>
+      )}
+      {currentPlant.stage === "dry" && (
+        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl p-4 mb-6">
+          <h3 className="text-sm font-bold text-amber-900 dark:text-amber-300 flex items-center gap-2">
+            <Scissors className="size-4" /> Plant is Drying
+          </h3>
+          <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+            Target: 60°F / 60% RH. Wait for the stems to snap before curing.
+          </p>
         </div>
       )}
 
       {/* Dry-Back Trend Chart (last 7 days) */}
       {isStandardStage && dryBackChartData.length > 1 && (
-          <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
+        <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
           <div className="flex justify-between items-center mb-3">
             <div>
               <h2 className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Dry-Back Trend</h2>
@@ -744,6 +718,20 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
         plantId={currentPlant.id}
         currentStage={currentPlant.stage || "seedling"}
         lightName={currentPlant.light?.name}
+      />
+      <ScaleSettingsModal
+        open={isScaleSettingsOpen}
+        onClose={() => setIsScaleSettingsOpen(false)}
+        plantId={currentPlant.id}
+        plantName={currentPlant.name}
+        currentFieldCapacityLbs={
+          currentPlant.wetWeight !== null && currentPlant.wetWeight !== undefined
+            ? Number(currentPlant.wetWeight)
+            : null
+        }
+        onSaved={() => {
+          router.refresh();
+        }}
       />
     </div>
   );

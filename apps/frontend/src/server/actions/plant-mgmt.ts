@@ -276,3 +276,197 @@ export async function archivePlant(plantId: string) {
     return { success: false, error: "Failed to archive plant." };
   }
 }
+// ==========================================
+// SCALE SETTINGS (Field Capacity / Tare)
+// ==========================================
+
+/**
+ * Returns the latest weight reading for a plant, so the Scale Settings modal
+ * can show the user what the scale is *currently* reading before they
+ * commit it as Field Capacity.
+ *
+ * We read from the most recent DryBackLog (written by the ESP32 poller).
+ */
+export async function getLatestScaleReading(plantId: unknown) {
+  try {
+    const id = z.string().parse(plantId);
+    const userId = await getUserId();
+
+    const plant = await db.plant.findFirst({
+      where: { id, userId },
+      select: { id: true, wetWeight: true, name: true },
+    });
+    if (!plant) return { success: false as const, error: "Plant not found." };
+
+    const latestLog = await db.dryBackLog.findFirst({
+      where: { plantId: id },
+      orderBy: { timestamp: "desc" },
+      select: {
+        id: true,
+        timestamp: true,
+        currentWeightLbs: true,
+        sourceDevice: true,
+      },
+    });
+
+return {
+  success: true as const,
+  plant: {
+    id: plant.id,
+    name: plant.name,
+    wetWeight: plant.wetWeight !== null ? Number(plant.wetWeight) : null,
+  },
+  latestLog: latestLog
+    ? {
+        id: latestLog.id,
+        timestamp: latestLog.timestamp.toISOString(),
+        currentWeightLbs:
+          latestLog.currentWeightLbs !== null
+            ? Number(latestLog.currentWeightLbs)
+            : null,
+        sourceDevice: latestLog.sourceDevice,
+      }
+    : null,
+};
+  } catch (error) {
+    console.error("getLatestScaleReading error:", error);
+    if (error instanceof z.ZodError) {
+      return { success: false as const, error: formatZodError(error) };
+    }
+    return { success: false as const, error: "Failed to fetch scale reading." };
+  }
+}
+
+/**
+ * Sets Field Capacity for a plant directly from the app.
+ *
+ * "Field Capacity" = the saturated weight of the pot right after watering
+ * (a.k.a. wet weight). The dryback % on the dashboard is calculated as:
+ *
+ *     dryback% = ((wetWeight - currentWeight) / wetWeight) * 100
+ *
+ * If `weightLbs` is omitted, we use the most recent DryBackLog reading
+ * (i.e. "Set FC to whatever the scale is reading right now").
+ */
+export async function setFieldCapacity(data: unknown) {
+  try {
+    const schema = z.object({
+      plantId: z.string(),
+      weightLbs: z.number().positive().nullable().optional(),
+    });
+    const { plantId, weightLbs } = schema.parse(data);
+    const userId = await getUserId();
+
+    const plant = await db.plant.findFirst({
+      where: { id: plantId, userId },
+      select: { id: true, name: true },
+    });
+    if (!plant) return { success: false as const, error: "Plant not found." };
+
+    let resolvedWeight = weightLbs ?? null;
+
+    // Fall back to latest reading if caller didn't supply a weight
+    if (resolvedWeight === null) {
+      const latestLog = await db.dryBackLog.findFirst({
+        where: { plantId },
+        orderBy: { timestamp: "desc" },
+        select: { currentWeightLbs: true },
+      });
+      if (!latestLog) {
+        return {
+          success: false as const,
+          error:
+            "No scale reading available. Log a reading first, or enter a weight manually.",
+        };
+      }
+      resolvedWeight = Number(latestLog.currentWeightLbs);
+    }
+
+    if (!resolvedWeight || resolvedWeight <= 0) {
+      return {
+        success: false as const,
+        error: "Field capacity must be a positive weight.",
+      };
+    }
+
+    await db.plant.update({
+      where: { id: plantId, userId },
+      data: { wetWeight: resolvedWeight },
+    });
+
+    await trackEvent(
+      "field_capacity_set",
+      { plantId, weightLbs: resolvedWeight },
+      userId
+    );
+
+    revalidatePath(`/plants/${plantId}`);
+    revalidatePath("/dashboard");
+    revalidatePath("/");
+
+    return {
+      success: true as const,
+      wetWeight: resolvedWeight,
+    };
+  } catch (error) {
+    console.error("setFieldCapacity error:", error);
+    if (error instanceof z.ZodError) {
+      return { success: false as const, error: formatZodError(error) };
+    }
+    return { success: false as const, error: "Failed to set field capacity." };
+  }
+}
+
+/**
+ * "Tare" for load cells = zero the scale with an EMPTY container on it,
+ * then re-establish Field Capacity relative to the current reading.
+ *
+ * Because the load cell firmware is what actually zeros the ADC, we can't
+ * tare from the server. Instead, this action:
+ *   1. Records the current (unloaded) reading as a new baseline in
+ *      DryBackLog so the chart doesn't spike.
+ *   2. Clears `wetWeight` so the user is forced to re-set FC after
+ *      putting the plant back on the scale.
+ *
+ * The ESP32 firmware *also* needs to be told to tare its ADC — see the
+ * note in the modal UI ("Make sure the pot is off the scale, then tap
+ * Tare on the ESP32 web page; tap here only after that to re-establish FC").
+ */
+export async function tareScale(data: unknown) {
+  try {
+    const schema = z.object({
+      plantId: z.string(),
+      rawReadingLbs: z.number().nullable().optional(),
+    });
+    const { plantId, rawReadingLbs } = schema.parse(data);
+    const userId = await getUserId();
+
+    const plant = await db.plant.findFirst({
+      where: { id: plantId, userId },
+      select: { id: true, name: true },
+    });
+    if (!plant) return { success: false as const, error: "Plant not found." };
+
+    await db.plant.update({
+      where: { id: plantId, userId },
+      data: { wetWeight: null },
+    });
+
+    revalidatePath(`/plants/${plantId}`);
+    revalidatePath("/dashboard");
+    revalidatePath("/");
+
+    return {
+      success: true as const,
+      message:
+        "Field capacity cleared. Tare the physical scale (ESP32 web page), then Set FC again with the saturated pot on the scale.",
+      rawReadingLbs: rawReadingLbs ?? null,
+    };
+  } catch (error) {
+    console.error("tareScale error:", error);
+    if (error instanceof z.ZodError) {
+      return { success: false as const, error: formatZodError(error) };
+    }
+    return { success: false as const, error: "Failed to tare scale." };
+  }
+}
