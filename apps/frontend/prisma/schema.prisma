@@ -147,7 +147,7 @@ model DryBackLog {
 model Batch {
   id                String       @id @default(cuid())
   name              String       @db.VarChar(100)
-  cultivar          String       @db.VarChar(100)
+  cultivar          String?       @db.VarChar(100)
   roomId            String?      @map("room_id") @db.VarChar(50)
   room              Room?        @relation(fields: [roomId], references: [id], onDelete: SetNull)
   startDate         DateTime     @default(now()) @map("start_date")

@@ -1,10 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { Sprout, X, Loader2, Lightbulb } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Sprout, X, Loader2, Lightbulb, Scale } from "lucide-react";
 import { createPlant } from "@/server/actions/plant-mgmt";
 import { createRoom } from "@/server/actions/facility-mgmt";
 import { createBatch } from "@/server/actions/batch-mgmt";
+import { saveLight } from "@/server/actions/lights";
+import {
+  getAvailableLoadCells,
+  assignSensorToPlant,
+} from "@/server/actions/sensors";
 import { useRouter } from "next/navigation";
 
 interface StartGrowModalProps {
@@ -15,36 +20,79 @@ interface StartGrowModalProps {
   lights: { id: string; name: string }[];
 }
 
-export function StartGrowModal({ isOpen, onClose, rooms: initialRooms, batches: initialBatches, lights: initialLights }: StartGrowModalProps) {
+interface SensorOption {
+  id: string;
+  name: string;
+  type: string;
+}
+
+export function StartGrowModal({
+  isOpen,
+  onClose,
+  rooms: initialRooms,
+  batches: initialBatches,
+  lights: initialLights,
+}: StartGrowModalProps) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [strain, setStrain] = useState("");
   const [roomId, setRoomId] = useState("");
   const [batchId, setBatchId] = useState("");
-  
-  // Local state for inline creation
+
   const [rooms, setRooms] = useState(initialRooms);
   const [batches, setBatches] = useState(initialBatches);
   const [lights, setLights] = useState(initialLights);
   const [lightId, setLightId] = useState("");
+
   const [isAddingRoom, setIsAddingRoom] = useState(false);
   const [newRoomName, setNewRoomName] = useState("");
-  
+
   const [isAddingBatch, setIsAddingBatch] = useState(false);
   const [newBatchName, setNewBatchName] = useState("");
   const [newBatchCultivar, setNewBatchCultivar] = useState("");
 
+  const [isAddingLight, setIsAddingLight] = useState(false);
+  const [newLightName, setNewLightName] = useState("");
+  const [newLightWattage, setNewLightWattage] = useState("");
+
+  const [sensors, setSensors] = useState<SensorOption[]>([]);
+  const [loadCellId, setLoadCellId] = useState("");
+  const [sensorsLoading, setSensorsLoading] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Load available load cells (unassigned, active) whenever the modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    setSensorsLoading(true);
+    getAvailableLoadCells()
+      .then((rows) => {
+        if (cancelled) return;
+        setSensors(rows);
+        const small = rows.find((s) => /small/i.test(s.name));
+        if (small) setLoadCellId(small.id);
+      })
+      .catch(() => {
+        if (!cancelled) setSensors([]);
+      })
+      .finally(() => {
+        if (!cancelled) setSensorsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
+  // ─── inline creators ────────────────────────────────────────────
   const handleAddRoom = async () => {
     if (!newRoomName.trim()) return;
     setLoading(true);
     setError(null);
     try {
-      // createRoom expects an object now
       const res = await createRoom({ name: newRoomName.trim() });
       if (res.success && res.room) {
         setRooms([...rooms, res.room]);
@@ -62,28 +110,26 @@ export function StartGrowModal({ isOpen, onClose, rooms: initialRooms, batches: 
   };
 
   const handleAddBatch = async () => {
-    if (!newBatchName.trim() || !newBatchCultivar.trim()) {
-      setError("Batch name and cultivar are required.");
+    if (!newBatchName.trim()) {
+      setError("Batch name is required.");
       return;
     }
     setLoading(true);
     setError(null);
     try {
-      // createBatch expects { name, cultivar }
-      const res = await createBatch({ 
+      const res = await createBatch({
         name: newBatchName.trim(),
-        cultivar: newBatchCultivar.trim()
+        cultivar: newBatchCultivar.trim() || null,
       });
-      // Depending on your action, it might return `batch` or `id`
-      const newBatch = res.batch || res;
-      if (res.success && newBatch) {
+      const newBatch = (res as any).batch || res;
+      if ((res as any).success && newBatch) {
         setBatches([...batches, newBatch]);
         setBatchId(newBatch.id);
         setIsAddingBatch(false);
         setNewBatchName("");
         setNewBatchCultivar("");
       } else {
-        setError(res.error || "Failed to create batch");
+        setError((res as any).error || "Failed to create batch");
       }
     } catch (err: any) {
       setError(err.message || "Failed to create batch");
@@ -92,6 +138,38 @@ export function StartGrowModal({ isOpen, onClose, rooms: initialRooms, batches: 
     }
   };
 
+  const handleAddLight = async () => {
+    if (!newLightName.trim()) {
+      setError("Light name is required.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await saveLight({
+        name: newLightName.trim(),
+        wattage: Number(newLightWattage) || 100,
+        type: "led_full_spectrum",
+        dimmerPercent: 100,
+        distanceInches: null,
+        scheduleHoursOn: 18,
+      });
+      if (!res.success || !res.light) {
+        throw new Error(res.error || "Failed to create light");
+      }
+      setLights([...lights, { id: res.light.id, name: res.light.name }]);
+      setLightId(res.light.id);
+      setIsAddingLight(false);
+      setNewLightName("");
+      setNewLightWattage("");
+    } catch (err: any) {
+      setError(err.message || "Failed to create light");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ─── submit ─────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return setError("Plant name is required.");
@@ -104,18 +182,30 @@ export function StartGrowModal({ isOpen, onClose, rooms: initialRooms, batches: 
       strain: strain.trim() || null,
       roomId: roomId || null,
       batchId: batchId || null,
-      lightId: lightId || null, 
+      lightId: lightId || null,
       stage: "seedling",
       startDate: new Date(),
     });
 
-    setLoading(false);
-
     if (!res.success) {
+      setLoading(false);
       setError(res.error || "Failed to start grow.");
       return;
     }
 
+    // Assign load cell AFTER the plant exists (SensorConfig.plantId FK)
+    if (loadCellId) {
+      const assignRes = await assignSensorToPlant({
+        sensorId: loadCellId,
+        plantId: res.plant.id,
+      });
+      if (!assignRes.success) {
+        // Non-fatal — the plant was created, just no scale linked.
+        console.warn("Load cell assignment failed:", assignRes.error);
+      }
+    }
+
+    setLoading(false);
     onClose();
     router.push(`/plants/${res.plant.id}`);
     router.refresh();
@@ -123,18 +213,30 @@ export function StartGrowModal({ isOpen, onClose, rooms: initialRooms, batches: 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Sprout className="size-5 text-emerald-500" />
-            <h3 className="text-lg font-bold text-zinc-900 dark:text-white">Start New Grow</h3>
+            <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
+              Start New Grow
+            </h3>
           </div>
-          <button type="button" onClick={onClose} disabled={loading} className="text-zinc-400 hover:text-zinc-600"><X className="size-5" /></button>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="text-zinc-400 hover:text-zinc-600"
+          >
+            <X className="size-5" />
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* NAME */}
           <div>
-            <label className="text-xs font-bold text-zinc-500 uppercase">Plant Name *</label>
+            <label className="text-xs font-bold text-zinc-500 uppercase">
+              Plant Name *
+            </label>
             <input
               type="text"
               value={name}
@@ -145,8 +247,11 @@ export function StartGrowModal({ isOpen, onClose, rooms: initialRooms, batches: 
             />
           </div>
 
+          {/* STRAIN */}
           <div>
-            <label className="text-xs font-bold text-zinc-500 uppercase">Strain (optional)</label>
+            <label className="text-xs font-bold text-zinc-500 uppercase">
+              Strain (optional)
+            </label>
             <input
               type="text"
               value={strain}
@@ -156,15 +261,25 @@ export function StartGrowModal({ isOpen, onClose, rooms: initialRooms, batches: 
             />
           </div>
 
-          {/* ROOM SELECTION */}
+          {/* ROOM */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-bold text-zinc-500 uppercase">Room</label>
-              <button type="button" onClick={() => { setIsAddingRoom(!isAddingRoom); setIsAddingBatch(false); }} className="text-[10px] text-emerald-500 font-bold hover:underline">
+              <label className="text-xs font-bold text-zinc-500 uppercase">
+                Room
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddingRoom(!isAddingRoom);
+                  setIsAddingBatch(false);
+                  setIsAddingLight(false);
+                }}
+                className="text-[10px] text-emerald-500 font-bold hover:underline"
+              >
                 {isAddingRoom ? "Cancel" : "+ New Room"}
               </button>
             </div>
-            
+
             {isAddingRoom ? (
               <div className="flex gap-2">
                 <input
@@ -174,25 +289,50 @@ export function StartGrowModal({ isOpen, onClose, rooms: initialRooms, batches: 
                   placeholder="e.g. Vivosun 2x4"
                   className="flex-1 px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border rounded-lg text-sm"
                 />
-                <button type="button" onClick={handleAddRoom} disabled={loading} className="px-3 bg-emerald-600 text-white rounded-lg text-xs font-bold disabled:opacity-50">Add</button>
+                <button
+                  type="button"
+                  onClick={handleAddRoom}
+                  disabled={loading}
+                  className="px-3 bg-emerald-600 text-white rounded-lg text-xs font-bold disabled:opacity-50"
+                >
+                  Add
+                </button>
               </div>
             ) : (
-              <select value={roomId} onChange={(e) => setRoomId(e.target.value)} className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border rounded-lg text-sm">
+              <select
+                value={roomId}
+                onChange={(e) => setRoomId(e.target.value)}
+                className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border rounded-lg text-sm"
+              >
                 <option value="">No Room</option>
-                {rooms.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                {rooms.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
               </select>
             )}
           </div>
 
-          {/* BATCH SELECTION */}
+          {/* BATCH — cultivar optional */}
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-bold text-zinc-500 uppercase">Batch (optional)</label>
-              <button type="button" onClick={() => { setIsAddingBatch(!isAddingBatch); setIsAddingRoom(false); }} className="text-[10px] text-emerald-500 font-bold hover:underline">
+              <label className="text-xs font-bold text-zinc-500 uppercase">
+                Batch (optional)
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddingBatch(!isAddingBatch);
+                  setIsAddingRoom(false);
+                  setIsAddingLight(false);
+                }}
+                className="text-[10px] text-emerald-500 font-bold hover:underline"
+              >
                 {isAddingBatch ? "Cancel" : "+ New Batch"}
               </button>
             </div>
-            
+
             {isAddingBatch ? (
               <div className="flex flex-col gap-2 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700">
                 <input
@@ -207,37 +347,141 @@ export function StartGrowModal({ isOpen, onClose, rooms: initialRooms, batches: 
                     type="text"
                     value={newBatchCultivar}
                     onChange={(e) => setNewBatchCultivar(e.target.value)}
-                    placeholder="Cultivar (required)"
+                    placeholder="Cultivar (optional)"
                     className="flex-1 px-3 py-2 bg-white dark:bg-zinc-900 border rounded-lg text-sm"
                   />
-                  <button type="button" onClick={handleAddBatch} disabled={loading} className="px-3 bg-emerald-600 text-white rounded-lg text-xs font-bold disabled:opacity-50">Add</button>
+                  <button
+                    type="button"
+                    onClick={handleAddBatch}
+                    disabled={loading}
+                    className="px-3 bg-emerald-600 text-white rounded-lg text-xs font-bold disabled:opacity-50"
+                  >
+                    Add
+                  </button>
                 </div>
               </div>
             ) : (
-              <select value={batchId} onChange={(e) => setBatchId(e.target.value)} className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border rounded-lg text-sm">
+              <select
+                value={batchId}
+                onChange={(e) => setBatchId(e.target.value)}
+                className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border rounded-lg text-sm"
+              >
                 <option value="">No Batch</option>
-                {batches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                {batches.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
               </select>
             )}
           </div>
 
-                    {/* LIGHT SELECTION */}
+          {/* LIGHT — with inline Add Light */}
           <div>
-            <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-1.5 mb-1">
-              <Lightbulb className="size-3.5" /> Light (optional)
-            </label>
-            <select value={lightId} onChange={(e) => setLightId(e.target.value)} className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border rounded-lg text-sm">
-              <option value="">No Light</option>
-              {lights.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-            </select>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-1.5">
+                <Lightbulb className="size-3.5" /> Light (optional)
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddingLight(!isAddingLight);
+                  setIsAddingRoom(false);
+                  setIsAddingBatch(false);
+                }}
+                className="text-[10px] text-emerald-500 font-bold hover:underline"
+              >
+                {isAddingLight ? "Cancel" : "+ New Light"}
+              </button>
+            </div>
+
+            {isAddingLight ? (
+              <div className="flex flex-col gap-2 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                <input
+                  type="text"
+                  value={newLightName}
+                  onChange={(e) => setNewLightName(e.target.value)}
+                  placeholder="Light name (e.g. HLG 350R)"
+                  className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border rounded-lg text-sm"
+                />
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    value={newLightWattage}
+                    onChange={(e) => setNewLightWattage(e.target.value)}
+                    placeholder="Wattage (e.g. 350)"
+                    className="flex-1 px-3 py-2 bg-white dark:bg-zinc-900 border rounded-lg text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddLight}
+                    disabled={loading}
+                    className="px-3 bg-emerald-600 text-white rounded-lg text-xs font-bold disabled:opacity-50"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <select
+                value={lightId}
+                onChange={(e) => setLightId(e.target.value)}
+                className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border rounded-lg text-sm"
+              >
+                <option value="">No Light</option>
+                {lights.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.name}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
+
+          {/* LOAD CELL — only shown if the user has an unassigned one */}
+          {sensors.length > 0 && (
+            <div>
+              <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-1.5 mb-1">
+                <Scale className="size-3.5" /> Load cell (optional)
+              </label>
+              <select
+                value={loadCellId}
+                onChange={(e) => setLoadCellId(e.target.value)}
+                disabled={sensorsLoading}
+                className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border rounded-lg text-sm disabled:opacity-50"
+              >
+                <option value="">No scale assigned</option>
+                {sensors.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {error && <p className="text-xs text-red-500 font-bold">{error}</p>}
 
           <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-            <button type="button" onClick={onClose} disabled={loading} className="px-4 py-2 text-sm font-bold text-zinc-500">Cancel</button>
-            <button type="submit" disabled={loading} className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center gap-2">
-              {loading ? <Loader2 className="size-4 animate-spin" /> : "Start Seedling"}
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="px-4 py-2 text-sm font-bold text-zinc-500"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold flex items-center gap-2"
+            >
+              {loading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                "Start Seedling"
+              )}
             </button>
           </div>
         </form>

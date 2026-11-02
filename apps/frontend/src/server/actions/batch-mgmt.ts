@@ -79,7 +79,7 @@ export async function createBatch(data: unknown) {
     const batch = await db.batch.create({
       data: {
         name: validated.name,
-        cultivar: validated.cultivar,
+        cultivar: validated.cultivar ?? null,
         roomId: validated.roomId || undefined,
         userId: userId,
         wetWeight: extras.wetWeight ?? null,
@@ -119,7 +119,7 @@ export async function updateBatch(
       where: { id: batchId, userId },
 data: {
   name: validated.name,
-  cultivar: validated.cultivar,
+  cultivar: validated.cultivar ?? null,
   roomId: validated.roomId ?? undefined,
 startDate: validated.startDate ?? undefined,
   isActive: validated.isActive !== undefined
