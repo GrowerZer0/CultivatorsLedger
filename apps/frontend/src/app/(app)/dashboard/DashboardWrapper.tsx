@@ -1,7 +1,6 @@
 import { db } from "@/lib/db";
 import { getUserId } from "@/lib/session";
 import DashboardClient from "./DashboardClient";
-import { getOnboardingState } from "@/server/actions/onboarding";
 import { getPhotoUrls } from "@/server/actions/photos";
 import type { SensorStatus } from "@/components/dashboard/SensorStatusBanner";
 import { fetchRooms } from "@/server/actions/facility-mgmt";
@@ -15,7 +14,6 @@ export default async function DashboardWrapper() {
   const [
     plants,
     recentLogs,
-    onboardingState,
     sensorConfigs,
     latestWeight,
     latestClimate,
@@ -43,7 +41,6 @@ export default async function DashboardWrapper() {
       orderBy: { timestamp: "desc" },
       take: 10,
     }),
-    getOnboardingState(userId),
     db.sensorConfig.findMany({
       where: { userId, isActive: true },
       select: { id: true, name: true, type: true, lastPingAt: true },
@@ -105,9 +102,6 @@ export default async function DashboardWrapper() {
     timestamp: log.timestamp,
   }));
 
-  const isOnboardingActive =
-    !onboardingState.completed && !onboardingState.dismissed;
-
   const sensorStatus: SensorStatus[] = [];
 
   const hasLoadCell = sensorConfigs.some((s) =>
@@ -151,8 +145,6 @@ export default async function DashboardWrapper() {
         lights: lights,
         actionItems,
       }}
-      onboardingState={onboardingState}
-      isOnboardingActive={isOnboardingActive}
     />
   );
 }

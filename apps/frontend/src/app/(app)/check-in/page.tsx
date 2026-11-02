@@ -5,7 +5,6 @@ import { BackLink } from "@/components/ui/BackLink";
 import { db } from "@/lib/db";
 import { getUserId } from "@/lib/session";
 import { notFound } from "next/navigation";
-import { OnboardingReturnButton } from "@/components/onboarding/OnboardingReturnButton";
 import { getPhotoUrls } from "@/server/actions/photos";
 
 export const revalidate = 0;
@@ -59,7 +58,6 @@ export default async function CheckInPage({
           />
         </div>
         <SinglePlantCheckIn plant={plant} returnTo={returnTo} />
-        <OnboardingReturnButton currentPage="check-in" />
       </div>
     );
   }
@@ -117,7 +115,6 @@ export default async function CheckInPage({
         </p>
       </div>
       <PlantPicker plants={plants} returnTo={returnTo} />
-      <OnboardingReturnButton currentPage="check-in" />
     </div>
   );
 }

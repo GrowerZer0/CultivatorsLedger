@@ -3,7 +3,6 @@ import { PlantsClient } from "./PlantsClient";
 import { getPlants } from "@/server/actions/plant-mgmt";
 import { fetchRooms } from "@/server/actions/facility-mgmt";
 import { fetchBatches } from "@/server/actions/batch-mgmt";
-import { OnboardingReturnButton } from "@/components/onboarding/OnboardingReturnButton";
 import { getPhotoUrls } from "@/server/actions/photos";
 import { ExportButton } from "@/components/export/ExportButton";
 import { canAccessFeature } from "@/lib/features";
@@ -40,8 +39,6 @@ export default async function PlantsPage() {
       <Suspense fallback={<div className="text-zinc-600 dark:text-zinc-400">Loading plants...</div>}>
         <PlantsClient initialPlants={plantsWithThumbs} rooms={rooms} batches={batches} />
       </Suspense>
-
-      <OnboardingReturnButton currentPage="plants" />
     </div>
   );
 }

@@ -4,15 +4,11 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams, useRouter } from "next/navigation";
 import {
-  Scale,
-  FlaskConical,
-  Sprout,
-} from 'lucide-react';
-import {
   type EnvironmentReading,
   type DryBackLog,
   calculateDryBack,
 } from '@/lib/cultivation-engine';
+import { Sprout } from "lucide-react";
 import {
   getDashboardData,
   getLatestRoomReadings,
@@ -21,7 +17,6 @@ import { generateDailyBriefing } from '@/server/actions/dailyinsights';
 import { useTelemetry } from '@/lib/telemetry-context';
 import { fetchRooms } from '@/server/actions/facility-mgmt';
 import { fetchPlants } from '@/server/actions/plant-mgmt';
-import { OnboardingChecklist } from "@/components/onboarding/OnBoardingChecklist";
 import { PlantStatusList } from "@/components/dashboard/PlantStatusList";
 import { QuickActionsMenu } from "@/components/dashboard/QuickActionsMenu";
 import { ClimateCard } from "@/components/dashboard/ClimateCard";
@@ -55,18 +50,10 @@ interface DashboardClientProps {
     lights: any[];
     actionItems: any[];
   };
-  onboardingState: {
-    step: number;
-    completed: boolean;
-    dismissed: boolean;
-  };
-  isOnboardingActive: boolean;
 }
 
 export default function DashboardClient({
   initialData,
-  onboardingState,
-  isOnboardingActive
 }: DashboardClientProps) {
   const { setData } = useTelemetry();
   const router = useRouter();
@@ -91,11 +78,6 @@ export default function DashboardClient({
   const hasLoaded = useRef(false);
   const hasFetchedBriefingInitially = useRef(false);
   const [toast, setToast] = useState<{ type: "success"; message: string } | null>(null);
-
-  // Local onboarding state
-  const [localOnboardingState, setLocalOnboardingState] = useState(onboardingState);
-  const [showOnboarding, setShowOnboarding] = useState(isOnboardingActive);
-
   const searchParams = useSearchParams();
 
   // Show toast for successful check-in
@@ -112,29 +94,6 @@ export default function DashboardClient({
       return () => clearTimeout(timer);
     }
   }, [searchParams]);
-
-  // Check if we should show onboarding
-  useEffect(() => {
-    const checkOnboarding = async () => {
-      try {
-        const res = await fetch('/api/user/onboarding');
-        const data = await res.json();
-        const isActive = !data.onboardingCompleted && !data.onboardingDismissed;
-        setShowOnboarding(isActive);
-        setLocalOnboardingState({
-          step: data.onboardingStep || 0,
-          completed: data.onboardingCompleted || false,
-          dismissed: data.onboardingDismissed || false,
-        });
-      } catch (error) {
-        console.error('Error checking onboarding:', error);
-      }
-    };
-
-    if (isOnboardingActive) {
-      checkOnboarding();
-    }
-  }, [isOnboardingActive]);
 
   // --- DATA FETCH ---
   const loadData = useCallback(
@@ -304,21 +263,33 @@ export default function DashboardClient({
         </div>
       )}
 
-      {/* Onboarding Checklist */}
-      {showOnboarding && (
-        <OnboardingChecklist
-          currentStep={localOnboardingState.step}
-          completed={localOnboardingState.completed}
-          onDismiss={() => {
-            setShowOnboarding(false);
-            // Refresh to persist the dismiss
-            window.location.reload();
-          }}
-        />
-      )}
       {/* Action Center */}
       <ActionCenter items={initialData.actionItems || []} />
 
+      {/* EMPTY STATE: Zero Plants */}
+      {plants.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16 px-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm text-center">
+          <div className="size-16 bg-emerald-100 dark:bg-emerald-950/40 rounded-full flex items-center justify-center mb-4">
+            <Sprout className="size-8 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">
+            Welcome to Cultivator's Ledger
+          </h2>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-md mx-auto mb-6">
+            You don't have any active grows right now. Start your first seedling to unlock the dashboard, log readings, and track your dryback.
+          </p>
+          <button
+            onClick={() => setIsStartGrowModalOpen(true)}
+            className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold transition-colors shadow-md"
+          >
+            <Sprout className="size-5" />
+            Start Your First Grow
+          </button>
+        </div>
+      )}
+      {/* Only show these if the user actually has plants */}
+      {plants.length > 0 && (
+        <div className="space-y-6">
       {/* Climate Card */}
       <ClimateCard
         reading={climateReading}
@@ -354,6 +325,8 @@ export default function DashboardClient({
         isOpen={isNutrientModalOpen}
         onClose={() => setIsNutrientModalOpen(false)}
       />
+        </div>
+      )}
     </div>
   );
 }
