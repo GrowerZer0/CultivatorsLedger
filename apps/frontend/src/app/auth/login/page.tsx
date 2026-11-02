@@ -124,7 +124,7 @@ export default function LoginPage() {
 <p className="text-center text-xs text-zinc-500 mt-6">
   By continuing, you agree to our{" "}
   <Link
-    href="/legal/terms"
+    href="/legal/terms?from=auth"
     target="_blank"
     rel="noopener noreferrer"
     className="underline hover:text-zinc-800 dark:hover:text-zinc-300"
@@ -133,7 +133,7 @@ export default function LoginPage() {
   </Link>{" "}
   and{" "}
   <Link
-    href="/legal/privacy"
+    href="/legal/privacy?from=auth"
     target="_blank"
     rel="noopener noreferrer"
     className="underline hover:text-zinc-800 dark:hover:text-zinc-300"

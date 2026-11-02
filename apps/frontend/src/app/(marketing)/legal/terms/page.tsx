@@ -13,12 +13,12 @@ export default function TermsPage() {
       <section className="space-y-4 text-zinc-700 dark:text-zinc-300">
         <h2 className="text-xl font-bold text-zinc-900 dark:text-white mt-6">1. Agreement to Terms</h2>
         <p>
-          By accessing or using Cultivator's Ledger ("the Service"), you agree to be bound by these Terms of Service. If you disagree with any part of the terms, you may not access the Service.
+          By accessing or using Cultivator's Ledger (&ldquo;the Service&rdquo;), you agree to be bound by these Terms of Service. If you disagree with any part of the terms, you may not access the Service.
         </p>
 
         <h2 className="text-xl font-bold text-zinc-900 dark:text-white mt-6">2. Description of Service</h2>
         <p>
-          Cultivator's Ledger provides software for tracking plant growth, weight, environmental metrics, and cultivation analytics. The Service is provided "as is" and is intended for informational and record-keeping purposes only.
+          Cultivator's Ledger provides software for tracking plant growth, weight, environmental metrics, and cultivation analytics. The Service is provided &ldquo;as is&rdquo; and is intended for informational and record-keeping purposes only.
         </p>
         <p>
           <strong>No Guarantee of Results:</strong> We do not guarantee any specific agricultural, horticultural, or financial results. Plant growth and yields depend on numerous factors outside our control.
