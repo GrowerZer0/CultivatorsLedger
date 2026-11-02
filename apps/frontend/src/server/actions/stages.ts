@@ -23,6 +23,11 @@ interface HarvestData {
   wetWeightLbs: number;
   dryingMethod: string;
 }
+interface LightOverride {
+  scheduleHoursOn?: number;
+  dimmerPercent?: number;
+  distanceInches?: number | null;
+}
 
 function isValidStage(value: string): value is Stage {
   return (STAGE_ORDER as readonly string[]).includes(value);
@@ -32,7 +37,8 @@ export async function advancePlantStage(
   plantId: string,
   newStage: string,
   updateLight: boolean = false,
-  harvestData?: HarvestData
+  harvestData?: HarvestData,
+  lightOverride?: LightOverride,
 ) {
   try {
     const userId = await getUserId();
@@ -143,31 +149,45 @@ export async function advancePlantStage(
         data: plantUpdate,
       });
 
-      // 4. Light schedule.
-      if (updateLight && plant.lightId) {
-        let hours = plant.light?.scheduleHoursOn ?? 18;
-        let intensity = 100;
+// 4. Light schedule.
+if (updateLight && plant.lightId) {
+  let hours = plant.light?.scheduleHoursOn ?? 18;
+  let intensity = 100;
+  let distance: number | null | undefined = undefined;
 
-        if (newStage === "seedling") {
-          hours = 18;
-          intensity = 50;
-        } else if (newStage === "vegetative") {
-          hours = 18;
-          intensity = 100;
-        } else if (newStage === "flowering") {
-          hours = 12;
-          intensity = 100;
-        } else if (newStage === "dry" || newStage === "cure") {
-          // Kill the photons; leave hours as-is (irrelevant at 0%).
-          intensity = 0;
-        }
+  if (lightOverride) {
+    // Caller provided explicit values — use them.
+    if (lightOverride.scheduleHoursOn !== undefined) hours = lightOverride.scheduleHoursOn;
+    if (lightOverride.dimmerPercent !== undefined) intensity = lightOverride.dimmerPercent;
+    if (lightOverride.distanceInches !== undefined) distance = lightOverride.distanceInches;
+  } else {
+    // Fall back to defaults (unchanged from before).
+    if (newStage === "seedling") {
+      hours = 18;
+      intensity = 50;
+    } else if (newStage === "vegetative") {
+      hours = 18;
+      intensity = 100;
+    } else if (newStage === "flowering") {
+      hours = 12;
+      intensity = 100;
+    } else if (newStage === "dry" || newStage === "cure") {
+      intensity = 0;
+    }
+  }
 
-        await tx.light.update({
-          where: { id: plant.lightId },
-          data: { scheduleHoursOn: hours, dimmerPercent: intensity },
-        });
-      }
-    });
+  const lightUpdate: Prisma.LightUpdateInput = {
+    scheduleHoursOn: hours,
+    dimmerPercent: intensity,
+  };
+  if (distance !== undefined) lightUpdate.distanceInches = distance;
+
+  await tx.light.update({
+    where: { id: plant.lightId },
+    data: lightUpdate,
+  });
+}
+  });
 
     revalidatePath(`/plants/${plantId}`);
     revalidatePath("/dashboard");

@@ -19,7 +19,7 @@ export default async function ArchivePage() {
         </Link>
         <h1 className="text-2xl font-bold">Archived Grows</h1>
       </div>
-      
+
       {archivedPlants.length === 0 ? (
         <p className="text-zinc-500">No archived grows yet.</p>
       ) : (
@@ -32,6 +32,13 @@ export default async function ArchivePage() {
                   Archived on {new Date(plant.archivedAt!).toLocaleDateString()}
                 </p>
               </div>
+              <Link
+                href={`/plants/${plant.id}/print`}
+                target="_blank"
+                className="text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 font-bold"
+              >
+                Print Report
+              </Link>
               <Link href={`/plants/${plant.id}`} className="text-sm text-emerald-500 font-bold hover:underline">
                 View Details
               </Link>

@@ -34,9 +34,9 @@ import { GROWTH_STAGES, getStageFromDays, getStageProgress } from "@/lib/growth-
 import type { PlantWithDetails, DryBackLog, IrrigationEvent } from "@/types/plant";
 import { PhotoUploadModal } from "@/components/photos/PhotoUploadModal";
 import { SeedlingTracker } from "./SeedlingTracker";
-import { AdvanceStageModal } from "./AdvanceStageModal";
+import { AdvanceStageModal } from "../../../../components/facility/AdvanceStageModal";
 import { Light } from "@prisma/client";
-import { DryCureTracker } from "./DryCureTracker";
+import { DryCureTracker } from "../../../../components/facility/DryCureTracker";
 import { CultivationDashboard } from "@/components/plant/CultivationDashboard";
 import { deletePlant } from "@/server/actions/plant-mgmt";
 import { ScaleSettingsModal } from "@/components/facility/ScaleSettingsModal";
@@ -723,13 +723,22 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
         plantId={currentPlant.id}
         plantName={currentPlant.name}
       />
-      <AdvanceStageModal
-        isOpen={isAdvanceStageOpen}
-        onClose={() => setIsAdvanceStageOpen(false)}
-        plantId={currentPlant.id}
-        currentStage={currentPlant.stage || "seedling"}
-        lightName={currentPlant.light?.name}
-      />
+<AdvanceStageModal
+  isOpen={isAdvanceStageOpen}
+  onClose={() => setIsAdvanceStageOpen(false)}
+  plantId={currentPlant.id}
+  currentStage={currentPlant.stage || "seedling"}
+  light={
+    currentPlant.light
+      ? {
+          name: currentPlant.light.name,
+          scheduleHoursOn: currentPlant.light.scheduleHoursOn,
+          dimmerPercent: currentPlant.light.dimmerPercent,
+          distanceInches: currentPlant.light.distanceInches ?? null,
+        }
+      : null
+  }
+/>
       <ScaleSettingsModal
         open={isScaleSettingsOpen}
         onClose={() => setIsScaleSettingsOpen(false)}

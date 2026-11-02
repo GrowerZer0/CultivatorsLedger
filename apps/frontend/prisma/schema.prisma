@@ -59,7 +59,7 @@ model User {
   light            Light[]
   seedlingChecks  SeedlingCheck[] 
   stageEvents     StageEvent[]
-
+  cureEvents       CureEvent[]
   @@map("users")
 }
 model SystemSetting {
@@ -259,7 +259,8 @@ model Plant {
   substrate     String? @default("happy_frog") @map("substrate")
   nutrientLine  String? @default("gh_flora") @map("nutrient_line")
   dryingMethod String? @map("drying_method")
-    archivedAt DateTime? @map("archived_at") @db.Timestamptz(6)
+  archivedAt DateTime? @map("archived_at") @db.Timestamptz(6)
+  cureEvents       CureEvent[]
   @@map("plants")
 }
 model PlantInsight {
@@ -387,4 +388,21 @@ model StageEvent {
 
   @@index([plantId, startedAt])
   @@map("stage_events")
+}
+
+model CureEvent {
+  id           String   @id @default(cuid())
+  plantId      String   @map("plant_id")
+  plant        Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  userId       String   @map("user_id")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventType    String   @default("burp") // "burp" | future: "jar_check", "boveda_swap"
+  durationMins Int?     @map("duration_mins")
+  notes        String?
+  occurredAt   DateTime @default(now()) @map("occurred_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([plantId, occurredAt])
+  @@index([userId, occurredAt])
+  @@map("cure_events")
 }

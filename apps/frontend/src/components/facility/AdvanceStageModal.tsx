@@ -6,12 +6,19 @@ import { advancePlantStage, revertPlantStage } from "@/server/actions/stages";
 import { useRouter } from "next/navigation";
 import { archivePlant } from "@/server/actions/plant-mgmt";
 
+interface LightInfo {
+  name: string;
+  scheduleHoursOn: number;
+  dimmerPercent: number;
+  distanceInches: number | null;
+}
+
 interface AdvanceStageModalProps {
   isOpen: boolean;
   onClose: () => void;
   plantId: string;
   currentStage: string;
-  lightName?: string | null;
+  light?: LightInfo | null;
 }
 
 // "harvest" is not a stage — it is an event captured on the flowering → dry
@@ -19,16 +26,24 @@ interface AdvanceStageModalProps {
 // newStage === "dry".
 const STAGE_ORDER = ["seedling", "vegetative", "flowering", "dry", "cure", "archived"];
 
+// Recommendations used to *prefill* the form. The user can override.
+function recommendLight(nextStage: string): { hours: number; dimmer: number } {
+  if (nextStage === "flowering") return { hours: 12, dimmer: 100 };
+  if (nextStage === "vegetative") return { hours: 18, dimmer: 100 };
+  if (nextStage === "seedling") return { hours: 18, dimmer: 50 };
+  if (nextStage === "dry" || nextStage === "cure") return { hours: 0, dimmer: 0 };
+  return { hours: 18, dimmer: 100 };
+}
+
 export function AdvanceStageModal({
   isOpen,
   onClose,
   plantId,
   currentStage,
-  lightName,
+  light,
 }: AdvanceStageModalProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [updateLight, setUpdateLight] = useState(true);
   const [isReverting, setIsReverting] = useState(false);
   const [revertStage, setRevertStage] = useState("");
 
@@ -64,8 +79,24 @@ export function AdvanceStageModal({
 
   // The flowering → dry transition is the harvest moment.
   const isHarvestTransition = nextStage === "dry";
+  const showLightForm =
+    !!light && nextStage !== "dry" && nextStage !== "archived";
 
- const handleAdvance = async () => {
+  // Initial light form values: current light settings, falling back to rec.
+  const rec = recommendLight(nextStage);
+  const initHours = light?.scheduleHoursOn ?? rec.hours;
+  const initDimmer = light?.dimmerPercent ?? rec.dimmer;
+  const initDistance = light?.distanceInches ?? null;
+
+  // Editable light state — hoisted to component scope.
+  const [updateLight, setUpdateLight] = useState(true);
+  const [lightHoursOn, setLightHoursOn] = useState<number>(initHours);
+  const [lightDimmer, setLightDimmer] = useState<number>(initDimmer);
+  const [lightDistance, setLightDistance] = useState<number | "">(
+    initDistance === null ? "" : initDistance,
+  );
+
+  const handleAdvance = async () => {
     if (nextStage === "dry" && !wetWeight) {
       return alert("Please enter the wet weight before starting the dry phase.");
     }
@@ -78,18 +109,34 @@ export function AdvanceStageModal({
       if (res.success) {
         onClose();
         router.refresh();
-        router.push("/plants");
-        } else {
+        router.push("/plants/archive");
+      } else {
         alert(res.error);
       }
       return;
     }
 
-    const harvestData = nextStage === "dry" 
-      ? { wetWeightLbs: parseFloat(wetWeight), dryingMethod }
-      : undefined;
+    const harvestData =
+      nextStage === "dry"
+        ? { wetWeightLbs: parseFloat(wetWeight), dryingMethod }
+        : undefined;
 
-    const res = await advancePlantStage(plantId, nextStage, updateLight, harvestData);
+    const lightOverride =
+      showLightForm && updateLight
+        ? {
+          scheduleHoursOn: lightHoursOn,
+          dimmerPercent: lightDimmer,
+          distanceInches: lightDistance === "" ? null : lightDistance,
+        }
+        : undefined;
+
+    const res = await advancePlantStage(
+      plantId,
+      nextStage,
+      showLightForm && updateLight,
+      harvestData,
+      lightOverride,
+    );
     setLoading(false);
 
     if (res.success) {
@@ -100,17 +147,9 @@ export function AdvanceStageModal({
     }
   };
 
-  const getLightRecommendation = () => {
-    if (nextStage === "flowering") return "Switch to 12/12 hours, 100% intensity.";
-    if (nextStage === "vegetative") return "Switch to 18/6 hours, 100% intensity.";
-    if (nextStage === "dry") return "Turn light OFF (0% intensity) for drying.";
-    if (nextStage === "cure") return "Keep light OFF during cure.";
-    return "Keep current light settings.";
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+      <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
             {isHarvestTransition ? "Harvest Plant" : "Advance Stage"}
@@ -219,28 +258,35 @@ export function AdvanceStageModal({
           </div>
         )}
 
-                {/* Archive Confirmation UI */}
+        {/* Archive Confirmation UI */}
         {nextStage === "archived" && (
           <div className="mb-6 p-4 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl space-y-2 text-center">
-            <p className="text-sm font-bold text-zinc-900 dark:text-white">Finish this grow?</p>
+            <p className="text-sm font-bold text-zinc-900 dark:text-white">
+              Finish this grow?
+            </p>
             <p className="text-xs text-zinc-500">
-              This will hide the plant from your dashboard and plants list. You can still view it and export its data from the Archived Grows page.
+              This will hide the plant from your dashboard and plants list. You
+              can still view it and export its data from the Archived Grows
+              page.
             </p>
           </div>
         )}
 
-        {/* LIGHT UPDATE — shown for every transition where a light exists */}
-        {lightName && nextStage !== "dry" && nextStage !== "archived" && (
-                    <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl">
+        {/* LIGHT FORM — editable, prefilled with current values + recs */}
+        {showLightForm && (
+          <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl">
             <div className="flex items-start gap-3">
               <Lightbulb className="size-5 text-amber-500 shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-sm font-bold text-amber-900 dark:text-amber-300">
-                  Update Light Settings?
-                </p>
-                <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 mb-2">
-                  {lightName}: {getLightRecommendation()}
-                </p>
+              <div className="flex-1 space-y-3">
+                <div>
+                  <p className="text-sm font-bold text-amber-900 dark:text-amber-300">
+                    Update Light Settings?
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                    {light!.name} — adjust before confirming the stage change.
+                  </p>
+                </div>
+
                 <label className="flex items-center gap-2 text-xs font-bold text-amber-800 dark:text-amber-400 cursor-pointer">
                   <input
                     type="checkbox"
@@ -250,6 +296,54 @@ export function AdvanceStageModal({
                   />
                   Apply these settings to my light
                 </label>
+
+                {updateLight && (
+                  <div className="grid grid-cols-3 gap-2 pt-1">
+                    <div>
+                      <label className="text-[10px] font-bold text-amber-800 dark:text-amber-400 uppercase">
+                        Hours On
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={24}
+                        value={lightHoursOn}
+                        onChange={(e) => setLightHoursOn(Number(e.target.value))}
+                        className="w-full mt-1 px-2 py-1.5 bg-white dark:bg-zinc-900 border border-amber-200 dark:border-amber-900/40 rounded-lg text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-amber-800 dark:text-amber-400 uppercase">
+                        Dimmer %
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={lightDimmer}
+                        onChange={(e) => setLightDimmer(Number(e.target.value))}
+                        className="w-full mt-1 px-2 py-1.5 bg-white dark:bg-zinc-900 border border-amber-200 dark:border-amber-900/40 rounded-lg text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-amber-800 dark:text-amber-400 uppercase">
+                        Distance (in)
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={lightDistance}
+                        onChange={(e) =>
+                          setLightDistance(
+                            e.target.value === "" ? "" : Number(e.target.value),
+                          )
+                        }
+                        placeholder="—"
+                        className="w-full mt-1 px-2 py-1.5 bg-white dark:bg-zinc-900 border border-amber-200 dark:border-amber-900/40 rounded-lg text-sm"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -263,12 +357,13 @@ export function AdvanceStageModal({
           >
             Cancel
           </button>
-          <button 
-            onClick={handleAdvance} 
-            disabled={loading} 
-            className={`px-4 py-2 rounded-lg text-white text-sm font-bold flex items-center gap-2 transition-colors ${
-              nextStage === "archived" ? "bg-zinc-800 hover:bg-zinc-700" : "bg-emerald-600 hover:bg-emerald-500"
-            }`}
+          <button
+            onClick={handleAdvance}
+            disabled={loading}
+            className={`px-4 py-2 rounded-lg text-white text-sm font-bold flex items-center gap-2 transition-colors ${nextStage === "archived"
+                ? "bg-zinc-800 hover:bg-zinc-700"
+                : "bg-emerald-600 hover:bg-emerald-500"
+              }`}
           >
             {loading ? (
               <Loader2 className="size-4 animate-spin" />
