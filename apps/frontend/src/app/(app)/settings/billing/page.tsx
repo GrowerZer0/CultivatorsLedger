@@ -16,6 +16,44 @@ export default function BillingSettingsPage() {
   const [portalLoading, setPortalLoading] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
+  // Poll for the webhook to land after a successful checkout redirect.
+// Stripe redirects within ~1s of payment, webhooks fire within a few
+// seconds after — usually the user sees "FREE" for 2–5s before it flips.
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const sessionId = params.get("session_id");
+  if (!sessionId) return;
+
+  let cancelled = false;
+  let attempts = 0;
+  const maxAttempts = 10; // ~10s total budget
+
+  const poll = async () => {
+    if (cancelled) return;
+    attempts++;
+    try {
+      const res = await fetch("/api/user/billing", { cache: "no-store" });
+      const data = await res.json();
+      if (data.tier === "GROWER") {
+        // Webhook landed. Refresh the whole page state.
+        window.history.replaceState({}, "", "/settings/billing");
+        window.location.reload();
+        return;
+      }
+    } catch (err) {
+      console.error("Billing poll failed:", err);
+    }
+    if (attempts < maxAttempts) {
+      setTimeout(poll, 1000);
+    }
+  };
+  poll();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
+
   useEffect(() => {
     async function loadBilling() {
       try {
