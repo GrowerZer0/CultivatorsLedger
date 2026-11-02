@@ -22,7 +22,8 @@ import { useTelemetry } from '@/lib/telemetry-context';
 import { fetchRooms } from '@/server/actions/facility-mgmt';
 import { fetchPlants } from '@/server/actions/plant-mgmt';
 import { OnboardingChecklist } from "@/components/onboarding/OnBoardingChecklist";
-import { WeightDrybackCard } from "@/components/dashboard/WeightDrybackCard";
+import { PlantStatusList } from "@/components/dashboard/PlantStatusList";
+import { QuickActionsMenu } from "@/components/dashboard/QuickActionsMenu";
 import { ClimateCard } from "@/components/dashboard/ClimateCard";
 import { getLatestClimateReading, getClimateTrend, type ClimateReading, type ClimatePoint } from "@/server/actions/climate";
 import { NutrientCalculatorModal } from "@/components/nutrients/NutrientCalculatorModal";
@@ -273,9 +274,26 @@ export default function DashboardClient({
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0B0F19] text-gray-900 dark:text-zinc-100 p-4 space-y-6">
-      <SensorStatusBanner sensors={initialData.sensorStatus} />
-      {/* Toast */}
+<div className="min-h-screen bg-white dark:bg-[#0B0F19] text-gray-900 dark:text-zinc-100 p-4 space-y-6">
+  {/* Header */}
+  <div className="flex items-center justify-between">
+    <div>
+      <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
+        Dashboard
+      </h1>
+      <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+        {initialData.summary}
+      </p>
+    </div>
+    <QuickActionsMenu
+      onLogReading={() => router.push("/check-in")}
+      onStartGrow={() => setIsStartGrowModalOpen(true)}
+      onNutrientCalc={() => setIsNutrientModalOpen(true)}
+    />
+  </div>
+
+  <SensorStatusBanner sensors={initialData.sensorStatus} />
+  {/* Toast */}
       {toast && (
         <div className="fixed top-20 right-4 z-50 max-w-sm animate-slide-in-right">
           <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/95 dark:bg-emerald-950/90 px-4 py-3 shadow-lg backdrop-blur-sm">
@@ -301,33 +319,6 @@ export default function DashboardClient({
             {/* Action Center */}
       <ActionCenter items={initialData.actionItems || []} />
 
-      {/* Quick Actions Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
-        <button
-          onClick={() => router.push("/check-in")}
-          className="flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold transition-colors shadow-sm"
-        >
-          <Scale className="size-4" />
-          Log Reading
-        </button>
-
-        <button
-          onClick={() => setIsNutrientModalOpen(true)}
-          className="flex items-center justify-center gap-2 px-4 py-3 bg-zinc-800 dark:bg-zinc-700 hover:bg-zinc-700 dark:hover:bg-zinc-600 text-white rounded-xl text-sm font-bold transition-colors shadow-sm"
-        >
-          <FlaskConical className="size-4" />
-          Mix Nutrients
-        </button>
-
-        <button
-          onClick={() => setIsStartGrowModalOpen(true)}
-          className="flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-zinc-900 border border-emerald-500/30 hover:border-emerald-500 text-emerald-600 dark:text-emerald-400 rounded-xl text-sm font-bold transition-colors shadow-sm"
-        >
-          <Sprout className="size-4" />
-          Start New Grow
-        </button>
-      </div>
-
       {/* Climate Card */}
       <ClimateCard
         reading={climateReading}
@@ -337,17 +328,19 @@ export default function DashboardClient({
         isLoading={loading}
       />
 
-
-      {/* Weight & Dryback Card */}
-      {plants.length > 0 && (
-        <WeightDrybackCard
-          plants={plants}
-          dryBackLogs={dbDryBackLogs}
-          isLoading={loading}
-          onRefresh={() => loadData(true)}
-          lastRefreshTime={new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        />
-      )}
+      {/* Plant Status (cockpit) */}
+      <PlantStatusList
+        plants={plants}
+        dryBackLogs={dbDryBackLogs}
+        isLoading={loading}
+        onRefresh={() => loadData(true)}
+        lastRefreshTime={new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
+        onLogReading={(plantId) => router.push(`/check-in?plantId=${plantId}`)}
+        onNutrientCalc={() => setIsNutrientModalOpen(true)}
+      />
 
       {/* Start New Grow Modal */}
       <StartGrowModal

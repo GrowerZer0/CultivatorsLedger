@@ -79,6 +79,8 @@ export default async function DashboardWrapper() {
     dryTarget: plant.dryTarget ? Number(plant.dryTarget) : null,
     containerGallons: plant.containerGallons ? Number(plant.containerGallons) : null,
     stage: plant.stage,
+    flipDate: plant.flipDate ? plant.flipDate.toISOString() : null,
+    startDate: plant.startDate ? plant.startDate.toISOString() : null,
     currentWeight: plant.dryBackLogs[0]
       ? Number(plant.dryBackLogs[0].currentWeightLbs)
       : null,
