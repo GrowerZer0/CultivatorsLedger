@@ -40,6 +40,7 @@ import { DryCureTracker } from "../../../../components/facility/DryCureTracker";
 import { CultivationDashboard } from "@/components/plant/CultivationDashboard";
 import { deletePlant } from "@/server/actions/plant-mgmt";
 import { ScaleSettingsModal } from "@/components/facility/ScaleSettingsModal";
+import { LogReadingButton } from "@/components/dashboard/LogReadingButton";
 interface PlantDetailClientProps {
   plant: PlantWithDetails;
   seedlingContext?: any;
@@ -273,12 +274,7 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
             <ArrowRight className="size-3.5" />
             Advance Stage
           </button>
-          <button
-            onClick={() => router.push(`/check-in?plantId=${currentPlant?.id}`)}
-            className="px-3 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
-          >
-            Log Reading
-          </button>
+<LogReadingButton plantId={plant.id} returnTo="/dashboard" />
           <button
             onClick={() => setIsPhotoModalOpen(true)}
             className="px-3 py-1.5 text-xs font-bold bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg transition-colors flex items-center gap-1"

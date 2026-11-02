@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   CheckCircle2,
 } from "lucide-react";
+import { LogReadingButton } from "./LogReadingButton";
 
 type DryBackLog = {
   id: string;
@@ -426,14 +427,7 @@ function PlantRow({
 
         {/* Quick actions per row */}
         <div className="flex items-center gap-1.5 shrink-0">
-          <button
-            onClick={() => onLogReading(plant.id)}
-            className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors flex items-center gap-1"
-            title={`Log reading for ${plant.name}`}
-          >
-            <Scale className="size-3.5" />
-            <span className="hidden md:inline">Log</span>
-          </button>
+          <LogReadingButton plantId={plant.id} returnTo="/dashboard" />
           <button
             onClick={() => onNutrientCalc(plant.id)}
             className="px-2.5 py-1.5 rounded-lg bg-zinc-800 dark:bg-zinc-700 hover:bg-zinc-700 dark:hover:bg-zinc-600 text-white text-xs font-bold transition-colors flex items-center gap-1"

@@ -1,29 +1,28 @@
 // src/app/(app)/check-in/page.tsx
-import Link from 'next/link';
-import { DailyCheckIn } from '@/components/dashboard/DailyCheckIn';
-import { SinglePlantCheckIn } from '@/components/dashboard/SinglePlantCheckIn';
-import { getPlants } from '@/server/actions/plant-mgmt';
-import { fetchRooms } from '@/server/actions/facility-mgmt';
-import { db } from '@/lib/db';
-import { getUserId } from '@/lib/session';
-import { notFound } from 'next/navigation';
-import { BarChart3, ChevronRight } from 'lucide-react';
-import { OnboardingReturnButton } from '@/components/onboarding/OnboardingReturnButton';
+import { SinglePlantCheckIn } from "@/components/dashboard/SinglePlantCheckIn";
+import { PlantPicker } from "@/components/dashboard/PlantPicker";
+import { BackLink } from "@/components/ui/BackLink";
+import { db } from "@/lib/db";
+import { getUserId } from "@/lib/session";
+import { notFound } from "next/navigation";
+import { OnboardingReturnButton } from "@/components/onboarding/OnboardingReturnButton";
+import { getPhotoUrls } from "@/server/actions/photos";
 
 export const revalidate = 0;
 
 export default async function CheckInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ roomId?: string; plantId?: string }>;
+  searchParams: Promise<{ plantId?: string; returnTo?: string; via?: string }>;
 }) {
   const params = await searchParams;
-  const roomId = params?.roomId;
   const plantId = params?.plantId;
+  const returnTo = params?.returnTo ?? "/dashboard";
+  const viaPicker = params?.via === "picker";
+  const userId = await getUserId();
 
   // ─── Single-plant mode ──────────────────────────────────────────
   if (plantId) {
-    const userId = await getUserId();
     const raw = await db.plant.findFirst({
       where: { id: plantId, userId },
       include: {
@@ -45,75 +44,90 @@ export default async function CheckInPage({
       currentWeight: raw.dryBackLogs[0]
         ? Number(raw.dryBackLogs[0].currentWeightLbs)
         : raw.currentWeight
-        ? Number(raw.currentWeight)
-        : null,
+          ? Number(raw.currentWeight)
+          : null,
       lastSourceDevice: raw.dryBackLogs[0]?.sourceDevice ?? null,
     };
 
     return (
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-graphite dark:text-zinc-100">
-              Log Reading
-            </h1>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              Single-plant check-in with live dryback preview.
-            </p>
-          </div>
-          <Link
-            href="/check-in"
-            className="flex items-center gap-2 text-sm font-semibold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors"
-          >
-            Log for a different plant
-          </Link>
+      <div className="max-w-2xl mx-auto space-y-4">
+        <div className="flex items-center gap-4">
+          {viaPicker && (
+            <BackLink
+              href={`/check-in?returnTo=${encodeURIComponent(returnTo)}`}
+              label="Back to picker"
+            />
+          )}
+          <BackLink
+            href={returnTo}
+            label={
+              returnTo === "/dashboard"
+                ? "Back to dashboard"
+                : returnTo.startsWith("/plants/")
+                  ? `Back to ${plant.name}`
+                  : "Back"
+            }
+          />
         </div>
-        <SinglePlantCheckIn plant={plant} />
+        <SinglePlantCheckIn plant={plant} returnTo={returnTo} />
         <OnboardingReturnButton currentPage="check-in" />
       </div>
     );
   }
 
-  // ─── Room-batch mode (unchanged) ────────────────────────────────
-  const [plantsRaw, rooms] = await Promise.all([
-    getPlants(),
-    fetchRooms(),
-  ]);
+  // ─── Picker mode ────────────────────────────────────────────────
+  const plantsRaw = await db.plant.findMany({
+    where: { userId, archivedAt: null },
+    orderBy: { name: "asc" },
+    include: {
+      dryBackLogs: {
+        orderBy: { timestamp: "desc" },
+        take: 1,
+        select: { currentWeightLbs: true },
+      },
+      photos: {
+        orderBy: { capturedAt: "desc" },
+        take: 1,
+        select: { storagePath: true },
+      },
+    },
+  });
 
-  const activePlants = plantsRaw.map((plant: any) => ({
-    id: plant.id,
-    name: plant.name,
-    currentWeight: plant.currentWeight,
-    strain: plant.strain,
-    roomId: plant.roomId,
+  const thumbUrls = await getPhotoUrls(
+    plantsRaw.map((p) => p.photos[0]?.storagePath).filter((s): s is string => !!s),
+  );
+
+  const plants = plantsRaw.map((p) => ({
+    id: p.id,
+    name: p.name,
+    strain: p.strain,
+    stage: p.stage,
+    wetWeight: p.wetWeight ? Number(p.wetWeight) : null,
+    currentWeight: p.dryBackLogs[0]
+      ? Number(p.dryBackLogs[0].currentWeightLbs)
+      : p.currentWeight
+        ? Number(p.currentWeight)
+        : null,
+    thumbnailUrl: p.photos[0]?.storagePath
+      ? thumbUrls[p.photos[0].storagePath] ?? null
+      : null,
   }));
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-graphite dark:text-zinc-100">
-            Daily Operations
-          </h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            Log today's metrics to update dryback trends.
-          </p>
-        </div>
-        <Link
-          href="/dashboard"
-          className="flex items-center gap-2 text-sm font-semibold text-canopy dark:text-emerald-400 hover:underline transition-colors"
-        >
-          <BarChart3 className="w-4 h-4" />
-          View Full Dashboard
-          <ChevronRight className="w-4 h-4" />
-        </Link>
-      </div>
-      <DailyCheckIn
-        plants={activePlants}
-        rooms={rooms}
-        defaultRoomId={roomId}
-        defaultPlantId={plantId}
+    <div className="max-w-2xl mx-auto space-y-4">
+      <BackLink
+        href={returnTo}
+        label={returnTo === "/dashboard" ? "Back to dashboard" : "Back"}
       />
+      <div>
+        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+          Log a Reading
+        </h1>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          Pick a plant to log today's weight.
+        </p>
+      </div>
+      <PlantPicker plants={plants} returnTo={returnTo} />
       <OnboardingReturnButton currentPage="check-in" />
     </div>
   );

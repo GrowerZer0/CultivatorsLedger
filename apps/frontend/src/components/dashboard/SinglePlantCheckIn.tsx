@@ -8,12 +8,10 @@ import {
   Sprout,
   Check,
   Loader2,
-  ArrowLeft,
   AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import { recordDailyCheckInLog } from "@/server/actions/check-in";
-import { TypedSql } from "@prisma/client/runtime/library";
 
 interface SinglePlantCheckInProps {
   plant: {
@@ -25,6 +23,8 @@ interface SinglePlantCheckInProps {
     currentWeight: number | null;  // last logged weight, lbs
     lastSourceDevice: string | null; // "small" | "esp32" | null
   };
+  returnTo?: string;
+
 }
 
 const TRAINING_EVENTS = ["None", "Top", "Defoliate", "LST", "Flip", "Harvest"] as const;
@@ -33,8 +33,9 @@ type TrainingEvent = (typeof TRAINING_EVENTS)[number];
 const HEADS_UP_THRESHOLD = 15;
 const WATER_NOW_THRESHOLD = 20;
 
-export function SinglePlantCheckIn({ plant }: SinglePlantCheckInProps) {
+export function SinglePlantCheckIn({ plant, returnTo }: SinglePlantCheckInProps) {
   const router = useRouter();
+  const backHref = returnTo ?? `/plants/${plant.id}`;
   const [isPending, startTransition] = useTransition();
 
   // Unit is determined by stage + last source device (same rule as PlantStatusList)
@@ -60,33 +61,33 @@ export function SinglePlantCheckIn({ plant }: SinglePlantCheckInProps) {
   const hasFc = plant.wetWeight !== null && plant.wetWeight > 0;
 
   // Live dryback preview computed from typed value
-const preview = useMemo(() => {
-  if (!hasFc) return { kind: "none" as const };
-  const typed = parseFloat(weightInput);
-  if (!Number.isFinite(typed) || typed <= 0) return { kind: "none" as const };
-  const weightLbs = useGrams ? typed / 453.592 : typed;
-  const wet = plant.wetWeight!;
-  if (weightLbs > wet) {
-    return { kind: "error" as const, error: "Weight exceeds field capacity." };
-  }
-  const pct = Math.max(0, ((wet - weightLbs) / wet) * 100);
-  return {
-    kind: "ok" as const,
-    pct,
-    label:
-      pct >= WATER_NOW_THRESHOLD
-        ? "Water now"
-        : pct >= HEADS_UP_THRESHOLD
-        ? "Heads up"
-        : "On track",
-    color:
-      pct >= WATER_NOW_THRESHOLD
-        ? "text-red-500"
-        : pct >= HEADS_UP_THRESHOLD
-        ? "text-amber-500"
-        : "text-emerald-500",
-  };
-}, [weightInput, plant.wetWeight, useGrams, hasFc]);
+  const preview = useMemo(() => {
+    if (!hasFc) return { kind: "none" as const };
+    const typed = parseFloat(weightInput);
+    if (!Number.isFinite(typed) || typed <= 0) return { kind: "none" as const };
+    const weightLbs = useGrams ? typed / 453.592 : typed;
+    const wet = plant.wetWeight!;
+    if (weightLbs > wet) {
+      return { kind: "error" as const, error: "Weight exceeds field capacity." };
+    }
+    const pct = Math.max(0, ((wet - weightLbs) / wet) * 100);
+    return {
+      kind: "ok" as const,
+      pct,
+      label:
+        pct >= WATER_NOW_THRESHOLD
+          ? "Water now"
+          : pct >= HEADS_UP_THRESHOLD
+            ? "Heads up"
+            : "On track",
+      color:
+        pct >= WATER_NOW_THRESHOLD
+          ? "text-red-500"
+          : pct >= HEADS_UP_THRESHOLD
+            ? "text-amber-500"
+            : "text-emerald-500",
+    };
+  }, [weightInput, plant.wetWeight, useGrams, hasFc]);
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -122,21 +123,15 @@ const preview = useMemo(() => {
       }
 
       setSuccess(true);
-      router.push(`/plants/${plant.id}?logged=true`);
+      // Append ?logged=true correctly even if backHref already has a query.
+      const url = new URL(backHref, "http://x");
+      url.searchParams.set("logged", "true");
+      router.push(url.pathname + url.search);
       router.refresh();
     });
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-4">
-      <Link
-        href={`/plants/${plant.id}`}
-        className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200"
-      >
-        <ArrowLeft className="size-4" />
-        Back to {plant.name}
-      </Link>
-
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-xl space-y-6">
         <div>
           <div className="flex items-center gap-2">
@@ -216,16 +211,16 @@ const preview = useMemo(() => {
               className="w-full p-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl text-2xl font-bold font-mono focus:ring-2 focus:ring-emerald-500 outline-none disabled:opacity-50"
             />
             {/* Live dryback preview */}
-{preview.kind === "ok" && (
-  <p className={`mt-1 text-xs font-bold ${preview.color}`}>
-    {preview.pct.toFixed(1)}% dryback · {preview.label}
-  </p>
-)}
-{preview.kind === "error" && (
-  <p className="mt-1 text-xs font-bold text-red-500">
-    {preview.error}
-  </p>
-)}
+            {preview.kind === "ok" && (
+              <p className={`mt-1 text-xs font-bold ${preview.color}`}>
+                {preview.pct.toFixed(1)}% dryback · {preview.label}
+              </p>
+            )}
+            {preview.kind === "error" && (
+              <p className="mt-1 text-xs font-bold text-red-500">
+                {preview.error}
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -310,6 +305,5 @@ const preview = useMemo(() => {
           </button>
         </form>
       </div>
-    </div>
   );
 }

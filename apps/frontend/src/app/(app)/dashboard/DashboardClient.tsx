@@ -81,7 +81,7 @@ export default function DashboardClient({
   const [climateTrend, setClimateTrend] = useState<ClimatePoint[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
   const [isNutrientModalOpen, setIsNutrientModalOpen] = useState(false);
-    const [isStartGrowModalOpen, setIsStartGrowModalOpen] = useState(false);
+  const [isStartGrowModalOpen, setIsStartGrowModalOpen] = useState(false);
 
   // AI Briefing state
   const [briefingLoading, setBriefingLoading] = useState(false);
@@ -274,26 +274,26 @@ export default function DashboardClient({
   }
 
   return (
-<div className="min-h-screen bg-white dark:bg-[#0B0F19] text-gray-900 dark:text-zinc-100 p-4 space-y-6">
-  {/* Header */}
-  <div className="flex items-center justify-between">
-    <div>
-      <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
-        Dashboard
-      </h1>
-      <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-        {initialData.summary}
-      </p>
-    </div>
-    <QuickActionsMenu
-      onLogReading={() => router.push("/check-in")}
-      onStartGrow={() => setIsStartGrowModalOpen(true)}
-      onNutrientCalc={() => setIsNutrientModalOpen(true)}
-    />
-  </div>
+    <div className="min-h-screen bg-white dark:bg-[#0B0F19] text-gray-900 dark:text-zinc-100 p-4 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
+            Dashboard
+          </h1>
+          <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+            {initialData.summary}
+          </p>
+        </div>
+        <QuickActionsMenu
+          onLogReading={() => router.push("/check-in?returnTo=/dashboard")}
+          onStartGrow={() => setIsStartGrowModalOpen(true)}
+          onNutrientCalc={() => setIsNutrientModalOpen(true)}
+        />
+      </div>
 
-  <SensorStatusBanner sensors={initialData.sensorStatus} />
-  {/* Toast */}
+      <SensorStatusBanner sensors={initialData.sensorStatus} />
+      {/* Toast */}
       {toast && (
         <div className="fixed top-20 right-4 z-50 max-w-sm animate-slide-in-right">
           <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/95 dark:bg-emerald-950/90 px-4 py-3 shadow-lg backdrop-blur-sm">
@@ -316,14 +316,14 @@ export default function DashboardClient({
           }}
         />
       )}
-            {/* Action Center */}
+      {/* Action Center */}
       <ActionCenter items={initialData.actionItems || []} />
 
       {/* Climate Card */}
       <ClimateCard
         reading={climateReading}
         trend={climateTrend}
-        stage={plants[0]?.stage || "vegetative"} 
+        stage={plants[0]?.stage || "vegetative"}
         onRefresh={() => loadData(true)}
         isLoading={loading}
       />
