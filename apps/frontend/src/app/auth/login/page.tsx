@@ -22,7 +22,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError('');
-    
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -38,7 +38,7 @@ export default function LoginPage() {
     // ✅ First login detection
     if (data?.user) {
       const userId = data.user.id;
-      
+
       // Check if this is the user's first login by calling our API
       try {
         const response = await fetch('/api/user/first-login', {
@@ -47,7 +47,7 @@ export default function LoginPage() {
           body: JSON.stringify({ userId }),
         });
         const result = await response.json();
-        
+
         // If first login, redirect to dashboard with a flag
         if (result.isFirstLogin) {
           window.location.href = '/dashboard?first_login=true';
@@ -121,6 +121,27 @@ export default function LoginPage() {
             </Link>
           </p>
         </form>
+<p className="text-center text-xs text-zinc-500 mt-6">
+  By continuing, you agree to our{" "}
+  <Link
+    href="/legal/terms"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="underline hover:text-zinc-800 dark:hover:text-zinc-300"
+  >
+    Terms of Service
+  </Link>{" "}
+  and{" "}
+  <Link
+    href="/legal/privacy"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="underline hover:text-zinc-800 dark:hover:text-zinc-300"
+  >
+    Privacy Policy
+  </Link>
+  .
+</p>
       </div>
     </div>
   );

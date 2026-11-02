@@ -18,35 +18,35 @@ export default function SignUpPage() {
     setLoading(true);
     setError('');
     const redirectTo = process.env.NODE_ENV === 'production'
-    ? 'https://cultivators-ledger-omega.vercel.app/auth/login'
-    : 'http://localhost:3000/auth/login';
+      ? 'https://cultivators-ledger-omega.vercel.app/auth/login'
+      : 'http://localhost:3000/auth/login';
 
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectTo,
-        },
-      });
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: redirectTo,
+      },
+    });
 
-      if (error) {
-        console.error('Signup error details:', error);
-        setError(error.message);
-      } else {
-        const userId = data.user?.id;
-        if (userId) {
-          // Identify the user in PostHog client
-          identifyClientUser(userId, { email });
-          // Track the signup event
-          trackClientEvent('user_signed_up', {
-            email,
-            method: 'email',
-          });
-        }
-        router.push('/auth/login?message=Check your email to confirm your account');
+    if (error) {
+      console.error('Signup error details:', error);
+      setError(error.message);
+    } else {
+      const userId = data.user?.id;
+      if (userId) {
+        // Identify the user in PostHog client
+        identifyClientUser(userId, { email });
+        // Track the signup event
+        trackClientEvent('user_signed_up', {
+          email,
+          method: 'email',
+        });
       }
-      setLoading(false);
-    };
+      router.push('/auth/login?message=Check your email to confirm your account');
+    }
+    setLoading(false);
+  };
 
 
   return (
@@ -100,6 +100,27 @@ export default function SignUpPage() {
             </Link>
           </p>
         </form>
+<p className="text-center text-xs text-zinc-500 mt-6">
+  By continuing, you agree to our{" "}
+  <Link
+    href="/legal/terms"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="underline hover:text-zinc-800 dark:hover:text-zinc-300"
+  >
+    Terms of Service
+  </Link>{" "}
+  and{" "}
+  <Link
+    href="/legal/privacy"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="underline hover:text-zinc-800 dark:hover:text-zinc-300"
+  >
+    Privacy Policy
+  </Link>
+  .
+</p>
       </div>
     </div>
   );
