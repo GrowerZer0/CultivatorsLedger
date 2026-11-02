@@ -52,21 +52,10 @@ export default async function CheckInPage({
     return (
       <div className="max-w-2xl mx-auto space-y-4">
         <div className="flex items-center gap-4">
-          {viaPicker && (
-            <BackLink
-              href={`/check-in?returnTo=${encodeURIComponent(returnTo)}`}
-              label="Back to picker"
-            />
-          )}
+          {/* Always show a way back to the picker so they can change plants */}
           <BackLink
-            href={returnTo}
-            label={
-              returnTo === "/dashboard"
-                ? "Back to dashboard"
-                : returnTo.startsWith("/plants/")
-                  ? `Back to ${plant.name}`
-                  : "Back"
-            }
+            href={`/check-in?returnTo=${encodeURIComponent(returnTo)}`}
+            label="Back to plants"
           />
         </div>
         <SinglePlantCheckIn plant={plant} returnTo={returnTo} />
