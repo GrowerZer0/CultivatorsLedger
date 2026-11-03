@@ -12,6 +12,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { LogReadingButton } from "./LogReadingButton";
+import { WeightInput } from "./WeightInput";
 
 type DryBackLog = {
   id: string;
@@ -96,14 +97,14 @@ function computeStageAndWeek(
     stage === "flowering"
       ? "Flower"
       : stage === "vegetative"
-      ? "Veg"
-      : stage === "seedling"
-      ? "Seedling"
-      : stage === "dry"
-      ? "Dry"
-      : stage === "cure"
-      ? "Cure"
-      : stage.charAt(0).toUpperCase() + stage.slice(1);
+        ? "Veg"
+        : stage === "seedling"
+          ? "Seedling"
+          : stage === "dry"
+            ? "Dry"
+            : stage === "cure"
+              ? "Cure"
+              : stage.charAt(0).toUpperCase() + stage.slice(1);
 
   // Week is only meaningful in veg/flower.
   if (stage === "vegetative" && plant.startDate) {
@@ -186,7 +187,7 @@ export function PlantStatusList({
         drybackPercent = Math.max(
           0,
           ((Number(wetWeight) - Number(currentWeight)) / Number(wetWeight)) *
-            100,
+          100,
         );
       }
 
@@ -205,15 +206,15 @@ export function PlantStatusList({
         currentWeight === null
           ? "—"
           : useGrams
-          ? `${(Number(currentWeight) * 453.592).toFixed(1)} g`
-          : `${Number(currentWeight).toFixed(2)} lbs`;
+            ? `${(Number(currentWeight) * 453.592).toFixed(1)} g`
+            : `${Number(currentWeight).toFixed(2)} lbs`;
 
       const fcDisplay =
         wetWeight === null
           ? null
           : useGrams
-          ? `FC ${(Number(wetWeight) * 453.592).toFixed(1)} g`
-          : `FC ${Number(wetWeight).toFixed(2)} lbs`;
+            ? `FC ${(Number(wetWeight) * 453.592).toFixed(1)} g`
+            : `FC ${Number(wetWeight).toFixed(2)} lbs`;
 
       let drybackColor: PlantState["drybackColor"] = "neutral";
       let statusIcon: typeof CheckCircle2 = AlertTriangle;
@@ -342,10 +343,10 @@ function PlantRow({
     drybackColor === "red"
       ? "text-red-500"
       : drybackColor === "amber"
-      ? "text-amber-500"
-      : drybackColor === "green"
-      ? "text-emerald-500"
-      : "text-zinc-400";
+        ? "text-amber-500"
+        : drybackColor === "green"
+          ? "text-emerald-500"
+          : "text-zinc-400";
 
   return (
     <div className="px-4 sm:px-5 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
@@ -395,7 +396,15 @@ function PlantRow({
               {weekLabel}
             </span>
             <span className="text-zinc-300 dark:text-zinc-700">·</span>
-            <span className="font-mono">{weightDisplay}</span>
+
+            <WeightInput
+              plantId={plant.id}
+              currentWeightLbs={state.currentWeight}
+              unitLabel={state.plant.stage === "seedling" ? "g" : "lbs"}
+              displayValue={weightDisplay}
+              isSmallScale={state.plant.stage === "seedling"}
+            />
+
             {fcDisplay && (
               <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-mono">
                 {fcDisplay}

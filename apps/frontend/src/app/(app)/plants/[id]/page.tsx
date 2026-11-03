@@ -61,6 +61,7 @@ export default async function PlantDetailPage({
         orderBy: { startedAt: "desc" },
         take: 1,
       },
+      sensorConfigs: true,
     },
   });
 
@@ -174,6 +175,7 @@ export default async function PlantDetailPage({
       weightAtCapture: p.weightAtCapture ? Number(p.weightAtCapture) : null,
       capturedAt: p.capturedAt.toISOString(),
     })),
+    sensorConfigs: plantData.sensorConfigs || [],
     light: plantData.light ? {
       id: plantData.light.id,
       name: plantData.light.name,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -18,6 +18,8 @@ import {
   Camera,
   ArrowRight,
   Scissors,
+  AlertTriangle, 
+  Link2
 } from "lucide-react";
 import {
   Line,
@@ -39,8 +41,10 @@ import { Light } from "@prisma/client";
 import { DryCureTracker } from "../../../../components/facility/DryCureTracker";
 import { CultivationDashboard } from "@/components/plant/CultivationDashboard";
 import { deletePlant } from "@/server/actions/plant-mgmt";
-import { ScaleSettingsModal } from "@/components/facility/ScaleSettingsModal";
 import { LogReadingButton } from "@/components/dashboard/LogReadingButton";
+import { WeightInput } from "@/components/dashboard/WeightInput";
+import { AssignScaleModal } from "@/components/facility/AssignScaleModal";
+
 interface PlantDetailClientProps {
   plant: PlantWithDetails;
   seedlingContext?: any;
@@ -54,7 +58,7 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
   const [showEditModal, setShowEditModal] = useState(false);
   const [currentPlant, setCurrentPlant] = useState(plant);
   const normalizedStage = (currentPlant?.stage || "seedling").toLowerCase();
-  const [isScaleSettingsOpen, setIsScaleSettingsOpen] = useState(false);
+  const [isAssignScaleOpen, setIsAssignScaleOpen] = useState(false);
   // Sync the local state with the server whenever the page refreshes
   useEffect(() => {
     setCurrentPlant(plant);
@@ -117,7 +121,10 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
   const latestLog = dryBackLogs[0];
   const weight = latestLog?.currentWeightLbs ?? null;
   const dryback = latestLog ? computeDryback(latestLog) : null;
-
+  const useGrams =
+    latestLog?.sourceDevice?.toLowerCase().includes("small") ||
+    currentPlant?.stage === "seedling" ||
+    false;
   const daysSinceStart = currentPlant?.startDate
     ? Math.floor((Date.now() - new Date(currentPlant.startDate).getTime()) / (1000 * 60 * 60 * 24))
     : 0;
@@ -274,7 +281,7 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
             <ArrowRight className="size-3.5" />
             Advance Stage
           </button>
-<LogReadingButton plantId={plant.id} returnTo="/dashboard" />
+          <LogReadingButton plantId={plant.id} returnTo="/dashboard" />
           <button
             onClick={() => setIsPhotoModalOpen(true)}
             className="px-3 py-1.5 text-xs font-bold bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg transition-colors flex items-center gap-1"
@@ -295,32 +302,26 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
       {/* Quick Stats */}
       {isStandardStage && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <button
-            type="button"
-            onClick={() => setIsScaleSettingsOpen(true)}
-            title="Open Scale Settings — set Field Capacity or re-tare"
-            className="group text-left bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 hover:border-amber-500/60 hover:bg-zinc-50 dark:hover:bg-zinc-900/80 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-          >
-            <div className="flex items-center justify-between gap-2 text-zinc-600 dark:text-zinc-400 text-xs">
-              <div className="flex items-center gap-2">
-                <Scale className="size-4" />
-                Current Weight
-              </div>
-              <Pencil className="size-3 opacity-0 group-hover:opacity-100 text-amber-500 transition-opacity" />
+          <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
+            <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 text-xs">
+              <Scale className="size-4" />
+              Current Weight
             </div>
-            <div className="text-2xl font-bold text-zinc-900 dark:text-white mt-1">
-              {formatWeight(weight, latestLog?.sourceDevice)}
+            <div className="mt-1">
+              <WeightInput
+                plantId={currentPlant.id}
+                currentWeightLbs={weight}
+                unitLabel={useGrams ? "g" : "lbs"}
+                displayValue={formatWeight(weight, latestLog?.sourceDevice)}
+                isSmallScale={useGrams}
+              />
             </div>
-            {currentPlant?.wetWeight ? (
+            {currentPlant?.wetWeight && (
               <div className="text-xs text-zinc-500">
-                Wet: {formatWeight(Number(currentPlant.wetWeight), latestLog?.sourceDevice)}
-              </div>
-            ) : (
-              <div className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                ⚠️ FC not set — tap to fix
+                FC: {formatWeight(Number(currentPlant.wetWeight), latestLog?.sourceDevice)}
               </div>
             )}
-          </button>
+          </div>
           <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
             <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 text-xs">
               <Activity className="size-4" />
@@ -374,6 +375,48 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
           </div>
         </div>
       )}
+
+            {/* Hardware / Scale Status */}
+      <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
+            <Scale className="size-5 text-zinc-500" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-zinc-900 dark:text-white">Scale Assignment</h3>
+            {currentPlant.sensorConfigs && currentPlant.sensorConfigs.length > 0 ? (
+              <p className="text-xs text-zinc-500">
+                Connected to: <span className="font-semibold text-emerald-500">{currentPlant.sensorConfigs[0].name}</span>
+              </p>
+            ) : (
+              <p className="text-xs text-zinc-500">No scale assigned to this plant.</p>
+            )}
+          </div>
+        </div>
+
+        {currentPlant.sensorConfigs && currentPlant.sensorConfigs.length > 0 ? (
+          <Link
+            href={`/settings/hardware/${currentPlant.sensorConfigs[0].id}`}
+            className="text-xs font-bold text-emerald-600 hover:underline flex items-center gap-1"
+          >
+            Configure Scale <ArrowRight className="size-3" />
+          </Link>
+        ) : (
+          <button
+            onClick={() => setIsAssignScaleOpen(true)}
+            className="px-3 py-1.5 text-xs font-bold bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white rounded-lg transition-colors flex items-center gap-1"
+          >
+            <Link2 className="size-3.5" />
+            Assign Scale
+          </button>
+        )}
+      </div>
+      <AssignScaleModal
+        isOpen={isAssignScaleOpen}
+        onClose={() => setIsAssignScaleOpen(false)}
+        plantId={currentPlant.id}
+        plantName={currentPlant.name}
+      />
 
       {/* Dynamic Cultivation Dashboard */}
       {isStandardStage && (
@@ -719,35 +762,21 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
         plantId={currentPlant.id}
         plantName={currentPlant.name}
       />
-<AdvanceStageModal
-  isOpen={isAdvanceStageOpen}
-  onClose={() => setIsAdvanceStageOpen(false)}
-  plantId={currentPlant.id}
-  currentStage={currentPlant.stage || "seedling"}
-  light={
-    currentPlant.light
-      ? {
-          name: currentPlant.light.name,
-          scheduleHoursOn: currentPlant.light.scheduleHoursOn,
-          dimmerPercent: currentPlant.light.dimmerPercent,
-          distanceInches: currentPlant.light.distanceInches ?? null,
-        }
-      : null
-  }
-/>
-      <ScaleSettingsModal
-        open={isScaleSettingsOpen}
-        onClose={() => setIsScaleSettingsOpen(false)}
+      <AdvanceStageModal
+        isOpen={isAdvanceStageOpen}
+        onClose={() => setIsAdvanceStageOpen(false)}
         plantId={currentPlant.id}
-        plantName={currentPlant.name}
-        currentFieldCapacityLbs={
-          currentPlant.wetWeight !== null && currentPlant.wetWeight !== undefined
-            ? Number(currentPlant.wetWeight)
+        currentStage={currentPlant.stage || "seedling"}
+        light={
+          currentPlant.light
+            ? {
+              name: currentPlant.light.name,
+              scheduleHoursOn: currentPlant.light.scheduleHoursOn,
+              dimmerPercent: currentPlant.light.dimmerPercent,
+              distanceInches: currentPlant.light.distanceInches ?? null,
+            }
             : null
         }
-        onSaved={() => {
-          router.refresh();
-        }}
       />
     </div>
   );

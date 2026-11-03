@@ -103,6 +103,8 @@ export interface PlantWithDetails extends Omit<Plant, 'dryBackLogs' | 'irrigatio
     startedAt: string;
   }[];
 
+  sensorConfigs?: Array<{ id: string; name: string; type: string }>;
+
   light?: {
     id: string;
     name: string;
