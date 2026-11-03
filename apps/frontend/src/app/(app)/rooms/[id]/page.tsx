@@ -7,7 +7,7 @@ import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { fetchRooms, updateRoom, deleteRoom } from "@/server/actions/facility-mgmt";
 import { fetchPlants, updatePlant } from "@/server/actions/plant-mgmt";
 import { fetchBatches } from "@/server/actions/batch-mgmt";
-import { AddPlantModal } from "@/components/facility/AddPlantModal";
+import { AddPlantModal } from "@/components/plants/AddPlantModal";
 import { AddBatchModal } from "@/components/facility/AddBatchModal";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { EditPlantModal } from "@/components/facility/EditPlantModal";

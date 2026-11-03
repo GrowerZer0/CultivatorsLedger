@@ -17,7 +17,7 @@ export default async function DashboardWrapper() {
     sensorConfigs,
     latestWeight,
     latestClimate,
-    rooms, 
+    rooms,
     batches,
     lights,
     actionItems
@@ -29,10 +29,21 @@ export default async function DashboardWrapper() {
           orderBy: { timestamp: "desc" },
           take: 1,
         },
+        light: {
+          select: { id: true, name: true, wattage: true, dimmerPercent: true },
+        },
         photos: {
           orderBy: { capturedAt: "desc" },
           take: 1,
           select: { storagePath: true },
+        },
+        sensorConfigs: {
+          select: { id: true, name: true, type: true },
+        },
+        stageEvents: {
+          where: { endedAt: null },
+          orderBy: { startedAt: "desc" },
+          take: 1,
         },
       },
     }),
@@ -57,8 +68,8 @@ export default async function DashboardWrapper() {
     }),
     fetchRooms(),
     fetchBatches(),
-    getLights(), 
-    getActionCenterData(), 
+    getLights(),
+    getActionCenterData(),
   ]);
 
   const thumbPaths = plants
@@ -76,14 +87,28 @@ export default async function DashboardWrapper() {
     dryTarget: plant.dryTarget ? Number(plant.dryTarget) : null,
     containerGallons: plant.containerGallons ? Number(plant.containerGallons) : null,
     stage: plant.stage,
+    sensorConfigs: plant.sensorConfigs || [],
     flipDate: plant.flipDate ? plant.flipDate.toISOString() : null,
     startDate: plant.startDate ? plant.startDate.toISOString() : null,
     currentWeight: plant.dryBackLogs[0]
       ? Number(plant.dryBackLogs[0].currentWeightLbs)
       : null,
+    currentWeightTimestamp: plant.dryBackLogs[0]
+      ? plant.dryBackLogs[0].timestamp.toISOString()
+      : null,
     thumbnailUrl: plant.photos[0]?.storagePath
       ? thumbUrls[plant.photos[0].storagePath] ?? null
       : null,
+    light: plant.light
+      ? {
+        id: plant.light.id,
+        name: plant.light.name,
+        wattage: Number(plant.light.wattage),
+        dimmerPercent: Number(plant.light.dimmerPercent),
+      }
+      : null,
+    updatedAt: plant.updatedAt ? plant.updatedAt.toISOString() : null,
+    currentStageStartedAt: plant.stageEvents?.[0]?.startedAt?.toISOString() ?? null,
   }));
 
   const alerts = plants

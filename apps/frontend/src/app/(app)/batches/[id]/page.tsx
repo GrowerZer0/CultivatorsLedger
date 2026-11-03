@@ -6,7 +6,7 @@ import Link from "next/link";
 import { getBatch, updateBatch, deleteBatch, fetchBatches } from "@/server/actions/batch-mgmt";
 import { getPlantsForBatch, updatePlant } from "@/server/actions/plant-mgmt";
 import { fetchRooms } from "@/server/actions/facility-mgmt";
-import { AddPlantModal } from "@/components/facility/AddPlantModal";
+import { AddPlantModal } from "@/components/plants/AddPlantModal";
 import { EditPlantModal } from "@/components/facility/EditPlantModal";
 import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
 import { Pencil, Plus, Sprout } from "lucide-react";

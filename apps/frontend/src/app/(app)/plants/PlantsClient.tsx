@@ -1,25 +1,14 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import Link from "next/link";
-import { Search, Filter, Grid, List, Plus, Trash2, Sprout } from "lucide-react";
-import { AddPlantModal } from "@/components/facility/AddPlantModal";
+import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Search, Grid, List, Plus, Sprout } from "lucide-react";
+import { AddPlantModal } from "@/components/plants/AddPlantModal";
 import { deletePlant } from "@/server/actions/plant-mgmt";
 import { EmptyState } from "@/components/ui/EmptyState";
-
-type Plant = {
-  id: string;
-  name: string;
-  strain: string | null;
-  roomId: string | null;
-  batchId: string | null;
-  wetWeight: number | null;
-  dryTarget: number | null;
-  containerGallons: number | null;
-  currentWeight: number | null;
-  thumbnailUrl: string | null;
-  stage: string | null; 
-};
+import type { Plant } from "@/types/plant";
+import { PlantSummary } from "@/components/plants/PlantSummary";
+import { stageLabel as getStageLabel, weekLabel as getWeekLabel } from "@/lib/stage-label";
 
 type Room = { id: string; name: string };
 type Batch = { id: string; name: string };
@@ -31,7 +20,11 @@ interface PlantsClientProps {
 }
 
 export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProps) {
+  const router = useRouter();
   const [plants, setPlants] = useState(initialPlants);
+  useEffect(() => {
+    setPlants(initialPlants);
+  }, [initialPlants]);
   const [search, setSearch] = useState("");
   const [filterRoom, setFilterRoom] = useState<string>("");
   const [filterBatch, setFilterBatch] = useState<string>("");
@@ -42,7 +35,7 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
   const handleDeletePlant = async (plantId: string, plantName: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     const confirmed = window.confirm(
       `Delete "${plantName}"? This will permanently delete the plant and its associated data.`
     );
@@ -101,23 +94,7 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
           rooms={rooms}
           batches={batches}
           hideSelectExisting={true}
-          onPlantCreated={(plant) => {
-            setPlants((current) => [
-              ...current,
-              {
-                id: plant.id,
-                name: plant.name,
-                strain: null,
-                roomId: plant.roomId ?? null,
-                batchId: null,
-                wetWeight: null,
-                dryTarget: null,
-                containerGallons: null,
-                currentWeight: null,
-                thumbnailUrl: null,
-                stage: null,
-              },
-            ]);
+          onPlantCreated={() => {
             setAddPlantOpen(false);
           }}
         />
@@ -198,139 +175,73 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
       {view === "list" ? (
         <div className="divide-y divide-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
           {filteredPlants.map((plant) => {
-            const roomName = plant.roomId ? roomMap[plant.roomId] : "No Room";
-            const batchName = plant.batchId ? batchMap[plant.batchId] : "No Batch";
+            // compute display values per plant
+            const latest = plant.dryBackLogs?.[0];
+            const currentWeight = latest ? Number(latest.currentWeightLbs) : plant.currentWeight;
+            const useGrams = plant.stage === "seedling";
+            const weightDisplay = currentWeight === null || currentWeight === undefined ? "—"
+              : useGrams ? `${(Number(currentWeight) * 453.592).toFixed(1)} g`
+                : `${Number(currentWeight).toFixed(2)} lbs`;
+            const minutesAgo = latest?.timestamp
+              ? Math.floor((Date.now() - new Date(latest.timestamp).getTime()) / 60000)
+              : null;
+            const wet = plant.wetWeight;
+            const dryback = wet && currentWeight ? Math.max(0, ((Number(wet) - Number(currentWeight)) / Number(wet)) * 100) : null;
+            const fcDisplay = wet === null ? null : useGrams ? `FC ${(Number(wet) * 453.592).toFixed(1)} g` : `FC ${Number(wet).toFixed(2)} lbs`;
+            const stageLabel = getStageLabel(plant.stage);
+            const weekLabel = getWeekLabel(plant.stage, plant.currentStageStartedAt);
             return (
-<Link
-  key={plant.id}
-  href={`/plants/${plant.id}`}
-  className="flex items-center justify-between p-4 bg-white dark:bg-zinc-900/50 hover:bg-zinc-100 dark:hover:bg-zinc-800/70 transition-colors cursor-pointer group"
->
-  <div className="flex items-center gap-3 flex-1 min-w-0">
-    <div className="size-12 shrink-0 rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800">
-      {plant.thumbnailUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={plant.thumbnailUrl}
-          alt={plant.name}
-          className="size-12 object-cover"
-        />
-      ) : (
-        <div className="size-12 grid place-items-center text-zinc-400 text-xs">—</div>
-      )}
-    </div>
-    <div className="flex-1 min-w-0">
-      <p className="font-medium text-zinc-900 dark:text-white group-hover:text-emerald-400 transition-colors">
-        {plant.name}
-      </p>
-      <div className="flex flex-wrap gap-2 text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
-        <span>{plant.strain || "Unknown strain"}</span>
-        <span>•</span>
-        <span className="text-emerald-400">{roomName}</span>
-        <span>•</span>
-        <span className="text-blue-400">{batchName}</span>
-      </div>
-    </div>
-  </div>
-  <div className="flex items-center gap-3 text-xs text-zinc-500 shrink-0">
-{plant.currentWeight !== null && (
-  <span>
-    Current: {plant.stage === "seedling" 
-      ? `${(Number(plant.currentWeight) * 453.592).toFixed(1)} g`
-      : `${Number(plant.currentWeight).toFixed(1)} lbs`}
-  </span>
-)}
-    <div className="flex items-center gap-2">
-      {plant.roomId && (
-        <span
-          className="text-emerald-400 hover:underline cursor-pointer"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            window.location.href = `/rooms/${plant.roomId}`;
-          }}
-        >
-          View Room
-        </span>
-      )}
-      <button
-        type="button"
-        onClick={(e) => handleDeletePlant(plant.id, plant.name, e)}
-        disabled={deletingId === plant.id}
-        className="text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
-        title="Delete plant"
-      >
-        <Trash2 className="size-4" />
-      </button>
-    </div>
-  </div>
-</Link>
+              <PlantSummary
+                key={plant.id}
+                plant={plant as any}
+                latestWeight={currentWeight ?? null}
+                latestReadingMinutesAgo={minutesAgo}
+                drybackPercent={dryback}
+                stageLabel={stageLabel}
+                weekLabel={weekLabel}
+                weightDisplay={weightDisplay}
+                fcDisplay={fcDisplay}
+                useGrams={useGrams}
+                thumbnailUrl={plant.thumbnailUrl}
+                variant="row"
+              />
             );
           })}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredPlants.map((plant) => {
-            const roomName = plant.roomId ? roomMap[plant.roomId] : "No Room";
+            // same computations as above
+            const latest = plant.dryBackLogs?.[0];
+            const currentWeight = latest ? Number(latest.currentWeightLbs) : plant.currentWeight;
+            const useGrams = plant.stage === "seedling";
+            const weightDisplay = currentWeight === null || currentWeight === undefined ? "—"
+              : useGrams ? `${(Number(currentWeight) * 453.592).toFixed(1)} g`
+                : `${Number(currentWeight).toFixed(2)} lbs`;
+            const minutesAgo = latest?.timestamp
+              ? Math.floor((Date.now() - new Date(latest.timestamp).getTime()) / 60000)
+              : null;
+            const wet = plant.wetWeight;
+            const dryback = wet && currentWeight ? Math.max(0, ((Number(wet) - Number(currentWeight)) / Number(wet)) * 100) : null;
+            const fcDisplay = wet === null ? null : useGrams ? `FC ${(Number(wet) * 453.592).toFixed(1)} g` : `FC ${Number(wet).toFixed(2)} lbs`;
+            const stageLabel = getStageLabel(plant.stage);
+            const weekLabel = getWeekLabel(plant.stage, plant.currentStageStartedAt);
+
             return (
-<Link
-  key={plant.id}
-  href={`/plants/${plant.id}`}
-  className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden hover:border-emerald-500 hover:bg-zinc-100 dark:hover:bg-zinc-800/70 transition-all group cursor-pointer"
->
-  <div className="aspect-square w-full bg-zinc-100 dark:bg-zinc-800">
-    {plant.thumbnailUrl ? (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={plant.thumbnailUrl}
-        alt={plant.name}
-        className="w-full h-full object-cover"
-      />
-    ) : (
-      <div className="w-full h-full grid place-items-center text-zinc-400 text-xs">No photo</div>
-    )}
-  </div>
-  <div className="p-4">
-    <p className="font-medium text-zinc-900 dark:text-white group-hover:text-emerald-400 truncate transition-colors">
-      {plant.name}
-    </p>
-    <p className="text-xs text-zinc-600 dark:text-zinc-400 truncate">{plant.strain || "Unknown strain"}</p>
-    <div className="flex justify-between mt-2 text-xs">
-      <span className="text-emerald-400">{roomName}</span>
-      <span className="text-blue-400">{plant.batchId ? "In batch" : "No batch"}</span>
-    </div>
-{plant.currentWeight !== null && (
-  <span>
-    Current: {plant.stage === "seedling" 
-      ? `${(Number(plant.currentWeight) * 453.592).toFixed(1)} g`
-      : `${Number(plant.currentWeight).toFixed(1)} lbs`}
-  </span>
-)}
-    <div className="flex items-center gap-3 mt-2">
-      {plant.roomId && (
-        <span
-          className="text-xs text-emerald-400 hover:underline cursor-pointer"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            window.location.href = `/rooms/${plant.roomId}`;
-          }}
-        >
-          View Room →
-        </span>
-      )}
-      <button
-        type="button"
-        onClick={(e) => handleDeletePlant(plant.id, plant.name, e)}
-        disabled={deletingId === plant.id}
-        className="text-red-400 hover:text-red-300 transition-colors ml-auto disabled:opacity-50"
-        title="Delete plant"
-      >
-        <Trash2 className="size-4" />
-      </button>
-    </div>
-  </div>
-</Link>
+              <PlantSummary
+                key={plant.id}
+                plant={plant as any}
+                latestWeight={currentWeight ?? null}
+                latestReadingMinutesAgo={minutesAgo}
+                drybackPercent={dryback}
+                stageLabel={stageLabel}
+                weekLabel={weekLabel}
+                weightDisplay={weightDisplay}
+                fcDisplay={fcDisplay}
+                useGrams={useGrams}
+                thumbnailUrl={plant.thumbnailUrl}
+                variant="card"
+              />
             );
           })}
         </div>
@@ -342,23 +253,8 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
         rooms={rooms}
         batches={batches}
         hideSelectExisting={true}
-        onPlantCreated={(plant) => {
-          setPlants((current) => [
-            ...current,
-            {
-              id: plant.id,
-              name: plant.name,
-              strain: null,
-              roomId: plant.roomId ?? null,
-              batchId: null,
-              wetWeight: null,
-              dryTarget: null,
-              containerGallons: null,
-              currentWeight: null,
-              thumbnailUrl: null,
-              stage: null,
-            },
-          ]);
+        onPlantCreated={(
+        ) => {
           setAddPlantOpen(false);
         }}
       />

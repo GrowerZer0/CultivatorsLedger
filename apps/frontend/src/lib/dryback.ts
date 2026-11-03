@@ -69,3 +69,13 @@ export function getDrybackTargetForPlant(
 export function computeDryTarget(wetWeight: number, drybackPercent: number): number {
   return Math.round(wetWeight * (1 - drybackPercent / 100) * 100) / 100;
 }
+
+export function computeDryback(
+  wetWeightLbs: number | null | undefined,
+  currentWeightLbs: number | null | undefined,
+): number | null {
+  const wet = Number(wetWeightLbs);
+  const cur = Number(currentWeightLbs);
+  if (!Number.isFinite(wet) || wet <= 0 || !Number.isFinite(cur)) return null;
+  return Math.max(0, ((wet - cur) / wet) * 100);
+}

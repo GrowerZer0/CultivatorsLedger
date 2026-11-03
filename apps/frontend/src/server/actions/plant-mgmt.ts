@@ -36,15 +36,27 @@ export async function getPlants() {
         take: 1,
         select: { storagePath: true, capturedAt: true },
       },
+      sensorConfigs: { select: { id: true, name: true, type: true } },
+            stageEvents: {
+        where: { endedAt: null },
+        orderBy: { startedAt: "desc" },
+        take: 1,
+      },
+            dryBackLogs: {
+        orderBy: { timestamp: "desc" },
+        take: 1,
+        select: { currentWeightLbs: true, timestamp: true, sourceDevice: true },
+      },
     },
   });
-  return serializePrisma(
-    plants.map((p) => ({
-      ...p,
-      thumbnailPath: p.photos[0]?.storagePath ?? null,
-      photos: undefined,
-    }))
-  );
+return serializePrisma(
+  plants.map((p) => ({
+    ...p,
+    thumbnailPath: p.photos[0]?.storagePath ?? null,
+    photos: undefined,
+    currentStageStartedAt: p.stageEvents?.[0]?.startedAt?.toISOString() ?? null,
+  }))
+);
 }
 
 export async function getPlantsForBatch(batchId: unknown) {
@@ -231,18 +243,13 @@ export async function fetchPlants() {
       startDate: true,
       stage: true,
       flipDate: true,
-      photos: {
-        orderBy: { capturedAt: "desc" },
-        take: 1,
-        select: { storagePath: true },
-      },
+      sensorConfigs: { select: { id: true, name: true, type: true } }, // ADD
+      dryBackLogs: { orderBy: { timestamp: "desc" }, take: 1, select: { currentWeightLbs: true, timestamp: true } }, // ADD
+      photos: { orderBy: { capturedAt: "desc" }, take: 1, select: { storagePath: true } },
     },
   });
 
-  const paths = plants
-    .map((p) => p.photos[0]?.storagePath)
-    .filter((p): p is string => !!p);
-
+  const paths = plants.map((p) => p.photos[0]?.storagePath).filter((p): p is string => !!p);
   const { getPhotoUrls } = await import("./photos");
   const urlByPath = await getPhotoUrls(paths);
 
@@ -253,6 +260,8 @@ export async function fetchPlants() {
         ...p,
         thumbnailUrl: sp ? urlByPath[sp] ?? null : null,
         photos: undefined,
+        currentWeight: p.dryBackLogs[0] ? Number(p.dryBackLogs[0].currentWeightLbs) : p.currentWeight,
+        currentWeightTimestamp: p.dryBackLogs[0] ? p.dryBackLogs[0].timestamp.toISOString() : null,
       };
     })
   );

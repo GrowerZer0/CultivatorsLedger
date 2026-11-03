@@ -18,6 +18,11 @@ export interface Plant {
   flipDate: Date | null;
   pendingFcUpdate: boolean;
   pendingFcStartTime: Date | null;
+  sensorConfigs?: Array<{ id: string; name: string; type: string }>;
+  thumbnailUrl?: string | null;
+  currentStageStartedAt?: string | null;
+  dryBackLogs?: DryBackLog[];
+  currentWeightTimestamp?: string | null;
 }
 
 export interface PlantPhoto {

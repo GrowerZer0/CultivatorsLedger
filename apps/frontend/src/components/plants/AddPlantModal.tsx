@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, Search, Plus, Loader2 } from "lucide-react";
 import { createPlant } from "@/server/actions/plant-mgmt";
-
+import { useRouter } from "next/navigation";
 type Plant = {
   id: string;
   name: string;
@@ -41,6 +41,7 @@ export function AddPlantModal({
   loadingPlants = false,
   hideSelectExisting = false,
 }: AddPlantModalProps) {
+  const router = useRouter();
   const [mode, setMode] = useState<'select' | 'create'>(
     hideSelectExisting ? 'create' : 'select'
   );
@@ -126,6 +127,7 @@ export function AddPlantModal({
 
       if (result.success && result.plant) {
         onPlantCreated(result.plant);
+        router.refresh();
         onClose();
       } else {
         if ('error' in result && result.error) {

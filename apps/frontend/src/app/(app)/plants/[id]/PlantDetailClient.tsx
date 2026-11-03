@@ -18,7 +18,7 @@ import {
   Camera,
   ArrowRight,
   Scissors,
-  AlertTriangle, 
+  AlertTriangle,
   Link2
 } from "lucide-react";
 import {
@@ -39,26 +39,34 @@ import { SeedlingTracker } from "./SeedlingTracker";
 import { AdvanceStageModal } from "../../../../components/facility/AdvanceStageModal";
 import { Light } from "@prisma/client";
 import { DryCureTracker } from "../../../../components/facility/DryCureTracker";
-import { CultivationDashboard } from "@/components/plant/CultivationDashboard";
+import { CultivationDashboard } from "@/components/plants/CultivationDashboard";
 import { deletePlant } from "@/server/actions/plant-mgmt";
 import { LogReadingButton } from "@/components/dashboard/LogReadingButton";
 import { WeightInput } from "@/components/dashboard/WeightInput";
 import { AssignScaleModal } from "@/components/facility/AssignScaleModal";
+import { PlantSummary } from "@/components/plants/PlantSummary";
+import { stageLabel as getStageLabel, weekLabel as getWeekLabel } from "@/lib/stage-label";
+import { ExportButton } from "@/components/export/ExportButton";
 
 interface PlantDetailClientProps {
   plant: PlantWithDetails;
   seedlingContext?: any;
   lights?: Light[];
   latestClimate?: { vpd: number; humidity: number; temperatureF: number } | null;
+  canExport?: boolean;
 }
 
-export function PlantDetailClient({ plant, seedlingContext, lights, latestClimate }: PlantDetailClientProps) {
+export function PlantDetailClient({ plant, seedlingContext, lights, latestClimate, canExport }: PlantDetailClientProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [currentPlant, setCurrentPlant] = useState(plant);
   const normalizedStage = (currentPlant?.stage || "seedling").toLowerCase();
   const [isAssignScaleOpen, setIsAssignScaleOpen] = useState(false);
+  const stageLabel = getStageLabel(currentPlant.stage);
+  const stageStartedAt =
+    (currentPlant as any).stageEvents?.[0]?.startedAt ?? currentPlant.startDate;
+  const weekLabel = getWeekLabel(currentPlant.stage, stageStartedAt);
   // Sync the local state with the server whenever the page refreshes
   useEffect(() => {
     setCurrentPlant(plant);
@@ -245,83 +253,83 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
   return (
     <div className="max-w-5xl mx-auto p-4 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/plants"
-            className="p-2 rounded-lg hover:bg-zinc-100 dark:bg-zinc-800 transition-colors text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-          >
-            <ArrowLeft className="size-5" />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">{currentPlant?.name || 'Plant'}</h1>
-            {currentPlant?.strain && (
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">{currentPlant.strain}</p>
-            )}
-            {currentPlant?.light && (
-              <span className="text-[10px] bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-400 px-2 py-0.5 rounded-full font-bold flex items-center gap-1 border border-amber-200 dark:border-amber-900/50">
-                💡 {currentPlant.light.wattage}W @ {currentPlant.light.dimmerPercent}%
-                {currentPlant.light.distanceInches ? ` · ${currentPlant.light.distanceInches}" away` : ""}
-              </span>
-            )}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/plants"
+              className="p-2 rounded-lg hover:bg-zinc-100 dark:bg-zinc-800 transition-colors text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white shrink-0"
+            >
+              <ArrowLeft className="size-5" />
+            </Link>
+            <PlantSummary
+              plant={currentPlant as any}
+              latestWeight={weight}
+              latestReadingMinutesAgo={
+                latestLog?.timestamp
+                  ? Math.floor((Date.now() - new Date(latestLog.timestamp).getTime()) / 60000)
+                  : null
+              }
+              drybackPercent={dryback}
+              stageLabel={stageLabel}
+              weekLabel={weekLabel}
+              weightDisplay={formatWeight(weight, latestLog?.sourceDevice)}
+              fcDisplay={
+                currentPlant.wetWeight
+                  ? `FC ${formatWeight(Number(currentPlant.wetWeight), latestLog?.sourceDevice)}`
+                  : null
+              }
+              useGrams={useGrams}
+              variant="header"
+            />
+          </div>
+
+          {/* Action Buttons grouped and aligned right */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={handleOpenEdit}
+              className="px-3 py-1.5 text-xs font-bold bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg transition-colors flex items-center gap-1"
+            >
+              <Pencil className="size-3.5" />
+              <span className="hidden sm:inline">Edit</span>
+            </button>
+            <button
+              onClick={() => setIsAdvanceStageOpen(true)}
+              className="px-3 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center gap-1"
+            >
+              <ArrowRight className="size-3.5" />
+              <span className="hidden sm:inline">Advance</span>
+            </button>
+            <LogReadingButton plantId={plant.id} returnTo="/dashboard" />
+            <button
+              onClick={() => setIsPhotoModalOpen(true)}
+              className="px-3 py-1.5 text-xs font-bold bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg transition-colors flex items-center gap-1"
+            >
+              <Camera className="size-3.5" />
+              <span className="hidden sm:inline">Photo</span>
+            </button>
+            <ExportButton mode="plant" plantId={currentPlant.id} canExport={canExport ?? false} />
+            <button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="p-2 rounded-lg hover:bg-red-500/10 text-zinc-600 dark:text-zinc-400 hover:text-red-500 transition-colors"
+            >
+              <Trash2 className="size-4" />
+            </button>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleOpenEdit}
-            className="px-3 py-1.5 text-xs font-bold bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg transition-colors flex items-center gap-1"
-          >
-            <Pencil className="size-3.5" />
-            Edit
-          </button>
-          <button
-            onClick={() => setIsAdvanceStageOpen(true)}
-            className="px-3 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors flex items-center gap-1"
-          >
-            <ArrowRight className="size-3.5" />
-            Advance Stage
-          </button>
-          <LogReadingButton plantId={plant.id} returnTo="/dashboard" />
-          <button
-            onClick={() => setIsPhotoModalOpen(true)}
-            className="px-3 py-1.5 text-xs font-bold bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg transition-colors flex items-center gap-1"
-          >
-            <Camera className="size-3.5" />
-            Add Photo
-          </button>
-          <button
-            onClick={handleDelete}
-            disabled={isDeleting}
-            className="p-2 rounded-lg hover:bg-red-500/10 text-zinc-600 dark:text-zinc-400 hover:text-red-500 transition-colors"
-          >
-            <Trash2 className="size-4" />
-          </button>
-        </div>
-      </div>
 
+        {/* Light chip moved below so it doesn't squish the header */}
+        {currentPlant?.light && (
+          <div className="text-[11px] bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-400 px-2 py-1 rounded-full font-bold inline-flex items-center gap-1 border border-amber-200 dark:border-amber-900/50">
+            💡 {currentPlant.light.wattage}W @ {currentPlant.light.dimmerPercent}%
+            {currentPlant.light.distanceInches ? ` · ${currentPlant.light.distanceInches}" away` : ""}
+          </div>
+        )}
+        </div>
       {/* Quick Stats */}
       {isStandardStage && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
-            <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 text-xs">
-              <Scale className="size-4" />
-              Current Weight
-            </div>
-            <div className="mt-1">
-              <WeightInput
-                plantId={currentPlant.id}
-                currentWeightLbs={weight}
-                unitLabel={useGrams ? "g" : "lbs"}
-                displayValue={formatWeight(weight, latestLog?.sourceDevice)}
-                isSmallScale={useGrams}
-              />
-            </div>
-            {currentPlant?.wetWeight && (
-              <div className="text-xs text-zinc-500">
-                FC: {formatWeight(Number(currentPlant.wetWeight), latestLog?.sourceDevice)}
-              </div>
-            )}
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4">
             <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 text-xs">
               <Activity className="size-4" />
@@ -376,7 +384,7 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
         </div>
       )}
 
-            {/* Hardware / Scale Status */}
+      {/* Hardware / Scale Status */}
       <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
@@ -411,12 +419,6 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
           </button>
         )}
       </div>
-      <AssignScaleModal
-        isOpen={isAssignScaleOpen}
-        onClose={() => setIsAssignScaleOpen(false)}
-        plantId={currentPlant.id}
-        plantName={currentPlant.name}
-      />
 
       {/* Dynamic Cultivation Dashboard */}
       {isStandardStage && (
@@ -745,7 +747,7 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
         </div>
       )}
 
-      {/* Edit Modal */}
+      {/* Modals */}
       <EditPlantModal
         open={showEditModal}
         onClose={() => setShowEditModal(false)}
@@ -777,6 +779,12 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
             }
             : null
         }
+      />
+      <AssignScaleModal
+        isOpen={isAssignScaleOpen}
+        onClose={() => setIsAssignScaleOpen(false)}
+        plantId={currentPlant.id}
+        plantName={currentPlant.name}
       />
     </div>
   );

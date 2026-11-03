@@ -70,13 +70,14 @@ export default async function CheckInPage({
       dryBackLogs: {
         orderBy: { timestamp: "desc" },
         take: 1,
-        select: { currentWeightLbs: true },
+        select: { currentWeightLbs: true, timestamp: true },
       },
       photos: {
         orderBy: { capturedAt: "desc" },
         take: 1,
         select: { storagePath: true },
       },
+      sensorConfigs: { select: { id: true, name: true, type: true } },
     },
   });
 
@@ -84,21 +85,26 @@ export default async function CheckInPage({
     plantsRaw.map((p) => p.photos[0]?.storagePath).filter((s): s is string => !!s),
   );
 
-  const plants = plantsRaw.map((p) => ({
+const plants = plantsRaw.map((p) => {
+  const latest = p.dryBackLogs[0];
+  const minutesAgo = latest?.timestamp
+    ? Math.floor((Date.now() - new Date(latest.timestamp).getTime()) / 60000)
+    : null;
+
+  return {
     id: p.id,
     name: p.name,
     strain: p.strain,
     stage: p.stage,
     wetWeight: p.wetWeight ? Number(p.wetWeight) : null,
-    currentWeight: p.dryBackLogs[0]
-      ? Number(p.dryBackLogs[0].currentWeightLbs)
-      : p.currentWeight
-        ? Number(p.currentWeight)
-        : null,
+    currentWeight: latest ? Number(latest.currentWeightLbs) : null,
     thumbnailUrl: p.photos[0]?.storagePath
       ? thumbUrls[p.photos[0].storagePath] ?? null
       : null,
-  }));
+    sensorConfigs: p.sensorConfigs || [],
+    lastReadingMinutesAgo: minutesAgo,
+  };
+});
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">

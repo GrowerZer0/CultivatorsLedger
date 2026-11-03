@@ -189,14 +189,12 @@ export default async function PlantDetailPage({
 
   return (
     <div className="max-w-5xl mx-auto">
-      <div className="flex justify-end px-4 pt-4">
-        <ExportButton mode="plant" plantId={plant.id} canExport={canExport} />
-      </div>
       <PlantDetailClient 
       plant={serializePrisma(plant)} 
       seedlingContext={serializePrisma(seedlingContext)} 
       lights={serializePrisma(lights)}
       latestClimate={latestClimate} 
+      canExport={canExport}
            />
     </div>
   );

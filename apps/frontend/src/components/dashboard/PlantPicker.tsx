@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Search, Sprout, AlertTriangle, CheckCircle2, Scale } from "lucide-react";
 import { EmptyState } from "../ui/EmptyState";
+import { WeightInput } from "./WeightInput";
 
 interface PickerPlant {
     id: string;
@@ -13,6 +14,8 @@ interface PickerPlant {
     wetWeight: number | null;      // FC, lbs
     currentWeight: number | null;  // last reading, lbs
     thumbnailUrl: string | null;
+    sensorConfigs?: Array<{ id: string; name: string; type: string }>;
+    lastReadingMinutesAgo?: number | null; 
 }
 
 interface PlantPickerProps {
@@ -101,19 +104,40 @@ if (plants.length === 0) {
                                 )}
                             </div>
 
-                            <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 truncate">
-                                    {p.name}
-                                </p>
-                                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 flex items-center gap-2">
-                                    <span className="capitalize">{p.stage ?? "—"}</span>
-                                    <span className="text-zinc-300 dark:text-zinc-700">·</span>
-                                    <span className="font-mono">{p.weightDisplay}</span>
-                                    {p.fcDisplay !== "—" && (
-                                        <span className="font-mono text-[10px]">FC {p.fcDisplay}</span>
-                                    )}
-                                </p>
-                            </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 truncate">
+                    {p.name}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400">
+                  <span className="capitalize">{p.stage ?? "—"}</span>
+                  <span className="text-zinc-300 dark:text-zinc-700">·</span>
+                  
+                  {/* Replace static text with WeightInput */}
+                  <div className="flex flex-col items-start">
+                    <WeightInput
+                      plantId={p.id}
+                      currentWeightLbs={p.currentWeight}
+                      unitLabel={p.useGrams ? "g" : "lbs"}
+                      displayValue={p.weightDisplay}
+                      isSmallScale={p.useGrams}
+                      hasAssignedScale={(p.sensorConfigs ?? []).length > 0}
+                      minutesSinceReading={p.lastReadingMinutesAgo ?? null}
+                    />
+                    {/* Subtitle for scale name */}
+                    {p.sensorConfigs && p.sensorConfigs.length > 0 && (
+                      <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-mono mt-0.5">
+                        {p.sensorConfigs[0].name}
+                      </span>
+                    )}
+                  </div>
+
+                  {p.fcDisplay !== "—" && (
+                    <span className="font-mono text-[10px]">FC {p.fcDisplay}</span>
+                  )}
+                </div>
+              </div>
 
                             <div className="shrink-0 flex items-center gap-2">
                                 {!p.hasFc ? (
