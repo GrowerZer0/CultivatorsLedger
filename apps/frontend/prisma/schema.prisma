@@ -60,6 +60,9 @@ model User {
   seedlingChecks  SeedlingCheck[] 
   stageEvents     StageEvent[]
   cureEvents       CureEvent[]
+  growthLogs     GrowthLog[]
+  growCosts      GrowCost[]
+  trainingEvents TrainingEvent[]
   @@map("users")
 }
 model SystemSetting {
@@ -142,6 +145,23 @@ model DryBackLog {
   sourceType         String   @default("manual") @map("source_type")
   sourceDevice       String?  @map("source_device")
   sourceMetadata     Json?    @map("source_metadata")
+    // Watering (nullable — only set when watered=true)
+  waterVolumeMl     Int?      @map("water_volume_ml")
+  runoffVolumeMl    Int?      @map("runoff_volume_ml")
+  runoffPh          Decimal?  @map("runoff_ph") @db.Decimal(4, 2)
+  
+  // Feeding (nullable — only set when fed=true)
+  feedPh            Decimal?  @map("feed_ph") @db.Decimal(4, 2)
+  feedEc            Decimal?  @map("feed_ec") @db.Decimal(4, 2)
+  feedVolumeMl      Int?      @map("feed_volume_ml")
+  nutrientLine      String?   @map("nutrient_line")
+  nutrientDose      Decimal?  @map("nutrient_dose") @db.Decimal(5, 2) // mL per gallon
+  
+  // Watering session tracking (for the 2-tap pre/post flow)
+  isPreWater        Boolean   @default(false) @map("is_pre_water")
+  isPostWater       Boolean   @default(false) @map("is_post_water")
+  parentLogId       String?   @map("parent_log_id") // links post → pre
+  
   @@map("dry_back_logs")
 }
 model Batch {
@@ -161,7 +181,7 @@ model Batch {
   userId            String       @map("user_id")
   user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   plants            Plant[]
-
+  growCosts      GrowCost[]
   @@map("batches")
 }
 model IrrigationEvent {
@@ -261,6 +281,11 @@ model Plant {
   dryingMethod String? @map("drying_method")
   archivedAt DateTime? @map("archived_at") @db.Timestamptz(6)
   cureEvents       CureEvent[]
+  growthLogs     GrowthLog[]
+  trainingEvents TrainingEvent[]
+  harvestWetWeight     Decimal?  @map("harvest_wet_weight")     @db.Decimal(6, 2)  // at chop
+  dryWeight            Decimal?  @map("dry_weight")             @db.Decimal(6, 2)  // end of dry
+  trimmedFlowerWeight  Decimal?  @map("trimmed_flower_weight")  @db.Decimal(6, 2)  // after trim, going into cure
   @@map("plants")
 }
 model PlantInsight {
@@ -302,7 +327,8 @@ model PlantPhoto {
   width           Int?
   height          Int?
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-
+  aiDiagnosis      Json?    @map("ai_diagnosis")   // { issues: [], confidence: 0.87, recommendation: "..." }
+  aiAnalyzedAt     DateTime? @map("ai_analyzed_at")
   @@index([plantId, capturedAt])
   @@index([userId])
   @@map("plant_photos")
@@ -405,4 +431,62 @@ model CureEvent {
   @@index([plantId, occurredAt])
   @@index([userId, occurredAt])
   @@map("cure_events")
+}
+model GrowthLog {
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plantId          String   @map("plant_id")
+  plant            Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  
+  heightInches     Decimal? @map("height_inches") @db.Decimal(5, 2)
+  nodeCount        Int?     @map("node_count")
+  canopyWidth      Decimal? @map("canopy_width") @db.Decimal(4, 2)
+  internodeSpacing Decimal? @map("internode_spacing") @db.Decimal(4, 2)
+  leafHealthNotes  String?  @map("leaf_health_notes")
+  notes            String?
+  
+  stage            String?  // snapshot of stage at log time
+  weekOfStage      Int?     @map("week_of_stage")
+  photoId          String?  @map("photo_id") // links to the "graduation" photo
+  
+  capturedAt       DateTime @default(now()) @map("captured_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+  
+  @@index([plantId, capturedAt])
+  @@map("growth_logs")
+}
+model GrowCost {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  batchId     String?  @map("batch_id")
+  batch       Batch?   @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  
+  category    String   // "seeds" | "nutrients" | "electricity" | "equipment" | "other"
+  amount      Decimal  @db.Decimal(10, 2)
+  description String?
+  incurredAt  DateTime @map("incurred_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  @@index([batchId, incurredAt])
+  @@index([userId, incurredAt])
+  @@map("grow_costs")
+}
+model TrainingEvent {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plantId     String   @map("plant_id")
+  plant       Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  
+  type        String   // "top" | "lst" | "defoliate" | "flip" | "schwazzing" | "other"
+  notes       String?
+  recommended Boolean  @default(false) // true if it came from an AI suggestion
+  
+  occurredAt  DateTime @default(now()) @map("occurred_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  @@index([plantId, occurredAt])
+  @@map("training_events")
 }
