@@ -15,13 +15,13 @@ import { useTelemetry } from '@/lib/telemetry-context';
 import { fetchRooms } from '@/server/actions/facility-mgmt';
 import { fetchPlants } from '@/server/actions/plant-mgmt';
 import { PlantStatusList } from "@/components/dashboard/PlantStatusList";
-import { ClimateCard } from "@/components/dashboard/ClimateCard";
-import { getLatestClimateReading, getClimateTrend, type ClimateReading, type ClimatePoint } from "@/server/actions/climate";
 import { NutrientCalculatorModal } from "@/components/nutrients/NutrientCalculatorModal";
 import { SensorStatusBanner, type SensorStatus } from "@/components/dashboard/SensorStatusBanner";
 import { StartGrowModal } from "@/components/dashboard/StartGrowModal";
 import { ActionCenter } from "@/components/dashboard/ActionCenter";
 import type { Plant } from "@/types/plant";
+import { RoomSummary } from "@/components/rooms/RoomSummary";
+import { deleteRoom } from "@/server/actions/facility-mgmt";
 
 interface DashboardClientProps {
   initialData: {
@@ -34,6 +34,8 @@ interface DashboardClientProps {
     batches: any[];
     lights: any[];
     actionItems: any[];
+    roomClimateReadings: Record<string, any>;
+    lightsByRoom: Record<string, any[]>;
   };
 }
 
@@ -42,13 +44,13 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [plants, setPlants] = useState<Plant[]>(initialData.plants);
-  const [climateReading, setClimateReading] = useState<ClimateReading | null>(null);
-  const [climateTrend, setClimateTrend] = useState<ClimatePoint[]>([]);
   const [isNutrientModalOpen, setIsNutrientModalOpen] = useState(false);
   const [isStartGrowModalOpen, setIsStartGrowModalOpen] = useState(false);
   const hasLoaded = useRef(false);
   const [toast, setToast] = useState<{ type: "success"; message: string } | null>(null);
   const searchParams = useSearchParams();
+  const [deletingRoomId, setDeletingRoomId] = useState<string | null>(null);
+  const [rooms, setRooms] = useState<any[]>(initialData.rooms);
 
   useEffect(() => {
     if (searchParams.get("logged") === "true") {
@@ -61,23 +63,39 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
     }
   }, [searchParams]);
 
+  const handleDeleteRoom = async (roomId: string, roomName: string) => {
+    if (
+      !confirm(
+        `Delete "${roomName}"? This will unassign all plants and batches in this room.`,
+      )
+    )
+      return;
+
+    setDeletingRoomId(roomId);
+    const result = await deleteRoom(roomId);
+    setDeletingRoomId(null);
+
+    if (result.success) {
+      loadData(true);
+    } else {
+      alert(result.error || "Failed to delete room");
+    }
+  };
+
   const loadData = useCallback(
     async (skipLoading = false) => {
       try {
         if (!skipLoading) setLoading(true);
 
-        const [dashboardData, roomsData, plantsData, readings, climate, trend] = await Promise.all([
+        const [dashboardData, roomsData, plantsData, readings] = await Promise.all([
           getDashboardData(),
           fetchRooms(),
           fetchPlants(),
           getLatestRoomReadings(),
-          getLatestClimateReading(),
-          getClimateTrend(24),
         ]);
 
-        setClimateReading(climate);
-        setClimateTrend(trend);
         setPlants(plantsData as any);
+        setRooms(roomsData);
 
         let activeDryBack = undefined;
         if (dashboardData.dryBackLogs && dashboardData.dryBackLogs.length > 0) {
@@ -139,6 +157,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
     );
   }
 
+
   return (
     <div className="min-h-screen bg-white dark:bg-[#0B0F19] text-gray-900 dark:text-zinc-100 p-4 space-y-6">
       <div className="flex items-center justify-between">
@@ -149,7 +168,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
       </div>
 
       <SensorStatusBanner sensors={initialData.sensorStatus} />
-      
+
       {toast && (
         <div className="fixed top-20 right-4 z-50 max-w-sm">
           <div className="rounded-xl border border-emerald-500/30 bg-emerald-50 px-4 py-3 shadow-lg">
@@ -160,36 +179,55 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
 
       <ActionCenter items={initialData.actionItems || []} />
 
-      {plants.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 px-4 bg-white dark:bg-zinc-900 border border-zinc-200 rounded-2xl shadow-sm text-center">
-          <Sprout className="size-8 text-emerald-600 mb-4" />
-          <h2 className="text-xl font-bold mb-2">Welcome to Cultivator's Ledger</h2>
-          <p className="text-sm text-zinc-500 mb-6">You don't have any active grows right now.</p>
-          <button onClick={() => setIsStartGrowModalOpen(true)} className="px-6 py-3 bg-emerald-600 text-white rounded-xl text-sm font-bold">
+      {/* Room Summaries */}
+      {rooms.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {rooms.map((room: any) => {
+            const plantCount = plants.filter((p) => p.roomId === room.id).length;
+            return (
+              <RoomSummary
+                key={room.id}
+                room={room}
+                plantCount={plantCount}
+                latestReading={initialData.roomClimateReadings[room.id] || null}
+                lights={initialData.lightsByRoom?.[room.id] || []}
+                variant="card"
+                onDelete={handleDeleteRoom}
+                isDeleting={deletingRoomId === room.id}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      {/* Plant Status (cockpit) - with failsafe empty state */}
+      {plants.length > 0 ? (
+        <PlantStatusList
+          plants={plants}
+          isLoading={loading}
+          onRefresh={() => loadData(true)}
+          lastRefreshTime={new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+        />
+      ) : (
+        <div className="flex flex-col items-center justify-center py-16 px-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm text-center">
+          <div className="size-16 bg-emerald-100 dark:bg-emerald-950/40 rounded-full flex items-center justify-center mb-4">
+            <Sprout className="size-8 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">
+            Welcome to Cultivator's Ledger
+          </h2>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-md mx-auto mb-6">
+            You don't have any active grows right now. Start your first seedling to unlock the dashboard, log readings, and track your dryback.
+          </p>
+          <button
+            onClick={() => setIsStartGrowModalOpen(true)}
+            className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold transition-colors shadow-md"
+          >
+            <Sprout className="size-5" />
             Start Your First Grow
           </button>
         </div>
       )}
-
-      {plants.length > 0 && (
-        <div className="space-y-6">
-          <ClimateCard
-            reading={climateReading}
-            trend={climateTrend}
-            stage={plants[0]?.stage || "vegetative"}
-            onRefresh={() => loadData(true)}
-            isLoading={loading}
-          />
-
-          <PlantStatusList
-            plants={plants}
-            isLoading={loading}
-            onRefresh={() => loadData(true)}
-            lastRefreshTime={new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-          />
-        </div>
-      )}
-
       <StartGrowModal
         isOpen={isStartGrowModalOpen}
         onClose={() => setIsStartGrowModalOpen(false)}

@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { Home } from "lucide-react";
-import { RoomCard } from "@/components/facility/RoomCard";
 import { AddRoomModal } from "@/components/facility/AddRoomModal";
 import { AddPlantModal } from "@/components/plants/AddPlantModal";
+import { RoomSummary } from "@/components/rooms/RoomSummary";
 import { deleteRoom } from "@/server/actions/facility-mgmt";
 import { fetchPlants } from "@/server/actions/plant-mgmt";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -26,9 +26,15 @@ interface RoomsClientProps {
   rooms: Room[];
   plantCounts: Record<string, number>;
   latestReadings: Record<string, any>;
+  lightsByRoom: Record<string, any[]>;
 }
 
-export function RoomsClient({ rooms, plantCounts, latestReadings }: RoomsClientProps) {
+export function RoomsClient({
+  rooms,
+  plantCounts,
+  latestReadings,
+  lightsByRoom,
+}: RoomsClientProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [localRooms, setLocalRooms] = useState(rooms);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -37,17 +43,15 @@ export function RoomsClient({ rooms, plantCounts, latestReadings }: RoomsClientP
   const [existingPlants, setExistingPlants] = useState<any[]>([]);
   const [loadingPlants, setLoadingPlants] = useState(false);
 
-  // Load ALL existing plants when add plant modal opens
   const handleOpenAddPlant = async (roomId: string) => {
     setSelectedRoomId(roomId);
     setLoadingPlants(true);
     try {
       const plants = await fetchPlants();
-      // Filter out plants that are already in this room
       const plantsNotInRoom = plants.filter((p: any) => p.roomId !== roomId);
       setExistingPlants(plantsNotInRoom);
     } catch (error) {
-      console.error('Failed to fetch plants:', error);
+      console.error("Failed to fetch plants:", error);
       setExistingPlants([]);
     } finally {
       setLoadingPlants(false);
@@ -58,13 +62,28 @@ export function RoomsClient({ rooms, plantCounts, latestReadings }: RoomsClientP
   const handleRoomCreated = (newRoom: { id: string; name: string }) => {
     setLocalRooms((prev) => [
       ...prev,
-      { ...newRoom, type: "tent", targetTempF: null, targetRH: null, targetVPD: null, lightOnTime: null, lightOffTime: null, ppfd: null, lightDistance: null },
+      {
+        ...newRoom,
+        type: "tent",
+        targetTempF: null,
+        targetRH: null,
+        targetVPD: null,
+        lightOnTime: null,
+        lightOffTime: null,
+        ppfd: null,
+        lightDistance: null,
+      },
     ]);
   };
 
   const handleDeleteRoom = async (roomId: string, roomName: string) => {
-    if (!confirm(`Delete "${roomName}"? This will unassign all plants and batches in this room.`)) return;
-    
+    if (
+      !confirm(
+        `Delete "${roomName}"? This will unassign all plants and batches in this room.`,
+      )
+    )
+      return;
+
     setDeletingId(roomId);
     const result = await deleteRoom(roomId);
     setDeletingId(null);
@@ -77,17 +96,17 @@ export function RoomsClient({ rooms, plantCounts, latestReadings }: RoomsClientP
   };
 
   if (localRooms.length === 0) {
-  return (
-    <>
-      <EmptyState
-        icon={Home}
-        title="No rooms yet"
-        description="Rooms group your plants by environment. Create one to start tracking temperature, humidity, and VPD targets."
-        action={{
-          label: "Create Your First Room",
-          onClick: () => setIsModalOpen(true),
-        }}
-      />
+    return (
+      <>
+        <EmptyState
+          icon={Home}
+          title="No rooms yet"
+          description="Rooms group your plants by environment. Create one to start tracking temperature, humidity, and VPD targets."
+          action={{
+            label: "Create Your First Room",
+            onClick: () => setIsModalOpen(true),
+          }}
+        />
         <AddRoomModal
           open={isModalOpen}
           onClose={() => setIsModalOpen(false)}
@@ -118,16 +137,15 @@ export function RoomsClient({ rooms, plantCounts, latestReadings }: RoomsClientP
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {localRooms.map((room) => (
-          <RoomCard
+          <RoomSummary
             key={room.id}
-            id={room.id}
-            name={room.name}
-            type={room.type}
+            room={room}
             plantCount={plantCounts[room.id] || 0}
             latestReading={latestReadings[room.id] || null}
+            lights={lightsByRoom[room.id] || []}
+            variant="card"
             onDelete={handleDeleteRoom}
             isDeleting={deletingId === room.id}
-            onAddPlant={() => handleOpenAddPlant(room.id)}
           />
         ))}
       </div>
@@ -146,7 +164,6 @@ export function RoomsClient({ rooms, plantCounts, latestReadings }: RoomsClientP
         existingPlants={existingPlants}
         loadingPlants={loadingPlants}
         onPlantCreated={() => {
-          // Refresh the page to update plant counts
           window.location.reload();
         }}
       />

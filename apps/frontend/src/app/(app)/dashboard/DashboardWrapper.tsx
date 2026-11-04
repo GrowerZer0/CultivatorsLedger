@@ -20,7 +20,8 @@ export default async function DashboardWrapper() {
     rooms,
     batches,
     lights,
-    actionItems
+    actionItems,
+    roomClimateReadings
   ] = await Promise.all([
     db.plant.findMany({
       where: { userId, archivedAt: null },
@@ -70,6 +71,17 @@ export default async function DashboardWrapper() {
     fetchBatches(),
     getLights(),
     getActionCenterData(),
+    db.climateLog.findMany({
+      where: { userId },
+      orderBy: { timestamp: "desc" },
+      distinct: ["roomId"],
+      select: {
+        roomId: true,
+        airTempC: true,
+        relativeHumidity: true,
+        timestamp: true,
+      },
+    }),
   ]);
 
   const thumbPaths = plants
@@ -126,6 +138,23 @@ export default async function DashboardWrapper() {
     description: `Weight: ${Number(log.currentWeightLbs)} lbs (${Number(log.dryBackPercent).toFixed(1)}% dryback)`,
     timestamp: log.timestamp,
   }));
+    // Map latest climate readings by roomId, converting Celsius to Fahrenheit
+  const roomReadingsByRoom: Record<string, any> = {};
+  roomClimateReadings.forEach((r) => {
+    if (r.roomId) {
+      const tempC = Number(r.airTempC);
+      const tempF = (tempC * 9) / 5 + 32;
+      roomReadingsByRoom[r.roomId] = {
+        roomId: r.roomId,
+        temperatureF: tempF,
+        humidity: Number(r.relativeHumidity),
+        timestamp: r.timestamp.toISOString(),
+      };
+    }
+  });
+
+  // Group lights by room (Light currently has no roomId, so this is empty for now)
+  const lightsByRoom: Record<string, any[]> = {};
 
   const sensorStatus: SensorStatus[] = [];
 
@@ -169,6 +198,8 @@ export default async function DashboardWrapper() {
         batches: batches,
         lights: lights,
         actionItems,
+        roomClimateReadings: roomReadingsByRoom,
+        lightsByRoom,
       }}
     />
   );
