@@ -66,6 +66,27 @@ export default async function PlantDetailPage({
   if (!plantData) {
     notFound();
   }
+    // Fetch the latest climate reading for the plant's room (if any)
+  let latestRoomClimate: {
+    temperatureF: number;
+    humidity: number;
+    timestamp: string;
+  } | null = null;
+  if (plantData.roomId) {
+    const climate = await db.climateLog.findFirst({
+      where: { userId, roomId: plantData.roomId },
+      orderBy: { timestamp: "desc" },
+    });
+    if (climate) {
+      const tempC = Number(climate.airTempC);
+      const tempF = (tempC * 9) / 5 + 32;
+      latestRoomClimate = {
+        temperatureF: tempF,
+        humidity: Number(climate.relativeHumidity),
+        timestamp: climate.timestamp.toISOString(),
+      };
+    }
+  }
   const seedlingContext = await getSeedlingContext(id);
   const latestClimate = await getLatestClimateReading();
   const photoUrls = await getPhotoUrls(plantData.photos.map(photo => photo.storagePath));
@@ -195,6 +216,7 @@ export default async function PlantDetailPage({
         lights={serializePrisma(lights)}
         latestClimate={latestClimate}
         canExport={canExport}
+        latestRoomClimate={latestRoomClimate}
       />
     </div>
   );

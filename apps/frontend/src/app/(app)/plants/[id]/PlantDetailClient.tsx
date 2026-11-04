@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -18,7 +18,6 @@ import {
   Camera,
   ArrowRight,
   Scissors,
-  AlertTriangle,
   Link2
 } from "lucide-react";
 import {
@@ -33,18 +32,18 @@ import {
 } from "recharts";
 import { EditPlantModal } from "@/components/facility/EditPlantModal";
 import { GROWTH_STAGES, getStageFromDays, getStageProgress } from "@/lib/growth-stages";
-import type { PlantWithDetails, DryBackLog, IrrigationEvent } from "@/types/plant";
+import type { PlantWithDetails } from "@/types/plant";
 import { PhotoUploadModal } from "@/components/photos/PhotoUploadModal";
 import { AdvanceStageModal } from "../../../../components/facility/AdvanceStageModal";
 import { Light } from "@prisma/client";
 import { DryCureTracker } from "../../../../components/facility/DryCureTracker";
 import { deletePlant } from "@/server/actions/plant-mgmt";
 import { LogReadingButton } from "@/components/dashboard/LogReadingButton";
-import { WeightInput } from "@/components/dashboard/WeightInput";
 import { AssignScaleModal } from "@/components/facility/AssignScaleModal";
 import { PlantSummary } from "@/components/plants/PlantSummary";
 import { stageLabel as getStageLabel, weekLabel as getWeekLabel } from "@/lib/stage-label";
 import { ExportButton } from "@/components/export/ExportButton";
+import { PlantHardwareCard } from "@/components/plants/PlantHardwareCard";
 
 interface PlantDetailClientProps {
   plant: PlantWithDetails;
@@ -52,9 +51,14 @@ interface PlantDetailClientProps {
   lights?: Light[];
   latestClimate?: { vpd: number; humidity: number; temperatureF: number } | null;
   canExport?: boolean;
+  latestRoomClimate?: {
+    temperatureF: number;
+    humidity: number;
+    timestamp: string;
+  } | null;
 }
 
-export function PlantDetailClient({ plant, seedlingContext, lights, latestClimate, canExport }: PlantDetailClientProps) {
+export function PlantDetailClient({ plant, seedlingContext, lights, latestClimate, canExport, latestRoomClimate }: PlantDetailClientProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -316,15 +320,7 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
             </button>
           </div>
         </div>
-
-        {/* Light chip moved below so it doesn't squish the header */}
-        {currentPlant?.light && (
-          <div className="text-[11px] bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-400 px-2 py-1 rounded-full font-bold inline-flex items-center gap-1 border border-amber-200 dark:border-amber-900/50">
-            💡 {currentPlant.light.wattage}W @ {currentPlant.light.dimmerPercent}%
-            {currentPlant.light.distanceInches ? ` · ${currentPlant.light.distanceInches}" away` : ""}
-          </div>
-        )}
-        </div>
+      </div>
       {/* Quick Stats */}
       {isStandardStage && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -382,41 +378,34 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
         </div>
       )}
 
-      {/* Hardware / Scale Status */}
-      <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
-            <Scale className="size-5 text-zinc-500" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-zinc-900 dark:text-white">Scale Assignment</h3>
-            {currentPlant.sensorConfigs && currentPlant.sensorConfigs.length > 0 ? (
-              <p className="text-xs text-zinc-500">
-                Connected to: <span className="font-semibold text-emerald-500">{currentPlant.sensorConfigs[0].name}</span>
-              </p>
-            ) : (
-              <p className="text-xs text-zinc-500">No scale assigned to this plant.</p>
-            )}
-          </div>
-        </div>
-
-        {currentPlant.sensorConfigs && currentPlant.sensorConfigs.length > 0 ? (
-          <Link
-            href={`/settings/hardware/${currentPlant.sensorConfigs[0].id}`}
-            className="text-xs font-bold text-emerald-600 hover:underline flex items-center gap-1"
-          >
-            Configure Scale <ArrowRight className="size-3" />
-          </Link>
-        ) : (
-          <button
-            onClick={() => setIsAssignScaleOpen(true)}
-            className="px-3 py-1.5 text-xs font-bold bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-white rounded-lg transition-colors flex items-center gap-1"
-          >
-            <Link2 className="size-3.5" />
-            Assign Scale
-          </button>
-        )}
-      </div>
+      {/* Hardware (Scale, Light, Room Environment) */}
+      <PlantHardwareCard
+        plantId={currentPlant.id}
+        plantName={currentPlant.name}
+        scale={
+          currentPlant.sensorConfigs && currentPlant.sensorConfigs.length > 0
+            ? {
+              id: currentPlant.sensorConfigs[0].id,
+              name: currentPlant.sensorConfigs[0].name,
+              type: currentPlant.sensorConfigs[0].type,
+            }
+            : null
+        }
+        light={
+          currentPlant.light
+            ? {
+              id: currentPlant.light.id,
+              name: currentPlant.light.name,
+              wattage: currentPlant.light.wattage,
+              dimmerPercent: currentPlant.light.dimmerPercent,
+              distanceInches: currentPlant.light.distanceInches ?? null,
+            }
+            : null
+        }
+        roomName={currentPlant.room?.name ?? null}
+        roomClimate={latestRoomClimate ?? null}
+        onAssignScale={() => setIsAssignScaleOpen(true)}
+      />
 
       {/* Dry / Cure Tracker */}
       {["dry", "cure"].includes(currentPlant?.stage || "") && (
