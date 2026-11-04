@@ -44,6 +44,7 @@ import { PlantSummary } from "@/components/plants/PlantSummary";
 import { stageLabel as getStageLabel, weekLabel as getWeekLabel } from "@/lib/stage-label";
 import { ExportButton } from "@/components/export/ExportButton";
 import { PlantHardwareCard } from "@/components/plants/PlantHardwareCard";
+import { IrrigationModal } from "@/components/plants/IrrigationModal";
 
 interface PlantDetailClientProps {
   plant: PlantWithDetails;
@@ -69,6 +70,7 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
   const stageStartedAt =
     (currentPlant as any).stageEvents?.[0]?.startedAt ?? currentPlant.startDate;
   const weekLabel = getWeekLabel(currentPlant.stage, stageStartedAt);
+  const [isIrrigationOpen, setIsIrrigationOpen] = useState(false);
   // Sync the local state with the server whenever the page refreshes
   useEffect(() => {
     setCurrentPlant(plant);
@@ -302,6 +304,13 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
               <ArrowRight className="size-3.5" />
               <span className="hidden sm:inline">Advance</span>
             </button>
+                      <button
+            onClick={() => setIsIrrigationOpen(true)}
+            className="px-3 py-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-1"
+          >
+            <Droplet className="size-3.5" />
+            <span className="hidden sm:inline">Water</span>
+          </button>
             <LogReadingButton plantId={plant.id} returnTo="/dashboard" />
             <button
               onClick={() => setIsPhotoModalOpen(true)}
@@ -321,6 +330,7 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
           </div>
         </div>
       </div>
+
       {/* Quick Stats */}
       {isStandardStage && (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -746,6 +756,14 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
         onClose={() => setIsAssignScaleOpen(false)}
         plantId={currentPlant.id}
         plantName={currentPlant.name}
+      />
+            <IrrigationModal
+        isOpen={isIrrigationOpen}
+        onClose={() => setIsIrrigationOpen(false)}
+        plantId={currentPlant.id}
+        plantName={currentPlant.name}
+        currentWeight={weight}
+        useGrams={useGrams}
       />
     </div>
   );

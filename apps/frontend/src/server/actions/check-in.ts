@@ -180,3 +180,131 @@ export async function recordDailyCheckInLog(data: unknown) {
     };
   }
 }
+export async function recordIrrigation(data: {
+  plantId: string;
+  preWeightLbs: number | null;
+  postWeightLbs: number | null;
+  watered: boolean;
+  fed: boolean;
+  feedPh?: number | null;
+  feedEc?: number | null;
+  runoffVolumeMl?: number | null;
+  runoffPh?: number | null;
+  runoffEc?: number | null;
+  notes?: string | null;
+  updateFieldCapacity?: boolean;
+}) {
+  try {
+    const userId = await getUserId();
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    const plant = await db.plant.findUnique({
+      where: { id: data.plantId, userId },
+      select: { wetWeight: true, dryTarget: true, containerGallons: true, batchId: true },
+    });
+    if (!plant) return { success: false, error: "Plant not found" };
+
+    const wet = Number(plant.wetWeight ?? 0);
+    const dry = Number(plant.dryTarget ?? 0);
+
+    // We need a post-weight to compute volume
+    if (data.postWeightLbs === null) {
+      return { success: false, error: "Post-water weight is required." };
+    }
+
+    // Compute water volume from weight delta
+    let waterVolumeMl = null;
+    if (data.preWeightLbs !== null && data.postWeightLbs !== null) {
+      const deltaLbs = data.postWeightLbs - data.preWeightLbs;
+      // 1 lb of water ≈ 453.592 ml
+      waterVolumeMl = Math.round(deltaLbs * 453.592);
+    }
+
+    // Compute dryback % from post-weight
+    let dryBackPercent = 0;
+    if (wet > 0 && data.postWeightLbs !== null) {
+      dryBackPercent = Math.max(0, ((wet - data.postWeightLbs) / wet) * 100);
+    }
+
+    const result = await db.$transaction(async (tx) => {
+      // 1. Create the primary log (post-water)
+      const log = await tx.dryBackLog.create({
+        data: {
+          timestamp: new Date(),
+          userId,
+          plantId: data.plantId,
+          batchId: plant.batchId,
+          containerGallons: plant.containerGallons ?? 0,
+          wetWeightLbs: wet,
+          dryTargetWeightLbs: dry,
+          currentWeightLbs: data.postWeightLbs!,
+          dryBackPercent: dryBackPercent,
+          watered: data.watered,
+          fed: data.fed,
+          trainingEvent: null,
+          notes: data.notes ?? "Irrigation",
+          unit: "lbs",
+          source: "irrigation",
+          isPreWater: false,
+          isPostWater: true,
+          waterVolumeMl: waterVolumeMl,
+          feedPh: data.feedPh ?? null,
+          feedEc: data.feedEc ?? null,
+          runoffVolumeMl: data.runoffVolumeMl ?? null,
+          runoffPh: data.runoffPh ?? null,
+          runoffEc: data.runoffEc ?? null,
+        },
+      });
+
+      // 2. Create the pre-water log if we have it (for the timeline)
+      if (data.preWeightLbs !== null) {
+        await tx.dryBackLog.create({
+          data: {
+            timestamp: new Date(Date.now() - 1000), // 1s earlier so it sorts first
+            userId,
+            plantId: data.plantId,
+            batchId: plant.batchId,
+            containerGallons: plant.containerGallons ?? 0,
+            wetWeightLbs: wet,
+            dryTargetWeightLbs: dry,
+            currentWeightLbs: data.preWeightLbs,
+            dryBackPercent: wet > 0 ? Math.max(0, ((wet - data.preWeightLbs) / wet) * 100) : 0,
+            watered: false,
+            fed: false,
+            trainingEvent: null,
+            notes: "Pre-water weight",
+            unit: "lbs",
+            source: "irrigation",
+            isPreWater: true,
+            isPostWater: false,
+            parentLogId: log.id.toString(),
+          },
+        });
+      }
+
+      // 3. Update Field Capacity if requested (or if pre-weight > FC)
+      if (data.updateFieldCapacity && data.postWeightLbs !== null) {
+        await tx.plant.update({
+          where: { id: data.plantId },
+          data: { wetWeight: data.postWeightLbs },
+        });
+      }
+
+      // 4. Update plant currentWeight
+      await tx.plant.update({
+        where: { id: data.plantId },
+        data: { currentWeight: data.postWeightLbs },
+      });
+
+      return { logId: log.id };
+    });
+
+    revalidatePath("/dashboard");
+    revalidatePath(`/plants/${data.plantId}`);
+
+    return { success: true, logId: result.logId };
+  } catch (error) {
+    console.error("recordIrrigation error:", error);
+    return { success: false, error: "Failed to record irrigation" };
+  }
+}
