@@ -6,8 +6,6 @@ import type { DryBackLog, IrrigationEvent, PlantInsight } from "@/types/plant";
 import { derivePlantStage } from "@/lib/plant-stage";
 import { getPhotoUrls } from "@/server/actions/photos";
 import { canAccessFeature } from "@/lib/features";
-import { ExportButton } from "@/components/export/ExportButton";
-import { SeedlingTracker } from "./SeedlingTracker";
 import { getSeedlingContext } from "@/server/actions/seedling";
 import { getLights } from "@/server/actions/lights";
 import { serializePrisma } from "@/lib/serializePrisma";

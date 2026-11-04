@@ -47,8 +47,8 @@ export default function HardwareSettingsPage() {
       return;
     }
     try {
-      const result = await createSensor({ 
-        name: newSensorName, 
+      const result = await createSensor({
+        name: newSensorName,
         type: newSensorType,
         plantId: newSensorPlantId || undefined,
       });
@@ -107,7 +107,7 @@ export default function HardwareSettingsPage() {
     const lastPing = new Date(sensor.lastPingAt);
     const now = new Date();
     const diffMinutes = (now.getTime() - lastPing.getTime()) / (1000 * 60);
-    
+
     if (diffMinutes < 5) {
       return { label: 'Online', color: 'text-emerald-400', icon: <Wifi className="size-3" /> };
     } else if (diffMinutes < 60) {
@@ -132,8 +132,8 @@ export default function HardwareSettingsPage() {
               </div>
             )}
           </div>
-          <button 
-            onClick={() => setShowAddSensor(true)} 
+          <button
+            onClick={() => setShowAddSensor(true)}
             className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center gap-1.5"
           >
             <Plus className="w-4 h-4" /> Add Device
@@ -155,14 +155,14 @@ export default function HardwareSettingsPage() {
                 <div key={sensor.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 flex flex-col space-y-3">
                   <div className="flex items-start justify-between">
                     <div>
-<Link href={`/settings/hardware/${sensor.id}`} className="hover:underline group">
-  <h4 className="text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-2 group-hover:text-emerald-500 transition-colors">
-    {sensor.name}
-                        {sensor.type === 'esp32-loadcell' && (
-                          <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400">Load Cell</span>
-                        )}
-                      </h4>
-</Link>
+                      <Link href={`/settings/hardware/${sensor.id}`} className="hover:underline group">
+                        <h4 className="text-sm font-bold text-zinc-900 dark:text-white flex items-center gap-2 group-hover:text-emerald-500 transition-colors">
+                          {sensor.name}
+                          {sensor.type === 'esp32-loadcell' && (
+                            <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400">Load Cell</span>
+                          )}
+                        </h4>
+                      </Link>
                       <div className="flex items-center gap-2 mt-1">
                         <span className={`text-xs ${status.color} flex items-center gap-1`}>
                           {status.icon} {status.label}
@@ -170,8 +170,8 @@ export default function HardwareSettingsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => handleToggleSensor(sensor.id, !sensor.isActive)} 
+                      <button
+                        onClick={() => handleToggleSensor(sensor.id, !sensor.isActive)}
                         className={`text-xs px-2.5 py-1 rounded-full font-semibold ${sensor.isActive ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500"}`}
                       >
                         {sensor.isActive ? "Active" : "Disabled"}
@@ -185,9 +185,9 @@ export default function HardwareSettingsPage() {
                       <code className="bg-zinc-50 dark:bg-zinc-950 px-2.5 py-1.5 rounded text-xs text-emerald-400 font-mono flex-1 overflow-x-auto border border-zinc-200 dark:border-zinc-800 truncate">
                         {sensor.apiKey || "••••••••••••••••••••••••••••••"}
                       </code>
-                      <button 
-                        onClick={() => handleRegenerateKey(sensor.id)} 
-                        title="Regenerate Key" 
+                      <button
+                        onClick={() => handleRegenerateKey(sensor.id)}
+                        title="Regenerate Key"
                         className="p-1.5 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white bg-zinc-100 dark:bg-zinc-800 rounded hover:bg-zinc-700 transition"
                       >
                         <RefreshCw className="w-3.5 h-3.5" />
@@ -199,8 +199,8 @@ export default function HardwareSettingsPage() {
                     <span className="text-[10px] text-zinc-500">
                       {sensor.lastPingAt ? `Last ping: ${new Date(sensor.lastPingAt).toLocaleString()}` : 'No data received yet'}
                     </span>
-                    <button 
-                      onClick={() => handleDeleteSensor(sensor.id)} 
+                    <button
+                      onClick={() => handleDeleteSensor(sensor.id)}
                       className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 transition"
                     >
                       <Trash2 className="w-3.5 h-3.5" /> Delete
@@ -211,21 +211,6 @@ export default function HardwareSettingsPage() {
             })}
           </div>
         )}
-          <div>
-          {/* Link to Lights Page */}
-          <Link 
-            href="/settings/hardware/lights"
-            className="flex items-center gap-3 p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:border-emerald-500 transition-colors"
-          >
-            <div className="p-2 bg-amber-500/10 rounded-lg">
-              <Lightbulb className="size-5 text-amber-500" />
-            </div>
-            <div>
-              <h3 className="font-bold text-zinc-900 dark:text-white">Grow Lights</h3>
-              <p className="text-xs text-zinc-500">Track intensity, distance, and schedule.</p>
-            </div>
-          </Link>
-        </div>
       </div>
 
       {/* Add Sensor Modal */}
@@ -234,7 +219,7 @@ export default function HardwareSettingsPage() {
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 max-w-md w-full">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-zinc-900 dark:text-white">Add Device</h3>
-                            <button onClick={() => setShowAddSensor(false)} className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white">
+              <button onClick={() => setShowAddSensor(false)} className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white">
                 <X className="size-5" />
               </button>
             </div>

@@ -11,12 +11,10 @@ import {
   getDashboardData,
   getLatestRoomReadings,
 } from '@/server/actions/loggingreadings';
-import { generateDailyBriefing } from '@/server/actions/dailyinsights';
 import { useTelemetry } from '@/lib/telemetry-context';
 import { fetchRooms } from '@/server/actions/facility-mgmt';
 import { fetchPlants } from '@/server/actions/plant-mgmt';
 import { PlantStatusList } from "@/components/dashboard/PlantStatusList";
-import { QuickActionsMenu } from "@/components/dashboard/QuickActionsMenu";
 import { ClimateCard } from "@/components/dashboard/ClimateCard";
 import { getLatestClimateReading, getClimateTrend, type ClimateReading, type ClimatePoint } from "@/server/actions/climate";
 import { NutrientCalculatorModal } from "@/components/nutrients/NutrientCalculatorModal";
@@ -148,11 +146,6 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
           <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">Dashboard</h1>
           <p className="text-[11px] text-zinc-500 dark:text-zinc-400">{initialData.summary}</p>
         </div>
-        <QuickActionsMenu
-          onLogReading={() => router.push("/check-in?returnTo=/dashboard")}
-          onStartGrow={() => setIsStartGrowModalOpen(true)}
-          onNutrientCalc={() => setIsNutrientModalOpen(true)}
-        />
       </div>
 
       <SensorStatusBanner sensors={initialData.sensorStatus} />

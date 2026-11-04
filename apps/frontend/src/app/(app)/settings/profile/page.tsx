@@ -4,11 +4,6 @@
 import { useState, useEffect } from "react";
 import { SectionPanel } from "@/components/layout/SectionPanel";
 import { getUserProfile, updateUserProfile } from "@/server/actions/profile";
-import {
-  getOnboardingState,
-  setOnboardingDismissed,
-  setOnboardingStep,
-} from "@/server/actions/onboarding";
 import { supabase } from "@/lib/supabase";
 export default function ProfileSettingsPage() {
   const [profile, setProfile] = useState<any>(null);
@@ -73,15 +68,6 @@ export default function ProfileSettingsPage() {
     window.location.href = "/auth/login";
   }
 
-  // Show onboarding function - resets dismissed and step
-  async function handleShowOnboarding() {
-    // Reset onboarding to step 1 and not dismissed
-    await setOnboardingStep(1);
-    await setOnboardingDismissed(false);
-    // Redirect to dashboard with refresh param
-    window.location.href = "/dashboard?refresh=onboarding&show=true";
-  }
-
   if (loading) return <div className="text-xs text-zinc-500 py-8 text-center animate-pulse">Loading profile...</div>;
 
   return (
@@ -92,23 +78,6 @@ export default function ProfileSettingsPage() {
             {message.text}
           </div>
         )}
-        <div className="pt-6 border-t border-zinc-200 dark:border-zinc-800">
-          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-            Onboarding
-          </h3>
-
-          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
-            Reopen the setup checklist to review or restart your onboarding.
-          </p>
-
-          <button
-            type="button"
-            onClick={handleShowOnboarding}
-            className="mt-3 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors"
-          >
-            Show Onboarding Checklist
-          </button>
-        </div>
         <div className="space-y-4">
           <h4 className="text-sm font-semibold text-zinc-900 dark:text-white">Account Information</h4>
                     <div className="grid grid-cols-1 gap-4">

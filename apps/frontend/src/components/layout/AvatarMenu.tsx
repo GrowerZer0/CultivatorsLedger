@@ -115,20 +115,6 @@ export function AvatarMenu({
             <p className="text-xs text-zinc-400 truncate">{userEmail || ""}</p>
           </div>
 
-          {/* Quick Action - Log a Reading */}
-          <div className="px-2 py-2 border-b border-zinc-800">
-            <Link
-              href={checkInHref}
-              onClick={() => setIsOpen(false)}
-              className="block w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-center text-sm font-bold text-white hover:bg-emerald-700 transition-colors"
-            >
-              <span className="flex items-center justify-center gap-2">
-                <CalendarCheck className="size-4" />
-                Log a Reading
-              </span>
-            </Link>
-          </div>
-
           {/* Navigation */}
           <div className="px-2 py-1">
             <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500">

@@ -319,31 +319,6 @@ export function getEnvironmentTargets(stage: Stage) {
   }
 }
 
-export function getWeeklyActions(stage: Stage, week: number) {
-  const actions: string[] = [];
-  
-  if (stage === "vegetative") {
-    if (week === 1) actions.push("Keep dome on. Check for stretching.");
-    if (week === 3) actions.push("Remove humidity dome.");
-    if (week === 4) actions.push("Start topping (at 4th node).");
-    if (week === 6) actions.push("Prepare to flip to 12/12. Defoliate bottom half.");
-  }
-  
-  if (stage === "flowering") {
-    if (week === 1) actions.push("Trellis the plant as it stretches.");
-    if (week === 2) actions.push("Check for male pollen sacs. Remove any males.");
-    if (week === 3) actions.push("Defoliate lower growth.");
-    if (week >= 8) actions.push("Check trichomes with a loupe. Milky = peak THC.");
-  }
-
-  if (stage === "dry") {
-    if (week === 1) actions.push("Check weight daily. Target 60/60.");
-    if (week >= 2) actions.push("Check stem snap. If it snaps, move to cure.");
-  }
-
-  return actions;
-}
-
 export function getFeedSchedule(substrate: string, nutrientLine: string, stage: Stage, week: number) {
   // GH Flora Trio + Happy Frog Schedule
   if (substrate === "happy_frog" && nutrientLine === "gh_flora") {

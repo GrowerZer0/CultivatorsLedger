@@ -35,11 +35,9 @@ import { EditPlantModal } from "@/components/facility/EditPlantModal";
 import { GROWTH_STAGES, getStageFromDays, getStageProgress } from "@/lib/growth-stages";
 import type { PlantWithDetails, DryBackLog, IrrigationEvent } from "@/types/plant";
 import { PhotoUploadModal } from "@/components/photos/PhotoUploadModal";
-import { SeedlingTracker } from "./SeedlingTracker";
 import { AdvanceStageModal } from "../../../../components/facility/AdvanceStageModal";
 import { Light } from "@prisma/client";
 import { DryCureTracker } from "../../../../components/facility/DryCureTracker";
-import { CultivationDashboard } from "@/components/plants/CultivationDashboard";
 import { deletePlant } from "@/server/actions/plant-mgmt";
 import { LogReadingButton } from "@/components/dashboard/LogReadingButton";
 import { WeightInput } from "@/components/dashboard/WeightInput";
@@ -419,33 +417,6 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
           </button>
         )}
       </div>
-
-      {/* Dynamic Cultivation Dashboard */}
-      {isStandardStage && (
-        <CultivationDashboard
-          stage={(detectedStage as any) || "seedling"}
-          week={currentWeek}
-          substrate={currentPlant.substrate || null}
-          nutrientLine={currentPlant.nutrientLine || null}
-          currentVpd={latestClimate?.vpd}
-          currentDryback={dryback}
-          light={currentPlant.light ? {
-            dimmerPercent: currentPlant.light.dimmerPercent,
-            distanceInches: currentPlant.light.distanceInches ?? undefined
-          } : null}
-        />
-      )}
-
-      {/* Seedling Tracker */}
-      {currentPlant?.stage === "seedling" && (
-        <div className="mb-6">
-          <SeedlingTracker
-            plantId={currentPlant.id}
-            lastPlugWeight={seedlingContext?.lastCheck?.plugWeightG || null}
-            light={currentPlant.light}
-          />
-        </div>
-      )}
 
       {/* Dry / Cure Tracker */}
       {["dry", "cure"].includes(currentPlant?.stage || "") && (
