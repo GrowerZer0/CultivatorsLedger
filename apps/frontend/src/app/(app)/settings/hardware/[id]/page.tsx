@@ -15,7 +15,7 @@ export default async function SensorDetailPage({ params }: { params: Promise<{ i
   // Fetch lists for the dropdowns
   const [plants, rooms] = await Promise.all([
     db.plant.findMany({ where: { userId }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
-    db.room.findMany({ where: { userId }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
+db.room.findMany({ where: { userId, deletedAt: null }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
   ]);
 
   // Server Action to handle the form submission

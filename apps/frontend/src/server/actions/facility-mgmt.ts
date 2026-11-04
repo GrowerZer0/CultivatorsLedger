@@ -13,7 +13,7 @@ import error from "next/error";
 export async function getRooms() {
   const userId = await getUserId();
   return await db.room.findMany({
-    where: { userId },
+    where: { userId, deletedAt: null },
     orderBy: { createdAt: "asc" },
   });
 }
@@ -56,7 +56,7 @@ export async function updateRoom(roomId: unknown, data: unknown) {
     const validated = updateRoomSchema.parse(data);
     const userId = await getUserId();
     const room = await db.room.update({
-      where: { id: validatedRoomId, userId },
+      where: { id: validatedRoomId, userId, deletedAt: null },
       data: {
         name: validated.name,
         type: validated.type,
@@ -86,24 +86,25 @@ export async function deleteRoom(roomId: unknown) {
   try {
     const validatedRoomId = z.string().parse(roomId);
     const userId = await getUserId();
-    
+
     // 1. Unassign all plants in this room (set roomId null)
     await db.plant.updateMany({
       where: { roomId: validatedRoomId, userId },
       data: { roomId: null },
     });
-    
+
     // 2. Unassign all batches in this room (set roomId null)
     await db.batch.updateMany({
       where: { roomId: validatedRoomId, userId },
       data: { roomId: null },
     });
-    
+
     // 3. Delete the room
-    await db.room.delete({
-      where: { id: validatedRoomId, userId },
+    await db.room.update({
+      where: { id: validatedRoomId, userId, deletedAt: null },
+      data: { deletedAt: new Date() },
     });
-    
+
     revalidatePath("/settings");
     revalidatePath("/");
     revalidatePath("/rooms");
@@ -120,7 +121,7 @@ export async function deleteRoom(roomId: unknown) {
 export async function fetchRooms() {
   const userId = await getUserId();
   const rooms = await prisma.room.findMany({
-    where: { userId },
+    where: { userId, deletedAt: null },
     select: { id: true, name: true, type: true },
   });
 

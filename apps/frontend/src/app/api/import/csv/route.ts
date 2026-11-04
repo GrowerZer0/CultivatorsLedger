@@ -153,7 +153,7 @@ if (
       const tempC = Number(tempRaw);
       const rh = Number(humidityRaw);
       if (!isNaN(tempC) && !isNaN(rh)) {
-        const room = await db.room.findFirst({ where: { userId } });
+        const room = await db.room.findFirst({ where: { userId, deletedAt: null } });
         await db.climateLog.create({
           data: {
             timestamp: ts,

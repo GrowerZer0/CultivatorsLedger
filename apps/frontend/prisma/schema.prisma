@@ -348,6 +348,7 @@ model Room {
   lightOffTime    String?   @map("light_off_time")
   ppfd            Int?      // PPFD target
   lightDistance   Decimal?  @map("light_distance") @db.Decimal(3,1) // inches
+  deletedAt  DateTime? @map("deleted_at")
 
   // Relations
   batches     Batch[]

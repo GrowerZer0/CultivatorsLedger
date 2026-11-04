@@ -42,7 +42,7 @@ export default async function PlantDetailPage({
         orderBy: { timestamp: "desc" },
         take: 20,
       },
-      room: true,
+      room: { where: { deletedAt: null } },
       batch: true,
       plantInsights: {
         orderBy: { createdAt: "desc" },
@@ -69,7 +69,7 @@ export default async function PlantDetailPage({
   const seedlingContext = await getSeedlingContext(id);
   const latestClimate = await getLatestClimateReading();
   const photoUrls = await getPhotoUrls(plantData.photos.map(photo => photo.storagePath));
-
+  const room = plantData.room?.deletedAt ? null : plantData.room;
   const derived = derivePlantStage({
     startDate: plantData.startDate,
     flipDate: plantData.flipDate,
@@ -100,7 +100,9 @@ export default async function PlantDetailPage({
     updatedAt: plantData.updatedAt,
     mirrorPlantId: plantData.mirrorPlantId || null,
     mirrorPlant: plantData.mirrorPlant || null,
-    room: plantData.room ? { id: plantData.room.id, name: plantData.room.name } : null,
+    room: plantData.room && !plantData.room.deletedAt
+      ? { id: plantData.room.id, name: plantData.room.name }
+      : null,
     batch: plantData.batch ? { id: plantData.batch.id, name: plantData.batch.name } : null,
     stage: finalStage,
     flipDate: plantData.flipDate,
@@ -187,13 +189,13 @@ export default async function PlantDetailPage({
 
   return (
     <div className="max-w-5xl mx-auto">
-      <PlantDetailClient 
-      plant={serializePrisma(plant)} 
-      seedlingContext={serializePrisma(seedlingContext)} 
-      lights={serializePrisma(lights)}
-      latestClimate={latestClimate} 
-      canExport={canExport}
-           />
+      <PlantDetailClient
+        plant={serializePrisma(plant)}
+        seedlingContext={serializePrisma(seedlingContext)}
+        lights={serializePrisma(lights)}
+        latestClimate={latestClimate}
+        canExport={canExport}
+      />
     </div>
   );
 }

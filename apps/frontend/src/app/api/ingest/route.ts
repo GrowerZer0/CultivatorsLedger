@@ -305,7 +305,7 @@ export async function POST(request: NextRequest) {
 
       // Find a room for this user, or fall back to a default string
       const room = await db.room.findFirst({
-        where: { userId: sensor.userId },
+        where: { userId: sensor.userId, deletedAt: null },
       });
 
       const log = await db.climateLog.create({

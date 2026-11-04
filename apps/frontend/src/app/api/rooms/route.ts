@@ -10,7 +10,7 @@ export async function GET() {
     }
 
     const rooms = await db.room.findMany({
-      where: { userId },
+      where: { userId, deletedAt: null },
       select: { id: true, name: true, type: true },
       orderBy: { name: "asc" },
     });

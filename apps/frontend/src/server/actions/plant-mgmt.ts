@@ -104,7 +104,7 @@ try {
     }
     if (validated.roomId) {
       const roomExists = await db.room.findFirst({
-        where: { id: validated.roomId, userId },
+        where: { id: validated.roomId, userId, deletedAt: null },
       });
       if (!roomExists) {
         throw new Error("Invalid room assignment");
