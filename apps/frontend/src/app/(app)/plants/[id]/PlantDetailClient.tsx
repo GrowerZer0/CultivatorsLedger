@@ -402,6 +402,7 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
             }
             : null
         }
+        roomId={currentPlant.room?.id ?? null}
         roomName={currentPlant.room?.name ?? null}
         roomClimate={latestRoomClimate ?? null}
         onAssignScale={() => setIsAssignScaleOpen(true)}

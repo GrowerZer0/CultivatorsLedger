@@ -27,6 +27,7 @@ interface PlantHardwareCardProps {
     distanceInches: number | null;
   } | null;
   // Room sensors (read-only context)
+  roomId: string | null;
   roomName: string | null;
   roomClimate: {
     temperatureF: number;
@@ -42,6 +43,7 @@ export function PlantHardwareCard({
   plantName,
   scale,
   light,
+  roomId,
   roomName,
   roomClimate,
   onAssignScale,
@@ -138,7 +140,7 @@ export function PlantHardwareCard({
       )}
 
       {/* Room sensors (read-only context) */}
-      {roomName && (
+      {roomName && roomId && (
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-500/10 rounded-lg">
@@ -148,9 +150,13 @@ export function PlantHardwareCard({
               <div className="text-xs font-bold text-zinc-500 uppercase tracking-wide">
                 Room Environment
               </div>
-              <div className="text-sm font-semibold text-zinc-900 dark:text-white">
+              <Link
+                href={`/rooms/${roomId}`}
+                className="text-sm font-semibold text-zinc-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 hover:underline transition-colors inline-flex items-center gap-1"
+              >
                 {roomName}
-              </div>
+                <ChevronRight className="size-3" />
+              </Link>
               {roomClimate ? (
                 <div
                   className={`text-[11px] mt-0.5 flex items-center gap-1 ${
