@@ -1,12 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sprout, X, Loader2, Lightbulb } from "lucide-react";
+import { Sprout, X, Loader2, Lightbulb, Scale } from "lucide-react";
 import { createPlant } from "@/server/actions/plant-mgmt";
 import { createRoom } from "@/server/actions/facility-mgmt";
 import { createBatch } from "@/server/actions/batch-mgmt";
 import { saveLight } from "@/server/actions/lights";
 import { useRouter } from "next/navigation";
+import {
+  getAvailableLoadCells,
+  assignSensorToPlant,
+} from "@/server/actions/sensors";
 
 interface StartGrowModalProps {
   isOpen: boolean;
@@ -14,6 +18,12 @@ interface StartGrowModalProps {
   rooms: { id: string; name: string }[];
   batches: { id: string; name: string }[];
   lights: { id: string; name: string }[];
+}
+
+interface SensorOption {
+  id: string;
+  name: string;
+  type: string;
 }
 
 export function StartGrowModal({
@@ -47,6 +57,32 @@ export function StartGrowModal({
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+const [sensors, setSensors] = useState<SensorOption[]>([]);
+const [loadCellId, setLoadCellId] = useState("");
+const [sensorsLoading, setSensorsLoading] = useState(false);
+
+useEffect(() => {
+  if (!isOpen) return;
+  let cancelled = false;
+  setSensorsLoading(true);
+  getAvailableLoadCells()
+    .then((rows) => {
+      if (cancelled) return;
+      setSensors(rows);
+      const small = rows.find((s) => /small/i.test(s.name));
+      if (small) setLoadCellId(small.id);
+    })
+    .catch(() => {
+      if (!cancelled) setSensors([]);
+    })
+    .finally(() => {
+      if (!cancelled) setSensorsLoading(false);
+    });
+  return () => {
+    cancelled = true;
+  };
+}, [isOpen]);
 
   // ─── inline creators ────────────────────────────────────────────
   const handleAddRoom = async () => {
@@ -153,6 +189,13 @@ export function StartGrowModal({
       setError(res.error || "Failed to start grow.");
       return;
     }
+
+    if (loadCellId && res.success) {
+  await assignSensorToPlant({
+    sensorId: loadCellId,
+    plantId: res.plant.id,
+  });
+}
 
     setLoading(false);
     onClose();
@@ -387,13 +430,53 @@ export function StartGrowModal({
               </select>
             )}
           </div>
-                      <p className="text-[10px] text-zinc-500 -mt-2">
-  Manage sensors and load cells in{" "}
-  <a href="/settings/hardware" className="text-emerald-500 hover:underline">
-    Hardware Settings
-  </a>
-  .
-</p>
+{/* LOAD CELL */}
+<div>
+  <div className="flex items-center justify-between mb-1">
+    <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-1.5">
+      <Scale className="size-3.5" /> Load Cell (optional)
+    </label>
+    <a
+      href="/settings/hardware"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-[10px] text-emerald-500 font-bold hover:underline"
+    >
+      Manage sensors →
+    </a>
+  </div>
+  {sensorsLoading ? (
+    <div className="text-[11px] text-zinc-500 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
+      Loading available scales…
+    </div>
+  ) : sensors.length === 0 ? (
+    <div className="text-[11px] text-zinc-500 px-3 py-2 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
+      No unassigned load cells.{" "}
+      <a
+        href="/settings/hardware"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-emerald-500 font-bold hover:underline"
+      >
+        Add one
+      </a>{" "}
+      then come back.
+    </div>
+  ) : (
+    <select
+      value={loadCellId}
+      onChange={(e) => setLoadCellId(e.target.value)}
+      className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border rounded-lg text-sm"
+    >
+      <option value="">No scale assigned</option>
+      {sensors.map((s) => (
+        <option key={s.id} value={s.id}>
+          {s.name}
+        </option>
+      ))}
+    </select>
+  )}
+</div>
 
           {error && <p className="text-xs text-red-500 font-bold">{error}</p>}
 
