@@ -1,15 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sprout, X, Loader2, Lightbulb, Scale } from "lucide-react";
+import { Sprout, X, Loader2, Lightbulb } from "lucide-react";
 import { createPlant } from "@/server/actions/plant-mgmt";
 import { createRoom } from "@/server/actions/facility-mgmt";
 import { createBatch } from "@/server/actions/batch-mgmt";
 import { saveLight } from "@/server/actions/lights";
-import {
-  getAvailableLoadCells,
-  assignSensorToPlant,
-} from "@/server/actions/sensors";
 import { useRouter } from "next/navigation";
 
 interface StartGrowModalProps {
@@ -18,12 +14,6 @@ interface StartGrowModalProps {
   rooms: { id: string; name: string }[];
   batches: { id: string; name: string }[];
   lights: { id: string; name: string }[];
-}
-
-interface SensorOption {
-  id: string;
-  name: string;
-  type: string;
 }
 
 export function StartGrowModal({
@@ -55,37 +45,8 @@ export function StartGrowModal({
   const [newLightName, setNewLightName] = useState("");
   const [newLightWattage, setNewLightWattage] = useState("");
 
-  const [sensors, setSensors] = useState<SensorOption[]>([]);
-  const [loadCellId, setLoadCellId] = useState("");
-  const [sensorsLoading, setSensorsLoading] = useState(false);
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Load available load cells (unassigned, active) whenever the modal opens
-  useEffect(() => {
-    if (!isOpen) return;
-    let cancelled = false;
-    setSensorsLoading(true);
-    getAvailableLoadCells()
-      .then((rows) => {
-        if (cancelled) return;
-        setSensors(rows);
-        const small = rows.find((s) => /small/i.test(s.name));
-        if (small) setLoadCellId(small.id);
-      })
-      .catch(() => {
-        if (!cancelled) setSensors([]);
-      })
-      .finally(() => {
-        if (!cancelled) setSensorsLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen]);
-
-  if (!isOpen) return null;
 
   // ─── inline creators ────────────────────────────────────────────
   const handleAddRoom = async () => {
@@ -191,18 +152,6 @@ export function StartGrowModal({
       setLoading(false);
       setError(res.error || "Failed to start grow.");
       return;
-    }
-
-    // Assign load cell AFTER the plant exists (SensorConfig.plantId FK)
-    if (loadCellId) {
-      const assignRes = await assignSensorToPlant({
-        sensorId: loadCellId,
-        plantId: res.plant.id,
-      });
-      if (!assignRes.success) {
-        // Non-fatal — the plant was created, just no scale linked.
-        console.warn("Load cell assignment failed:", assignRes.error);
-      }
     }
 
     setLoading(false);
@@ -438,28 +387,13 @@ export function StartGrowModal({
               </select>
             )}
           </div>
-
-          {/* LOAD CELL — only shown if the user has an unassigned one */}
-          {sensors.length > 0 && (
-            <div>
-              <label className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-1.5 mb-1">
-                <Scale className="size-3.5" /> Load cell (optional)
-              </label>
-              <select
-                value={loadCellId}
-                onChange={(e) => setLoadCellId(e.target.value)}
-                disabled={sensorsLoading}
-                className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border rounded-lg text-sm disabled:opacity-50"
-              >
-                <option value="">No scale assigned</option>
-                {sensors.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+                      <p className="text-[10px] text-zinc-500 -mt-2">
+  Manage sensors and load cells in{" "}
+  <a href="/settings/hardware" className="text-emerald-500 hover:underline">
+    Hardware Settings
+  </a>
+  .
+</p>
 
           {error && <p className="text-xs text-red-500 font-bold">{error}</p>}
 

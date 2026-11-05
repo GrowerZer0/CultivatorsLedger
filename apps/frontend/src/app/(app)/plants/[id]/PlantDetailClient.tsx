@@ -40,7 +40,6 @@ import { Light } from "@prisma/client";
 import { DryCureTracker } from "../../../../components/facility/DryCureTracker";
 import { deletePlant } from "@/server/actions/plant-mgmt";
 import { LogReadingButton } from "@/components/dashboard/LogReadingButton";
-import { AssignScaleModal } from "@/components/facility/AssignScaleModal";
 import { PlantSummary } from "@/components/plants/PlantSummary";
 import { stageLabel as getStageLabel, weekLabel as getWeekLabel } from "@/lib/stage-label";
 import { ExportButton } from "@/components/export/ExportButton";
@@ -68,7 +67,6 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
   const [showEditModal, setShowEditModal] = useState(false);
   const [currentPlant, setCurrentPlant] = useState(plant);
   const normalizedStage = (currentPlant?.stage || "seedling").toLowerCase();
-  const [isAssignScaleOpen, setIsAssignScaleOpen] = useState(false);
   const stageLabel = getStageLabel(currentPlant.stage);
   const stageStartedAt =
     (currentPlant as any).stageEvents?.[0]?.startedAt ?? currentPlant.startDate;
@@ -437,7 +435,7 @@ const daysSinceStart = currentPlant?.startDate
         roomId={currentPlant.room?.id ?? null}
         roomName={currentPlant.room?.name ?? null}
         roomClimate={latestRoomClimate ?? null}
-        onAssignScale={() => setIsAssignScaleOpen(true)}
+        onAssignScale={() => router.push("/settings/hardware")}
       />
 
       {/* Dry / Cure Tracker */}
@@ -772,12 +770,6 @@ const daysSinceStart = currentPlant?.startDate
             }
             : null
         }
-      />
-      <AssignScaleModal
-        isOpen={isAssignScaleOpen}
-        onClose={() => setIsAssignScaleOpen(false)}
-        plantId={currentPlant.id}
-        plantName={currentPlant.name}
       />
       <IrrigationModal
         isOpen={isIrrigationOpen}
