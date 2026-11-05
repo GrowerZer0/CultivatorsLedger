@@ -63,6 +63,8 @@ model User {
   growthLogs     GrowthLog[]
   growCosts      GrowCost[]
   trainingEvents TrainingEvent[]
+  plantIssues PlantIssue[]
+
   @@map("users")
 }
 model SystemSetting {
@@ -286,6 +288,8 @@ model Plant {
   harvestWetWeight     Decimal?  @map("harvest_wet_weight")     @db.Decimal(6, 2)  // at chop
   dryWeight            Decimal?  @map("dry_weight")             @db.Decimal(6, 2)  // end of dry
   trimmedFlowerWeight  Decimal?  @map("trimmed_flower_weight")  @db.Decimal(6, 2)  // after trim, going into cure
+  plantIssues PlantIssue[]
+
   @@map("plants")
 }
 model PlantInsight {
@@ -490,4 +494,22 @@ model TrainingEvent {
   
   @@index([plantId, occurredAt])
   @@map("training_events")
+}
+
+model PlantIssue {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  plantId     String    @map("plant_id")
+  symptoms    String[]  @default([])
+  notes       String?
+  photoUrl    String?   @map("photo_url")
+  resolved    Boolean   @default(false)
+  resolvedAt  DateTime? @map("resolved_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plant Plant @relation(fields: [plantId], references: [id], onDelete: Cascade)
+
+  @@index([plantId, createdAt(sort: Desc)])
+  @@map("plant_issues")
 }

@@ -18,7 +18,8 @@ import {
   Camera,
   ArrowRight,
   Scissors,
-  Link2
+  Link2,
+  AlertTriangle
 } from "lucide-react";
 import {
   Line,
@@ -45,6 +46,8 @@ import { stageLabel as getStageLabel, weekLabel as getWeekLabel } from "@/lib/st
 import { ExportButton } from "@/components/export/ExportButton";
 import { PlantHardwareCard } from "@/components/plants/PlantHardwareCard";
 import { IrrigationModal } from "@/components/plants/IrrigationModal";
+import { StageTracker } from "@/components/plants/StageTracker";
+import { SOSModal } from "@/components/plants/SOSModal";
 
 interface PlantDetailClientProps {
   plant: PlantWithDetails;
@@ -71,6 +74,8 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
     (currentPlant as any).stageEvents?.[0]?.startedAt ?? currentPlant.startDate;
   const weekLabel = getWeekLabel(currentPlant.stage, stageStartedAt);
   const [isIrrigationOpen, setIsIrrigationOpen] = useState(false);
+  const [isSOSOpen, setIsSOSOpen] = useState(false);
+
   // Sync the local state with the server whenever the page refreshes
   useEffect(() => {
     setCurrentPlant(plant);
@@ -137,9 +142,9 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
     latestLog?.sourceDevice?.toLowerCase().includes("small") ||
     currentPlant?.stage === "seedling" ||
     false;
-  const daysSinceStart = currentPlant?.startDate
-    ? Math.floor((Date.now() - new Date(currentPlant.startDate).getTime()) / (1000 * 60 * 60 * 24))
-    : 0;
+const daysSinceStart = currentPlant?.startDate
+  ? Math.floor((Date.now() - new Date(currentPlant.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1
+  : 0;
 
   // Growth Stage
   const detectedStage = currentPlant?.stage || getStageFromDays(daysSinceStart);
@@ -147,12 +152,12 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
   // Calculate days in the CURRENT stage
   let daysInCurrentStage = 0;
   if (detectedStage === "flowering" && currentPlant.flipDate) {
-    daysInCurrentStage = Math.floor((Date.now() - new Date(currentPlant.flipDate).getTime()) / (1000 * 60 * 60 * 24));
+    daysInCurrentStage = Math.floor((Date.now() - new Date(currentPlant.flipDate).getTime()) / (1000 * 60 * 60 * 24)) + 1;
   } else if (detectedStage === "dry" || detectedStage === "cure") {
     // Fallback: use updatedAt since that's when the stage last changed
-    daysInCurrentStage = Math.floor((Date.now() - new Date(currentPlant.updatedAt).getTime()) / (1000 * 60 * 60 * 24));
+    daysInCurrentStage = Math.floor((Date.now() - new Date(currentPlant.updatedAt).getTime()) / (1000 * 60 * 60 * 24)) + 1;
   } else if (currentPlant.startDate) {
-    daysInCurrentStage = Math.floor((Date.now() - new Date(currentPlant.startDate).getTime()) / (1000 * 60 * 60 * 24));
+    daysInCurrentStage = Math.floor((Date.now() - new Date(currentPlant.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1;
   }
 
   const isStandardStage = ["seedling", "vegetative", "flowering"].includes(detectedStage?.toLowerCase() || "");
@@ -304,13 +309,20 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
               <ArrowRight className="size-3.5" />
               <span className="hidden sm:inline">Advance</span>
             </button>
-                      <button
-            onClick={() => setIsIrrigationOpen(true)}
-            className="px-3 py-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-1"
-          >
-            <Droplet className="size-3.5" />
-            <span className="hidden sm:inline">Water</span>
-          </button>
+            <button
+              onClick={() => setIsIrrigationOpen(true)}
+              className="px-3 py-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-1"
+            >
+              <Droplet className="size-3.5" />
+              <span className="hidden sm:inline">Water</span>
+            </button>
+            <button
+              onClick={() => setIsSOSOpen(true)}
+              className="p-2 rounded-lg hover:bg-amber-500/10 text-zinc-500 hover:text-amber-600 transition-colors"
+              title="Log an issue"
+            >
+              <AlertTriangle className="size-4" />
+            </button>
             <LogReadingButton plantId={plant.id} returnTo="/dashboard" />
             <button
               onClick={() => setIsPhotoModalOpen(true)}
@@ -387,7 +399,17 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
           </div>
         </div>
       )}
-
+      {/* Stage progress + advance suggestion */}
+      <StageTracker
+        plant={{
+          id: currentPlant.id,
+          stage: currentPlant.stage,
+          currentStageStartedAt: currentPlant.currentStageStartedAt ?? null,
+          startDate: currentPlant.startDate?.toString() ?? null,
+          flipDate: currentPlant.flipDate?.toString() ?? null,
+        }}
+        onAdvance={() => setIsAdvanceStageOpen(true)}
+      />
       {/* Hardware (Scale, Light, Room Environment) */}
       <PlantHardwareCard
         plantId={currentPlant.id}
@@ -757,7 +779,7 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
         plantId={currentPlant.id}
         plantName={currentPlant.name}
       />
-            <IrrigationModal
+      <IrrigationModal
         isOpen={isIrrigationOpen}
         onClose={() => setIsIrrigationOpen(false)}
         plantId={currentPlant.id}
@@ -765,6 +787,12 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
         currentWeight={weight}
         useGrams={useGrams}
       />
+      <SOSModal
+  isOpen={isSOSOpen}
+  onClose={() => setIsSOSOpen(false)}
+  plantId={currentPlant.id}
+  plantName={currentPlant.name}
+/>
     </div>
   );
 }

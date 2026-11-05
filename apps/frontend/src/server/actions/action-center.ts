@@ -36,7 +36,7 @@ export async function getActionCenterData() {
     if (!activeEvent) continue; // Skip if no active stage is tracked
 
     // 1. Calculate current week based on the active StageEvent
-    const daysInStage = Math.floor((Date.now() - new Date(activeEvent.startedAt).getTime()) / (1000 * 60 * 60 * 24));
+    const daysInStage = Math.floor((Date.now() - new Date(activeEvent.startedAt).getTime()) / (1000 * 60 * 60 * 24)) + 1;
     const currentWeek = Math.floor(daysInStage / 7) + 1;
 
     // 2. Get the dryback percentage
