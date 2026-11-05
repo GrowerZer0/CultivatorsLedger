@@ -10,6 +10,7 @@ interface PlantStatusListProps {
   isLoading?: boolean;
   onRefresh?: () => void;
   lastRefreshTime?: string;
+  onWater: (plantId: string) => void;
 }
 
 export function PlantStatusList({
@@ -17,6 +18,7 @@ export function PlantStatusList({
   isLoading = false,
   onRefresh,
   lastRefreshTime,
+  onWater
 }: PlantStatusListProps) {
   if (plants.length === 0) {
     return (
@@ -107,6 +109,7 @@ export function PlantStatusList({
               useGrams={useGrams}
               thumbnailUrl={plant.thumbnailUrl}
               variant="row"
+              onWater={onWater}
             />
           );
         })}

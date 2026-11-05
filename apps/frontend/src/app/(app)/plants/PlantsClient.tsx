@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import type { Plant } from "@/types/plant";
 import { PlantSummary } from "@/components/plants/PlantSummary";
 import { stageLabel as getStageLabel, weekLabel as getWeekLabel } from "@/lib/stage-label";
+import { IrrigationModal } from "@/components/plants/IrrigationModal";
 
 type Room = { id: string; name: string };
 type Batch = { id: string; name: string };
@@ -31,7 +32,7 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
   const [view, setView] = useState<"grid" | "list">("list");
   const [addPlantOpen, setAddPlantOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-
+const [wateringPlantId, setWateringPlantId] = useState<string | null>(null);
   const handleDeletePlant = async (plantId: string, plantName: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -204,6 +205,7 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
                 useGrams={useGrams}
                 thumbnailUrl={plant.thumbnailUrl}
                 variant="row"
+                  onWater={(plantId) => setWateringPlantId(plantId)}
               />
             );
           })}
@@ -241,6 +243,7 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
                 useGrams={useGrams}
                 thumbnailUrl={plant.thumbnailUrl}
                 variant="card"
+                  onWater={(plantId) => setWateringPlantId(plantId)}
               />
             );
           })}
@@ -258,6 +261,20 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
           setAddPlantOpen(false);
         }}
       />
+      {wateringPlantId && (() => {
+  const plant = plants.find((p) => p.id === wateringPlantId);
+  if (!plant) return null;
+  return (
+    <IrrigationModal
+      isOpen={true}
+      onClose={() => setWateringPlantId(null)}
+      plantId={plant.id}
+      plantName={plant.name}
+      currentWeight={plant.currentWeight ?? null}
+      useGrams={plant.stage === "seedling"}
+    />
+  );
+})()}
     </div>
   );
 }

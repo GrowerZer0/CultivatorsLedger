@@ -150,7 +150,7 @@ export default function BatchPage() {
       : 0;
 
   const daysSinceStart = Math.floor(
-    (Date.now() - new Date(batch.startDate).getTime()) / (1000 * 60 * 60 * 24)
+    (Date.now() - new Date(batch.startDate).getTime()) / (1000 * 60 * 60 * 24) + 1
   );
 
   const chartData =

@@ -22,6 +22,7 @@ import { ActionCenter } from "@/components/dashboard/ActionCenter";
 import type { Plant } from "@/types/plant";
 import { RoomSummary } from "@/components/rooms/RoomSummary";
 import { deleteRoom } from "@/server/actions/facility-mgmt";
+import { IrrigationModal } from "@/components/plants/IrrigationModal";
 
 interface DashboardClientProps {
   initialData: {
@@ -51,7 +52,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
   const searchParams = useSearchParams();
   const [deletingRoomId, setDeletingRoomId] = useState<string | null>(null);
   const [rooms, setRooms] = useState<any[]>(initialData.rooms);
-
+const [wateringPlantId, setWateringPlantId] = useState<string | null>(null);
   useEffect(() => {
     if (searchParams.get("logged") === "true") {
       setToast({ type: "success", message: "✅ Check-in logged successfully!" });
@@ -207,6 +208,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
           isLoading={loading}
           onRefresh={() => loadData(true)}
           lastRefreshTime={new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            onWater={(plantId) => setWateringPlantId(plantId)}
         />
       ) : (
         <div className="flex flex-col items-center justify-center py-16 px-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm text-center">
@@ -239,6 +241,20 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
         isOpen={isNutrientModalOpen}
         onClose={() => setIsNutrientModalOpen(false)}
       />
+      {wateringPlantId && (() => {
+  const plant = plants.find((p) => p.id === wateringPlantId);
+  if (!plant) return null;
+  return (
+    <IrrigationModal
+      isOpen={true}
+      onClose={() => setWateringPlantId(null)}
+      plantId={plant.id}
+      plantName={plant.name}
+      currentWeight={plant.currentWeight ?? null}
+      useGrams={plant.stage === "seedling"}
+    />
+  );
+})()}
     </div>
   );
 }

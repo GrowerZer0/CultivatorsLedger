@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Droplet } from "lucide-react";
 import { WeightInput } from "@/components/dashboard/WeightInput";
 import type { Plant } from "@/types/plant";
 import { DryCureTracker } from "@/components/facility/DryCureTracker";
@@ -20,6 +21,7 @@ interface PlantSummaryProps {
   thumbnailUrl?: string | null;
   variant?: Variant;
   href?: string;
+  onWater?: (plantId: string) => void;
 }
 
 export function PlantSummary({
@@ -35,12 +37,16 @@ export function PlantSummary({
   thumbnailUrl,
   variant = "row",
   href = `/plants/${plant.id}`,
+  onWater
 }: PlantSummaryProps) {
   const isCard = variant === "card";
   const isHeader = variant === "header";
   const isCure = plant.stage === "cure";
   const isDry = plant.stage === "dry";
-
+  const needsWater =
+    drybackPercent !== null && drybackPercent >= 15;
+  const hasNoSensor = (plant.sensorConfigs ?? []).length === 0;
+  const showWaterButton = onWater && (needsWater || hasNoSensor);
   const weightBlock = (
     <div className="flex flex-col">
       <WeightInput
@@ -176,6 +182,23 @@ export function PlantSummary({
             {badge}
           </div>
           {metaLine}
+                    {showWaterButton && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onWater(plant.id);
+              }}
+              className={`w-full py-1.5 rounded-lg text-white text-xs font-bold transition-colors flex items-center justify-center gap-1 ${
+                needsWater
+                  ? "bg-blue-600 hover:bg-blue-500"
+                  : "bg-zinc-600 hover:bg-zinc-500"
+              }`}
+            >
+              <Droplet className="size-3.5" />
+              {needsWater ? "Water Now" : "Log Irrigation"}
+            </button>
+          )}
         </div>
       </Link>
     );
@@ -222,6 +245,26 @@ export function PlantSummary({
           </div>
         </div>
       )}
+        {showWaterButton && (
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onWater(plant.id);
+            }}
+            className={`px-2.5 py-1.5 rounded-lg text-white text-xs font-bold transition-colors flex items-center gap-1 ${
+              needsWater
+                ? "bg-blue-600 hover:bg-blue-500"
+                : "bg-zinc-600 hover:bg-zinc-500"
+            }`}
+            title={needsWater ? "Plant needs water" : "Log irrigation"}
+          >
+            <Droplet className="size-3.5" />
+            <span className="hidden md:inline">
+              {needsWater ? "Water" : "Log"}
+            </span>
+          </button>
+        )}
     </Link>
   );
 }
