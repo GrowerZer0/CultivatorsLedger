@@ -19,6 +19,7 @@ import {
   Sprout,
 } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
+import type { Plant } from "@/types/plant";
 
 type Room = {
   id: string;
@@ -31,22 +32,6 @@ type Room = {
   lightOffTime: string | null;
   ppfd: number | null;
   lightDistance: number | null;
-};
-
-type Plant = {
-  id: string;
-  name: string;
-  strain: string | null;
-  roomId: string | null;
-  batchId: string | null;
-  wetWeight: number | null;
-  dryTarget: number | null;
-  containerGallons: number | null;
-  currentWeight: number | null;
-  mirrorPlantId: string | null;
-  startDate: Date | string | null;
-  stage: string | null;
-  flipDate: string | Date | null;
 };
 
 type Batch = {

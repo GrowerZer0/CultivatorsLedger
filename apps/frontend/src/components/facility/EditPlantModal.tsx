@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { updatePlant } from "@/server/actions/plant-mgmt";
 import { GROWTH_STAGES, type GrowthStage } from "@/lib/growth-stages";
+import type { Plant } from "@/types/plant";
 
-type Plant = {
-  id: string;
+type PlantFormState = Partial<{
   name: string;
   strain: string | null;
   breeder: string | null;
@@ -15,13 +15,12 @@ type Plant = {
   wetWeight: number | null;
   dryTarget: number | null;
   containerGallons: number | null;
-  currentWeight: number | null;
   mirrorPlantId: string | null;
-  startDate: string | Date | null;
+  startDate: string | null;  
   stage: string | null;
-  flipDate: string | Date | null;
-  lightId?: string | null;
-};
+  flipDate: string | null;   
+  lightId: string | null;
+}>;
 
 type Room = { id: string; name: string };
 type Batch = { id: string; name: string };
@@ -55,7 +54,7 @@ export function EditPlantModal({
   allPlants = [],
   onPlantUpdated,
 }: EditPlantModalProps) {
-  const [formData, setFormData] = useState<Partial<Plant>>({});
+  const [formData, setFormData] = useState<PlantFormState>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

@@ -10,13 +10,13 @@ export interface Plant {
   currentWeight: number | null;
   containerGallons: number | null;
   notes: string | null;
-  startDate: Date;
+  startDate: Date | string | null;
   userId: string;
   createdAt: Date;
   updatedAt: Date;
   stage: string | null;
   mirrorPlantId: string | null;
-  flipDate: Date | null;
+  flipDate: Date | string |null;
   pendingFcUpdate: boolean;
   pendingFcStartTime: Date | null;
   sensorConfigs?: Array<{ id: string; name: string; type: string }>;
@@ -24,6 +24,7 @@ export interface Plant {
   currentStageStartedAt?: string | null;
   dryBackLogs?: DryBackLog[];
   currentWeightTimestamp?: string | null;
+  lightId?: string | null;
 }
 
 export interface PlantPhoto {

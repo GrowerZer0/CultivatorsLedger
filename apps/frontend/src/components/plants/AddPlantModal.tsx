@@ -4,14 +4,7 @@ import { useState, useEffect } from "react";
 import { X, Search, Plus, Loader2 } from "lucide-react";
 import { createPlant } from "@/server/actions/plant-mgmt";
 import { useRouter } from "next/navigation";
-type Plant = {
-  id: string;
-  name: string;
-  strain: string | null;
-  roomId: string | null;
-  batchId: string | null;
-  currentWeight?: number | null; // Make currentWeight optional
-};
+import type { Plant } from "@/types/plant";
 
 type Room = { id: string; name: string };
 type Batch = { id: string; name: string };
