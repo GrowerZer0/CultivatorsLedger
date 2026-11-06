@@ -7,6 +7,7 @@ import type { Plant } from "@/types/plant";
 import { useState, useEffect } from "react";
 import { getCureEvents, logCureEvent } from "@/server/actions/cure";
 import { CureLogModal } from "@/components/plants/CureLogModal";
+import { deleteCureEvent } from "@/server/actions/cure";
 
 function DryCureSummaryRow({
   plant,
@@ -25,6 +26,8 @@ function DryCureSummaryRow({
   const [isBurping, setIsBurping] = useState(false);
   const [burpsToday, setBurpsToday] = useState<number | null>(null);
   const [burpError, setBurpError] = useState<string | null>(null);
+const [pendingBurpId, setPendingBurpId] = useState<string | null>(null);
+const [pendingToastVisible, setPendingToastVisible] = useState(false);
 
   // Load burp count on mount
   useEffect(() => {
@@ -61,17 +64,39 @@ function DryCureSummaryRow({
       ? null
       : Math.max(0, expectedBurpsToday - burpsToday);
 
-  const handleLogBurp = async () => {
-    setIsBurping(true);
-    setBurpError(null);
-    const res = await logCureEvent({ plantId: plant.id, eventType: "burp" });
-    setIsBurping(false);
-    if (!res.success) {
-      setBurpError(res.error);
-      return;
-    }
-    setBurpsToday((n) => (n ?? 0) + 1);
-  };
+const handleLogBurp = async () => {
+  setIsBurping(true);
+  setBurpError(null);
+  const res = await logCureEvent({ plantId: plant.id, eventType: "burp" });
+  setIsBurping(false);
+  if (!res.success) {
+    setBurpError(res.error);
+    return;
+  }
+  setBurpsToday((n) => (n ?? 0) + 1);
+  setPendingBurpId(res.event.id);
+  setPendingToastVisible(true);
+
+  // Auto-clear the toast after 5s. If the user clicks Undo first, we
+  // clear it early (see handleUndoBurp).
+  setTimeout(() => {
+    setPendingToastVisible(false);
+    setPendingBurpId(null);
+  }, 5000);
+};
+
+const handleUndoBurp = async () => {
+  if (!pendingBurpId) return;
+  const idToDelete = pendingBurpId;
+  // Clear the toast immediately so the user gets instant feedback
+  setPendingToastVisible(false);
+  setPendingBurpId(null);
+
+  // Optimistic UI: revert the count
+  setBurpsToday((n) => Math.max(0, (n ?? 1) - 1));
+
+  await deleteCureEvent(idToDelete);
+};
 
   const burpLabel =
     burpsRemaining === null
@@ -172,6 +197,18 @@ function DryCureSummaryRow({
           cureStartedAt={plant.currentStageStartedAt ?? null}
         />
       )}
+      {pendingToastVisible && pendingBurpId && (
+  <div className="fixed bottom-4 right-4 z-50 flex items-center gap-3 px-4 py-2.5 rounded-lg bg-zinc-900 dark:bg-zinc-800 text-white shadow-xl border border-zinc-700">
+    <CheckCircle2 className="size-4 text-emerald-400" />
+    <span className="text-sm font-semibold">Burp logged</span>
+    <button
+      onClick={handleUndoBurp}
+      className="text-emerald-400 font-bold text-sm hover:underline"
+    >
+      Undo
+    </button>
+  </div>
+)}
     </>
   );
 }
