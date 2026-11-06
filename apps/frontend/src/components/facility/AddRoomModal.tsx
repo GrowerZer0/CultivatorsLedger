@@ -5,7 +5,6 @@
 import { useState, useTransition } from "react";
 import { X, Plus, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { createRoom } from "@/server/actions/facility-mgmt";
-import { useRouter } from "next/navigation";
 
 interface AddRoomModalProps {
   open: boolean;
@@ -26,7 +25,6 @@ export function AddRoomModal({ open, onClose, onRoomCreated }: AddRoomModalProps
   const [ppfd, setPpfd] = useState<number | "">("");
   const [lightDistance, setLightDistance] = useState<number | "">("");
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const router = useRouter();
 
   if (!open) return null;
 
@@ -49,7 +47,6 @@ export function AddRoomModal({ open, onClose, onRoomCreated }: AddRoomModalProps
         return;
       }
       onRoomCreated({ id: result.room.id, name: result.room.name });
-      router.push(`/rooms/${result.room.id}?new=true`);
       // Reset form
       setName("");
       setType("tent");

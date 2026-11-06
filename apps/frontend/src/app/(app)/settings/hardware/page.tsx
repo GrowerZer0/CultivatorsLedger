@@ -14,6 +14,7 @@ import {
 import { fetchPlants } from "@/server/actions/plant-mgmt";
 import { fetchRooms } from "@/server/actions/facility-mgmt";
 import Link from "next/link";
+import { AddSensorModal } from "@/components/facility/AddSensorModal";
 
 type Plant = { id: string; name: string };
 type Room = { id: string; name: string };
@@ -23,8 +24,6 @@ export default function HardwareSettingsPage() {
   const [plants, setPlants] = useState<Plant[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [showAddSensor, setShowAddSensor] = useState(false);
-  const [newSensorName, setNewSensorName] = useState("");
-  const [newSensorType, setNewSensorType] = useState("esp32-loadcell");
   const [loadingSensors, setLoadingSensors] = useState(false);
   const [showApiKey, setShowApiKey] = useState<string | null>(null);
   const [assigningId, setAssigningId] = useState<string | null>(null);
@@ -50,29 +49,6 @@ export default function HardwareSettingsPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
-
-  async function handleAddSensor() {
-    if (!newSensorName) {
-      alert("Sensor name is required.");
-      return;
-    }
-    try {
-      const result = await createSensor({
-        name: newSensorName,
-        type: newSensorType,
-      });
-      setShowAddSensor(false);
-      setNewSensorName("");
-      loadData();
-      if (result.apiKey) {
-        setShowApiKey(result.apiKey);
-        setTimeout(() => setShowApiKey(null), 10000);
-      }
-    } catch (error) {
-      console.error("Failed to add sensor:", error);
-      alert("Failed to add sensor.");
-    }
-  }
 
   async function handleToggleSensor(id: string, isActive: boolean) {
     try {
@@ -341,73 +317,18 @@ export default function HardwareSettingsPage() {
       </div>
 
       {/* Add Sensor Modal */}
-      {showAddSensor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 max-w-md w-full">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
-                Add Device
-              </h3>
-              <button
-                onClick={() => setShowAddSensor(false)}
-                className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs text-zinc-600 dark:text-zinc-400">
-                  Device Name
-                </label>
-                <input
-                  type="text"
-                  value={newSensorName}
-                  onChange={(e) => setNewSensorName(e.target.value)}
-                  placeholder="e.g. Early Frost Load Cell"
-                  className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-zinc-900 dark:text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs text-zinc-600 dark:text-zinc-400">
-                  Device Type
-                </label>
-                <select
-                  value={newSensorType}
-                  onChange={(e) => setNewSensorType(e.target.value)}
-                  className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-emerald-500"
-                >
-                  <option value="esp32-loadcell">ESP32 Load Cell</option>
-                  <option value="esp32-environmental">ESP32 Environmental</option>
-                  <option value="custom-http">Custom HTTP</option>
-                  <option value="vivosun">VIVOSUN</option>
-                  <option value="mqtt">MQTT</option>
-                </select>
-                <p className="text-[10px] text-zinc-500 mt-1">
-                  You&apos;ll assign this to a plant or room after creating it.
-                </p>
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  onClick={handleAddSensor}
-                  className="flex-1 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors"
-                >
-                  Add Device
-                </button>
-                <button
-                  onClick={() => setShowAddSensor(false)}
-                  className="px-4 py-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-semibold transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+<AddSensorModal
+  open={showAddSensor}
+  onClose={() => setShowAddSensor(false)}
+  onSensorCreated={(sensor) => {
+    setShowAddSensor(false);
+    loadData(); // re-fetch the list from the server
+    if (sensor.apiKey) {
+      setShowApiKey(sensor.apiKey);
+      setTimeout(() => setShowApiKey(null), 10000);
+    }
+  }}
+/>
     </SectionPanel>
   );
 }
