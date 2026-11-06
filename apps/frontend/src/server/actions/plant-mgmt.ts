@@ -38,37 +38,87 @@ export async function getPlants() {
         select: { storagePath: true, capturedAt: true },
       },
       sensorConfigs: { select: { id: true, name: true, type: true } },
-            stageEvents: {
+      stageEvents: {
         where: { endedAt: null },
         orderBy: { startedAt: "desc" },
         take: 1,
       },
-            dryBackLogs: {
+      dryBackLogs: {
         orderBy: { timestamp: "desc" },
         take: 1,
         select: { currentWeightLbs: true, timestamp: true, sourceDevice: true },
       },
     },
   });
-return serializePrisma(
-  plants.map((p) => ({
-    ...p,
-    thumbnailPath: p.photos[0]?.storagePath ?? null,
-    photos: undefined,
-    currentStageStartedAt: p.stageEvents?.[0]?.startedAt?.toISOString() ?? null,
-  }))
-);
+  return serializePrisma(
+    plants.map((p) => ({
+      ...p,
+      thumbnailPath: p.photos[0]?.storagePath ?? null,
+      photos: undefined,
+      containerGallons: p.containerGallons ? Number(p.containerGallons) : null,
+      wetWeight: p.wetWeight ? Number(p.wetWeight) : null,
+      dryTarget: p.dryTarget ? Number(p.dryTarget) : null,
+      currentWeight:
+        p.dryBackLogs?.[0]?.currentWeightLbs != null
+          ? Number(p.dryBackLogs[0].currentWeightLbs)
+          : p.currentWeight
+            ? Number(p.currentWeight)
+            : null,
+      currentWeightTimestamp: p.dryBackLogs?.[0]?.timestamp?.toISOString() ?? null,
+      lastSourceDevice: p.dryBackLogs?.[0]?.sourceDevice ?? null,
+      currentStageStartedAt: p.stageEvents?.[0]?.startedAt?.toISOString() ?? null,
+      sensorConfigs: p.sensorConfigs || [],
+    }))
+  );
 }
 
 export async function getPlantsForBatch(batchId: unknown) {
   try {
     const validatedBatchId = z.string().parse(batchId);
     const userId = await getUserId();
+
     const plants = await db.plant.findMany({
       where: { batchId: validatedBatchId, userId },
       orderBy: { createdAt: "asc" },
+      include: {
+        sensorConfigs: { select: { id: true, name: true, type: true } },
+        dryBackLogs: {
+          orderBy: { timestamp: "desc" },
+          take: 1,
+          select: { currentWeightLbs: true, timestamp: true, sourceDevice: true },
+        },
+        stageEvents: {
+          where: { endedAt: null },
+          orderBy: { startedAt: "desc" },
+          take: 1,
+        },
+        photos: {
+          orderBy: { capturedAt: "desc" },
+          take: 1,
+          select: { storagePath: true },
+        },
+      },
     });
-    return serializePrisma(plants);
+
+    return serializePrisma(
+      plants.map((p) => ({
+        ...p,
+        photos: undefined,
+        containerGallons: p.containerGallons ? Number(p.containerGallons) : null,
+        wetWeight: p.wetWeight ? Number(p.wetWeight) : null,
+        dryTarget: p.dryTarget ? Number(p.dryTarget) : null,
+        currentWeight:
+          p.dryBackLogs?.[0]?.currentWeightLbs != null
+            ? Number(p.dryBackLogs[0].currentWeightLbs)
+            : p.currentWeight
+              ? Number(p.currentWeight)
+              : null,
+        currentWeightTimestamp: p.dryBackLogs?.[0]?.timestamp?.toISOString() ?? null,
+        lastSourceDevice: p.dryBackLogs?.[0]?.sourceDevice ?? null,
+        currentStageStartedAt: p.stageEvents?.[0]?.startedAt?.toISOString() ?? null,
+        sensorConfigs: p.sensorConfigs || [],
+      }))
+    );
   } catch (error) {
     console.error("getPlantsForBatch error:", error);
     if (error instanceof z.ZodError) {
@@ -175,7 +225,7 @@ export async function createPlant(
 export async function updatePlant(data: unknown) {
   try {
     // Extend schema to include new fields
-    const updatePlantSchema = plantSchema.partial().extend({ 
+    const updatePlantSchema = plantSchema.partial().extend({
       id: z.string(),
       mirrorPlantId: z.string().nullable().optional(),
       startDate: z.date().nullable().optional(),
@@ -185,10 +235,10 @@ export async function updatePlant(data: unknown) {
     });
     const validated = updatePlantSchema.parse(data);
     const userId = await getUserId();
-    
+
     // Build data object with only defined fields
     const updateData: any = {};
-    
+
     if (validated.name !== undefined) updateData.name = validated.name;
     if (validated.strain !== undefined) updateData.strain = validated.strain;
     if (validated.breeder !== undefined) updateData.breeder = validated.breeder;
@@ -211,12 +261,12 @@ export async function updatePlant(data: unknown) {
       where: { id: validated.id, userId },
       data: updateData,
     });
-    
+
     revalidatePath("/settings");
     revalidatePath("/");
     revalidatePath("/plants");
     revalidatePath(`/plants/${plant.id}`);
-    
+
     return { success: true, plant: serializePrisma(plant) };
   } catch (error) {
     console.error("updatePlant error:", error);
@@ -266,16 +316,31 @@ export async function fetchPlants() {
       startDate: true,
       stage: true,
       flipDate: true,
-      sensorConfigs: { select: { id: true, name: true, type: true } }, // ADD
-      dryBackLogs: { orderBy: { timestamp: "desc" }, take: 1, select: { currentWeightLbs: true, timestamp: true } }, // ADD
-      photos: { orderBy: { capturedAt: "desc" }, take: 1, select: { storagePath: true } },
+      notes: true,
+      userId: true,
+      createdAt: true,
+      updatedAt: true,
+      pendingFcUpdate: true,
+      pendingFcStartTime: true,
+      sensorConfigs: { select: { id: true, name: true, type: true } },
+      dryBackLogs: {
+        orderBy: { timestamp: "desc" },
+        take: 1,
+        select: { currentWeightLbs: true, timestamp: true, sourceDevice: true },
+      },
+      photos: {
+        orderBy: { capturedAt: "desc" },
+        take: 1,
+        select: { storagePath: true },
+      },
     },
   });
 
-  const paths = plants.map((p) => p.photos[0]?.storagePath).filter((p): p is string => !!p);
+  const paths = plants
+    .map((p) => p.photos[0]?.storagePath)
+    .filter((p): p is string => !!p);
   const { getPhotoUrls } = await import("./photos");
   const urlByPath = await getPhotoUrls(paths);
-
   return serializePrisma(
     plants.map((p) => {
       const sp = p.photos[0]?.storagePath;
@@ -283,8 +348,13 @@ export async function fetchPlants() {
         ...p,
         thumbnailUrl: sp ? urlByPath[sp] ?? null : null,
         photos: undefined,
-        currentWeight: p.dryBackLogs[0] ? Number(p.dryBackLogs[0].currentWeightLbs) : p.currentWeight,
+        currentWeight: p.currentWeight ?? (p.dryBackLogs[0] ? Number(p.dryBackLogs[0].currentWeightLbs) : null),
         currentWeightTimestamp: p.dryBackLogs[0] ? p.dryBackLogs[0].timestamp.toISOString() : null,
+        lastSourceDevice: p.dryBackLogs[0]?.sourceDevice ?? null,
+        sensorConfigs: p.sensorConfigs || [],
+        containerGallons: p.containerGallons ? Number(p.containerGallons) : null,
+        wetWeight: p.wetWeight ? Number(p.wetWeight) : null,
+        dryTarget: p.dryTarget ? Number(p.dryTarget) : null,
       };
     })
   );
@@ -341,25 +411,25 @@ export async function getLatestScaleReading(plantId: unknown) {
       },
     });
 
-return {
-  success: true as const,
-  plant: {
-    id: plant.id,
-    name: plant.name,
-    wetWeight: plant.wetWeight !== null ? Number(plant.wetWeight) : null,
-  },
-  latestLog: latestLog
-    ? {
-        id: latestLog.id,
-        timestamp: latestLog.timestamp.toISOString(),
-        currentWeightLbs:
-          latestLog.currentWeightLbs !== null
-            ? Number(latestLog.currentWeightLbs)
-            : null,
-        sourceDevice: latestLog.sourceDevice,
-      }
-    : null,
-};
+    return {
+      success: true as const,
+      plant: {
+        id: plant.id,
+        name: plant.name,
+        wetWeight: plant.wetWeight !== null ? Number(plant.wetWeight) : null,
+      },
+      latestLog: latestLog
+        ? {
+          id: latestLog.id,
+          timestamp: latestLog.timestamp.toISOString(),
+          currentWeightLbs:
+            latestLog.currentWeightLbs !== null
+              ? Number(latestLog.currentWeightLbs)
+              : null,
+          sourceDevice: latestLog.sourceDevice,
+        }
+        : null,
+    };
   } catch (error) {
     console.error("getLatestScaleReading error:", error);
     if (error instanceof z.ZodError) {

@@ -25,6 +25,7 @@ export interface Plant {
   dryBackLogs?: DryBackLog[];
   currentWeightTimestamp?: string | null;
   lightId?: string | null;
+  lastSourceDevice?: string | null;
 }
 
 export interface PlantPhoto {
