@@ -4,7 +4,95 @@ import Link from "next/link";
 import { Droplet } from "lucide-react";
 import { WeightInput } from "@/components/dashboard/WeightInput";
 import type { Plant } from "@/types/plant";
-import { DryCureTracker } from "@/components/facility/DryCureTracker";
+import { useState } from "react";
+import { CureLogModal } from "@/components/plants/CureLogModal";
+
+function DryCureSummaryRow({
+  plant,
+  isCure,
+  dayCount,
+  latestWeight,
+  href,
+}: {
+  plant: Plant;
+  isCure: boolean;
+  dayCount: number;
+  latestWeight: number | null;
+  href: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <>
+      <div className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors">
+        <Link href={href} className="flex items-center gap-2 min-w-0 flex-1">
+          <div className="size-11 shrink-0 rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+            {plant.thumbnailUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={plant.thumbnailUrl}
+                alt={plant.name}
+                className="size-11 object-cover"
+              />
+            ) : (
+              <div className="size-11 grid place-items-center text-zinc-400 text-xs">
+                —
+              </div>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 truncate">
+                {plant.name}
+              </span>
+              <span
+                className={`text-[10px] px-1.5 py-0.5 rounded font-bold border ${
+                  isCure
+                    ? "bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-900/50"
+                    : "bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900/50"
+                }`}
+              >
+                {isCure ? "Curing" : "Drying"}
+              </span>
+            </div>
+            <div className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5 flex items-center gap-2">
+              <span className="font-mono">Day {dayCount}</span>
+              {plant.strain && (
+                <>
+                  <span className="text-zinc-300 dark:text-zinc-700">·</span>
+                  <span className="truncate">
+                    {plant.strain}
+                    {plant.breeder && ` · ${plant.breeder}`}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+        </Link>
+        <button
+          onClick={() => setIsOpen(true)}
+          className={`shrink-0 px-2.5 py-1.5 rounded-lg text-white text-xs font-bold transition-colors ${
+            isCure
+              ? "bg-emerald-600 hover:bg-emerald-500"
+              : "bg-amber-600 hover:bg-amber-500"
+          }`}
+        >
+          {isCure ? "Log Burp" : "Log Weight"}
+        </button>
+      </div>
+
+      <CureLogModal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        plantId={plant.id}
+        plantName={plant.name}
+        stage={isCure ? "cure" : "dry"}
+        lastWeight={latestWeight}
+        cureStartedAt={plant.currentStageStartedAt ?? null}
+      />
+    </>
+  );
+}
 
 type Variant = "row" | "card" | "header";
 
@@ -37,16 +125,17 @@ export function PlantSummary({
   thumbnailUrl,
   variant = "row",
   href = `/plants/${plant.id}`,
-  onWater
+  onWater,
 }: PlantSummaryProps) {
   const isCard = variant === "card";
   const isHeader = variant === "header";
   const isCure = plant.stage === "cure";
   const isDry = plant.stage === "dry";
-  const needsWater =
-    drybackPercent !== null && drybackPercent >= 15;
+
+  const needsWater = drybackPercent !== null && drybackPercent >= 15;
   const hasNoSensor = (plant.sensorConfigs ?? []).length === 0;
   const showWaterButton = onWater && (needsWater || hasNoSensor);
+
   const weightBlock = (
     <div className="flex flex-col">
       <WeightInput
@@ -88,45 +177,22 @@ export function PlantSummary({
   );
 
   // ==========================================================
-  // DRY / CURE — custom tracker layout, not a link
+  // DRY / CURE — compact row with Log button that opens modal
   // ==========================================================
   if (isCure || isDry) {
     const stageStarted = plant.currentStageStartedAt || plant.updatedAt;
     const dayCount = stageStarted
-      ? Math.floor((Date.now() - new Date(stageStarted).getTime()) / 86400000) + 1
+      ? Math.floor((Date.now() - new Date(stageStarted).getTime()) / 86_400_000) + 1
       : 1;
 
     return (
-      <div className="px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">
-              {plant.name}
-            </span>
-            <span
-              className={`text-[10px] px-1.5 py-0.5 rounded font-bold border ${
-                isCure
-                  ? "bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-900/50"
-                  : "bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-900/50"
-              }`}
-            >
-              {isCure ? "Curing" : "Drying"}
-            </span>
-            <span className="text-[10px] text-zinc-500 font-mono">
-              Day {dayCount}
-            </span>
-          </div>
-          <Link href={href} className="text-xs text-emerald-500 hover:underline">
-            View Details →
-          </Link>
-        </div>
-        <DryCureTracker
-          plantId={plant.id}
-          stage={plant.stage as "dry" | "cure"}
-          lastWeight={latestWeight}
-          cureStartedAt={plant.currentStageStartedAt ?? null}
-        />
-      </div>
+      <DryCureSummaryRow
+        plant={plant}
+        isCure={isCure}
+        dayCount={dayCount}
+        latestWeight={latestWeight}
+        href={href}
+      />
     );
   }
 
@@ -142,23 +208,24 @@ export function PlantSummary({
           </h1>
           {badge}
         </div>
-{(plant.strain || plant.breeder) && (
-  <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-0.5">
-    {plant.strain || "Unknown strain"}
-    {plant.breeder && (
-      <span className="text-zinc-400 dark:text-zinc-500">
-        {" · "}{plant.breeder}
-      </span>
-    )}
-  </p>
-)}
+        {(plant.strain || plant.breeder) && (
+          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-0.5">
+            {plant.strain || "Unknown strain"}
+            {plant.breeder && (
+              <span className="text-zinc-400 dark:text-zinc-500">
+                {" · "}
+                {plant.breeder}
+              </span>
+            )}
+          </p>
+        )}
         {metaLine}
       </div>
     );
   }
 
   // ==========================================================
-  // ROW (dashboard / plants list / picker)
+  // CARD (plants grid view)
   // ==========================================================
   if (isCard) {
     return (
@@ -186,20 +253,20 @@ export function PlantSummary({
               {plant.name}
             </span>
             {badge}
-              {(plant.strain || plant.breeder) && (
-    <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
-      {plant.strain || "Unknown"}
-      {plant.breeder && ` · ${plant.breeder}`}
-    </span>
-              )}
+            {(plant.strain || plant.breeder) && (
+              <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                {plant.strain || "Unknown"}
+                {plant.breeder && ` · ${plant.breeder}`}
+              </span>
+            )}
           </div>
           {metaLine}
-                    {showWaterButton && (
+          {showWaterButton && (
             <button
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                onWater(plant.id);
+                onWater!(plant.id);
               }}
               className={`w-full py-1.5 rounded-lg text-white text-xs font-bold transition-colors flex items-center justify-center gap-1 ${
                 needsWater
@@ -216,7 +283,9 @@ export function PlantSummary({
     );
   }
 
-  // default: row
+  // ==========================================================
+  // ROW (dashboard / plants list)
+  // ==========================================================
   return (
     <Link
       href={href}
@@ -225,9 +294,15 @@ export function PlantSummary({
       <div className="size-11 shrink-0 rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800">
         {thumbnailUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={thumbnailUrl} alt={plant.name} className="size-11 object-cover" />
+          <img
+            src={thumbnailUrl}
+            alt={plant.name}
+            className="size-11 object-cover"
+          />
         ) : (
-          <div className="size-11 grid place-items-center text-zinc-400 text-xs">—</div>
+          <div className="size-11 grid place-items-center text-zinc-400 text-xs">
+            —
+          </div>
         )}
       </div>
       <div className="flex-1 min-w-0">
@@ -236,12 +311,12 @@ export function PlantSummary({
             {plant.name}
           </span>
           {badge}
-            {(plant.strain || plant.breeder) && (
-    <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
-      {plant.strain || "Unknown"}
-      {plant.breeder && ` · ${plant.breeder}`}
-    </span>
-            )}
+          {(plant.strain || plant.breeder) && (
+            <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+              {plant.strain || "Unknown"}
+              {plant.breeder && ` · ${plant.breeder}`}
+            </span>
+          )}
         </div>
         {metaLine}
       </div>
@@ -263,26 +338,24 @@ export function PlantSummary({
           </div>
         </div>
       )}
-        {showWaterButton && (
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onWater(plant.id);
-            }}
-            className={`px-2.5 py-1.5 rounded-lg text-white text-xs font-bold transition-colors flex items-center gap-1 ${
-              needsWater
-                ? "bg-blue-600 hover:bg-blue-500"
-                : "bg-zinc-600 hover:bg-zinc-500"
-            }`}
-            title={needsWater ? "Plant needs water" : "Log irrigation"}
-          >
-            <Droplet className="size-3.5" />
-            <span className="hidden md:inline">
-              {needsWater ? "Water" : "Log"}
-            </span>
-          </button>
-        )}
+      {showWaterButton && (
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onWater!(plant.id);
+          }}
+          className={`shrink-0 px-2.5 py-1.5 rounded-lg text-white text-xs font-bold transition-colors flex items-center gap-1 ${
+            needsWater
+              ? "bg-blue-600 hover:bg-blue-500"
+              : "bg-zinc-600 hover:bg-zinc-500"
+          }`}
+          title={needsWater ? "Plant needs water" : "Log irrigation"}
+        >
+          <Droplet className="size-3.5" />
+          <span className="hidden md:inline">{needsWater ? "Water" : "Log"}</span>
+        </button>
+      )}
     </Link>
   );
 }
