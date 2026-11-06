@@ -2,6 +2,7 @@ export interface Plant {
   id: string;
   name: string;
   strain: string | null;
+  breeder: string | null;
   roomId: string | null;
   batchId: string | null;
   wetWeight: number | null;

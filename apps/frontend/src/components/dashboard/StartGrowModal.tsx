@@ -96,8 +96,8 @@ export function StartGrowModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) {
-      setError("Plant name is required.");
+    if (!name.trim() && !strain.trim()) {
+      setError("Provide a name or a strain.");
       return;
     }
 
@@ -107,7 +107,7 @@ export function StartGrowModal({
     const res = await createPlant({
       name: name.trim(),
       strain: strain.trim() || null,
-      // breeder — add once the schema field exists
+      breeder: breeder.trim() || null,
       roomId: roomId || null,
       batchId: null,
       lightId: lightId || null,
@@ -159,7 +159,7 @@ export function StartGrowModal({
             {/* NAME */}
             <div>
               <label className="text-xs font-bold text-zinc-500 uppercase">
-                Plant Name *
+                Name (optional)
               </label>
               <input
                 type="text"

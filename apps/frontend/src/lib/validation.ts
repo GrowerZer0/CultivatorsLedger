@@ -12,8 +12,9 @@ export const idSchema = z.string().cuid().optional();
 
 export const plantSchema = z.object({
   id: z.string().cuid().optional(),
-  name: z.string().min(1, "Name is required").max(100),
+  name: z.string().max(100).optional().nullable(),
   strain: z.string().max(100).optional().nullable(),
+  breeder: z.string().max(100).optional().nullable(),
   roomId: z.string().cuid().optional().nullable(),
   batchId: z.string().cuid().optional().nullable(),
   containerGallons: z.number().min(0).max(100).optional().nullable(),

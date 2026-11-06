@@ -9,6 +9,7 @@ type Plant = {
   id: string;
   name: string;
   strain: string | null;
+  breeder: string | null;
   roomId: string | null;
   batchId: string | null;
   wetWeight: number | null;
@@ -63,6 +64,7 @@ export function EditPlantModal({
       setFormData({
         name: plant.name,
         strain: plant.strain,
+        breeder: plant.breeder,
         roomId: plant.roomId,
         batchId: plant.batchId,
         wetWeight: plant.wetWeight,
@@ -90,6 +92,7 @@ export function EditPlantModal({
         id: plant.id,
         name: formData.name,
         strain: formData.strain || null,
+        breeder: formData.breeder || null,
         roomId: formData.roomId || null,
         batchId: formData.batchId || null,
         mirrorPlantId: formData.mirrorPlantId || null,
@@ -160,12 +163,22 @@ export function EditPlantModal({
               className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
             />
           </div>
+          <div>
+            <label className="text-xs text-zinc-600 dark:text-zinc-400">Breeder</label>
+            <input
+              type="text"
+              value={formData.breeder || ""}
+              onChange={(e) => setFormData({ ...formData, breeder: e.target.value || null })}
+              placeholder="e.g. Twenty20 Mendocino"
+              className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+            />
+          </div>
 
           {/* Start Date & Growth Stage */}
           <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4">
             <h4 className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-3">📅 Growth Timeline</h4>
-            
-              <div className="grid grid-cols-2 gap-3">
+
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-zinc-600 dark:text-zinc-400">Start Date</label>
                 <input
@@ -241,23 +254,23 @@ export function EditPlantModal({
                 ))}
               </select>
             </div>
-          <div className="mt-3">
-            <label className="text-xs text-zinc-600 dark:text-zinc-400 flex items-center gap-1">
-              💡 Assigned Light
-            </label>
-            <select
-              value={formData.lightId || ""}
-              onChange={(e) => setFormData({ ...formData, lightId: e.target.value || null })}
-              className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
-            >
-              <option value="">No Light</option>
-              {lights?.map((light) => (
-                <option key={light.id} value={light.id}>
-                  {light.name} ({light.wattage}W @ {light.dimmerPercent}%)
-                </option>
-              ))}
-            </select>
-          </div>
+            <div className="mt-3">
+              <label className="text-xs text-zinc-600 dark:text-zinc-400 flex items-center gap-1">
+                💡 Assigned Light
+              </label>
+              <select
+                value={formData.lightId || ""}
+                onChange={(e) => setFormData({ ...formData, lightId: e.target.value || null })}
+                className="w-full mt-1 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:border-emerald-500"
+              >
+                <option value="">No Light</option>
+                {lights?.map((light) => (
+                  <option key={light.id} value={light.id}>
+                    {light.name} ({light.wattage}W @ {light.dimmerPercent}%)
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Weight Settings */}

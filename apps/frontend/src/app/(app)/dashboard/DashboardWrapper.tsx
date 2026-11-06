@@ -93,6 +93,7 @@ export default async function DashboardWrapper() {
     id: plant.id,
     name: plant.name,
     strain: plant.strain,
+    breeder: plant.breeder,
     roomId: plant.roomId,
     batchId: plant.batchId,
     wetWeight: plant.wetWeight ? Number(plant.wetWeight) : null,

@@ -16,6 +16,7 @@ export async function GET() {
         name: true,
         currentWeight: true,
         strain: true,
+        breeder: true,
         roomId: true,
         batchId: true
       },

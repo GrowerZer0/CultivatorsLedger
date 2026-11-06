@@ -13,6 +13,7 @@ interface CreatedPlant {
   id: string;
   name: string;
   strain: string | null;
+  breeder: string | null;
   roomId: string | null;
   batchId: string | null;
   containerGallons: number | null;
@@ -82,26 +83,31 @@ export async function createPlant(
 ): Promise<
   | { success: true; plant: CreatedPlant }
   | { success: false; error: string }
-> {  try {
+> {
+  try {
     const validated = plantSchema.parse(data);
     const userId = await getUserId();
 
     const { allowed, current, limit } = await canAddPlant(userId);
     if (!allowed) {
-      return { 
-        success: false, 
-        error: `You've reached your limit of ${limit} plants. Please upgrade to add more.` 
+      return {
+        success: false,
+        error: `You've reached your limit of ${limit} plants. Please upgrade to add more.`,
       };
     }
 
-try {
-  const { success } = await defaultRatelimit.limit(userId);
-  if (!success) {
-    return { success: false, error: "Too many plant creations. Please wait." };
-  }
-} catch (error) {
-  console.warn("Rate limiter failed (likely local dev missing Upstash env vars). Skipping limit.", error);
+    try {
+      const { success } = await defaultRatelimit.limit(userId);
+      if (!success) {
+        return { success: false, error: "Too many plant creations. Please wait." };
+      }
+    } catch (error) {
+      console.warn(
+        "Rate limiter failed (likely local dev missing Upstash env vars). Skipping limit.",
+        error,
+      );
     }
+
     if (validated.roomId) {
       const roomExists = await db.room.findFirst({
         where: { id: validated.roomId, userId, deletedAt: null },
@@ -110,11 +116,20 @@ try {
         throw new Error("Invalid room assignment");
       }
     }
+
     const lightId = (data as any).lightId;
+
+    // Name is optional — auto-fill from strain if empty, otherwise "Plant"
+    const finalName =
+      validated.name?.trim() ||
+      validated.strain?.trim() ||
+      "Plant";
+
     const plant = await db.plant.create({
       data: {
-        name: validated.name,
+        name: finalName,
         strain: validated.strain || null,
+        breeder: validated.breeder || null,
         roomId: validated.roomId || null,
         batchId: validated.batchId || null,
         containerGallons: validated.containerGallons || null,
@@ -125,23 +140,29 @@ try {
       },
     });
 
-    await trackEvent('plant_added', {
-      plantId: plant.id,
-      name: plant.name,
-      strain: plant.strain || undefined,
-      roomId: plant.roomId || undefined,
-      batchId: plant.batchId || undefined,
-      containerGallons: plant.containerGallons || undefined,
-      wetWeight: plant.wetWeight || undefined,
-      dryTarget: plant.dryTarget || undefined,
-      lightId: plant.lightId || undefined,
-    }, userId);
+    await trackEvent(
+      "plant_added",
+      {
+        plantId: plant.id,
+        name: plant.name,
+        strain: plant.strain || undefined,
+        breeder: plant.breeder || undefined,
+        roomId: plant.roomId || undefined,
+        batchId: plant.batchId || undefined,
+        containerGallons: plant.containerGallons || undefined,
+        wetWeight: plant.wetWeight || undefined,
+        dryTarget: plant.dryTarget || undefined,
+        lightId: plant.lightId || undefined,
+      },
+      userId,
+    );
+
     const serializedPlant = serializePrisma(plant) as CreatedPlant;
 
     revalidatePath("/settings");
     revalidatePath("/");
 
-return { success: true, plant: serializedPlant };
+    return { success: true, plant: serializedPlant };
   } catch (error) {
     console.error("createPlant error:", error);
     if (error instanceof z.ZodError) {
@@ -170,6 +191,7 @@ export async function updatePlant(data: unknown) {
     
     if (validated.name !== undefined) updateData.name = validated.name;
     if (validated.strain !== undefined) updateData.strain = validated.strain;
+    if (validated.breeder !== undefined) updateData.breeder = validated.breeder;
     if (validated.roomId !== undefined) updateData.roomId = validated.roomId;
     if (validated.batchId !== undefined) updateData.batchId = validated.batchId;
     if (validated.containerGallons !== undefined) updateData.containerGallons = validated.containerGallons;
@@ -232,6 +254,7 @@ export async function fetchPlants() {
       id: true,
       name: true,
       strain: true,
+      breeder: true,
       roomId: true,
       batchId: true,
       containerGallons: true,

@@ -247,6 +247,7 @@ model Plant {
   id               String            @id @default(cuid())
   name             String            // e.g. "Plant #1" or tag ID
   strain           String?           // e.g. "Early Frost by Twenty20 Mendocino"
+  breeder          String?
   roomId           String?           @map("room_id")
   room             Room?             @relation(fields: [roomId], references: [id], onDelete: SetNull)
   batchId          String?           @map("batch_id")
@@ -289,7 +290,6 @@ model Plant {
   dryWeight            Decimal?  @map("dry_weight")             @db.Decimal(6, 2)  // end of dry
   trimmedFlowerWeight  Decimal?  @map("trimmed_flower_weight")  @db.Decimal(6, 2)  // after trim, going into cure
   plantIssues PlantIssue[]
-
   @@map("plants")
 }
 model PlantInsight {

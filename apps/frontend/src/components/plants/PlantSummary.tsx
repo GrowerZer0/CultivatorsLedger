@@ -141,11 +141,16 @@ export function PlantSummary({
           </h1>
           {badge}
         </div>
-        {plant.strain && (
-          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-0.5">
-            {plant.strain}
-          </p>
-        )}
+{(plant.strain || plant.breeder) && (
+  <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-0.5">
+    {plant.strain || "Unknown strain"}
+    {plant.breeder && (
+      <span className="text-zinc-400 dark:text-zinc-500">
+        {" · "}{plant.breeder}
+      </span>
+    )}
+  </p>
+)}
         {metaLine}
       </div>
     );
@@ -180,6 +185,12 @@ export function PlantSummary({
               {plant.name}
             </span>
             {badge}
+              {(plant.strain || plant.breeder) && (
+    <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+      {plant.strain || "Unknown"}
+      {plant.breeder && ` · ${plant.breeder}`}
+    </span>
+              )}
           </div>
           {metaLine}
                     {showWaterButton && (
@@ -224,6 +235,12 @@ export function PlantSummary({
             {plant.name}
           </span>
           {badge}
+            {(plant.strain || plant.breeder) && (
+    <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+      {plant.strain || "Unknown"}
+      {plant.breeder && ` · ${plant.breeder}`}
+    </span>
+            )}
         </div>
         {metaLine}
       </div>
