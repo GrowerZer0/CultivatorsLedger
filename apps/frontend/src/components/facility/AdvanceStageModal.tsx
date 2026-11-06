@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, X, Loader2, Lightbulb, Scissors } from "lucide-react";
 import { advancePlantStage, revertPlantStage } from "@/server/actions/stages";
 import { useRouter } from "next/navigation";
@@ -21,12 +21,8 @@ interface AdvanceStageModalProps {
   light?: LightInfo | null;
 }
 
-// "harvest" is not a stage — it is an event captured on the flowering → dry
-// transition. See stages.ts: advancePlantStage requires harvestData when
-// newStage === "dry".
 const STAGE_ORDER = ["seedling", "vegetative", "flowering", "dry", "cure", "archived"];
 
-// Recommendations used to *prefill* the form. The user can override.
 function recommendLight(nextStage: string): { hours: number; dimmer: number } {
   if (nextStage === "flowering") return { hours: 12, dimmer: 100 };
   if (nextStage === "vegetative") return { hours: 18, dimmer: 100 };
@@ -43,21 +39,37 @@ export function AdvanceStageModal({
   light,
 }: AdvanceStageModalProps) {
   const router = useRouter();
+
+  // ═══ ALL useState HOOKS AT THE TOP — no conditional returns before this ═══
   const [loading, setLoading] = useState(false);
   const [isReverting, setIsReverting] = useState(false);
   const [revertStage, setRevertStage] = useState("");
-
-  // Harvest data — collected on the flowering → dry transition.
   const [wetWeight, setWetWeight] = useState("");
   const [dryingMethod, setDryingMethod] = useState("hang_whole");
 
-  if (!isOpen) return null;
+  const [updateLight, setUpdateLight] = useState(true);
+  const [lightHoursOn, setLightHoursOn] = useState<number>(18);
+  const [lightDimmer, setLightDimmer] = useState<number>(100);
+  const [lightDistance, setLightDistance] = useState<number | "">("");
 
+  // Compute nextStage from currentStage (pure, no hooks)
   const currentIndex = STAGE_ORDER.indexOf(currentStage.toLowerCase());
   const nextStage =
     currentIndex !== -1 && currentIndex < STAGE_ORDER.length - 1
       ? STAGE_ORDER[currentIndex + 1]
       : null;
+
+  // Sync light form values when the modal opens or the target stage changes.
+  useEffect(() => {
+    if (!nextStage) return;
+    const rec = recommendLight(nextStage);
+    setLightHoursOn(light?.scheduleHoursOn ?? rec.hours);
+    setLightDimmer(light?.dimmerPercent ?? rec.dimmer);
+    setLightDistance(light?.distanceInches ?? "");
+  }, [nextStage, light]);
+
+  // ═══ CONDITIONAL RETURNS AFTER ALL HOOKS ═══
+  if (!isOpen) return null;
 
   if (!nextStage) {
     return (
@@ -77,24 +89,9 @@ export function AdvanceStageModal({
     );
   }
 
-  // The flowering → dry transition is the harvest moment.
   const isHarvestTransition = nextStage === "dry";
   const showLightForm =
     !!light && nextStage !== "dry" && nextStage !== "archived";
-
-  // Initial light form values: current light settings, falling back to rec.
-  const rec = recommendLight(nextStage);
-  const initHours = light?.scheduleHoursOn ?? rec.hours;
-  const initDimmer = light?.dimmerPercent ?? rec.dimmer;
-  const initDistance = light?.distanceInches ?? null;
-
-  // Editable light state — hoisted to component scope.
-  const [updateLight, setUpdateLight] = useState(true);
-  const [lightHoursOn, setLightHoursOn] = useState<number>(initHours);
-  const [lightDimmer, setLightDimmer] = useState<number>(initDimmer);
-  const [lightDistance, setLightDistance] = useState<number | "">(
-    initDistance === null ? "" : initDistance,
-  );
 
   const handleAdvance = async () => {
     if (nextStage === "dry" && !wetWeight) {
@@ -124,10 +121,10 @@ export function AdvanceStageModal({
     const lightOverride =
       showLightForm && updateLight
         ? {
-          scheduleHoursOn: lightHoursOn,
-          dimmerPercent: lightDimmer,
-          distanceInches: lightDistance === "" ? null : lightDistance,
-        }
+            scheduleHoursOn: lightHoursOn,
+            dimmerPercent: lightDimmer,
+            distanceInches: lightDistance === "" ? null : lightDistance,
+          }
         : undefined;
 
     const res = await advancePlantStage(
@@ -219,7 +216,6 @@ export function AdvanceStageModal({
           </div>
         </div>
 
-        {/* HARVEST FORM — flowering → dry */}
         {isHarvestTransition && (
           <div className="mb-6 p-4 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl space-y-3">
             <div className="flex items-center gap-2 text-zinc-900 dark:text-white font-bold mb-1">
@@ -258,7 +254,6 @@ export function AdvanceStageModal({
           </div>
         )}
 
-        {/* Archive Confirmation UI */}
         {nextStage === "archived" && (
           <div className="mb-6 p-4 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl space-y-2 text-center">
             <p className="text-sm font-bold text-zinc-900 dark:text-white">
@@ -266,13 +261,11 @@ export function AdvanceStageModal({
             </p>
             <p className="text-xs text-zinc-500">
               This will hide the plant from your dashboard and plants list. You
-              can still view it and export its data from the Archived Grows
-              page.
+              can still view it and export its data from the Archived Grows page.
             </p>
           </div>
         )}
 
-        {/* LIGHT FORM — editable, prefilled with current values + recs */}
         {showLightForm && (
           <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl">
             <div className="flex items-start gap-3">
@@ -360,10 +353,11 @@ export function AdvanceStageModal({
           <button
             onClick={handleAdvance}
             disabled={loading}
-            className={`px-4 py-2 rounded-lg text-white text-sm font-bold flex items-center gap-2 transition-colors ${nextStage === "archived"
+            className={`px-4 py-2 rounded-lg text-white text-sm font-bold flex items-center gap-2 transition-colors ${
+              nextStage === "archived"
                 ? "bg-zinc-800 hover:bg-zinc-700"
                 : "bg-emerald-600 hover:bg-emerald-500"
-              }`}
+            }`}
           >
             {loading ? (
               <Loader2 className="size-4 animate-spin" />

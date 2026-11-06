@@ -18,7 +18,6 @@ import {
   Camera,
   ArrowRight,
   Scissors,
-  Link2,
   AlertTriangle
 } from "lucide-react";
 import {
@@ -34,12 +33,10 @@ import {
 import { EditPlantModal } from "@/components/facility/EditPlantModal";
 import { GROWTH_STAGES, getStageFromDays, getStageProgress } from "@/lib/growth-stages";
 import type { PlantWithDetails } from "@/types/plant";
-import { PhotoUploadModal } from "@/components/photos/PhotoUploadModal";
 import { AdvanceStageModal } from "../../../../components/facility/AdvanceStageModal";
 import { Light } from "@prisma/client";
 import { DryCureTracker } from "../../../../components/facility/DryCureTracker";
 import { deletePlant } from "@/server/actions/plant-mgmt";
-import { LogReadingButton } from "@/components/dashboard/LogReadingButton";
 import { PlantSummary } from "@/components/plants/PlantSummary";
 import { stageLabel as getStageLabel, weekLabel as getWeekLabel } from "@/lib/stage-label";
 import { ExportButton } from "@/components/export/ExportButton";
@@ -320,14 +317,6 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
               title="Log an issue"
             >
               <AlertTriangle className="size-4" />
-            </button>
-            <LogReadingButton plantId={plant.id} returnTo="/dashboard" />
-            <button
-              onClick={() => setIsPhotoModalOpen(true)}
-              className="px-3 py-1.5 text-xs font-bold bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg transition-colors flex items-center gap-1"
-            >
-              <Camera className="size-3.5" />
-              <span className="hidden sm:inline">Photo</span>
             </button>
             <ExportButton mode="plant" plantId={currentPlant.id} canExport={canExport ?? false} />
             <button
@@ -748,12 +737,6 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
         lights={lights}
         allPlants={allPlants}
         onPlantUpdated={handlePlantUpdated}
-      />
-      <PhotoUploadModal
-        isOpen={isPhotoModalOpen}
-        onClose={() => setIsPhotoModalOpen(false)}
-        plantId={currentPlant.id}
-        plantName={currentPlant.name}
       />
       <AdvanceStageModal
         isOpen={isAdvanceStageOpen}
