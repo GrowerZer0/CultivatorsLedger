@@ -26,6 +26,7 @@ export interface Plant {
   currentWeightTimestamp?: string | null;
   lightId?: string | null;
   lastSourceDevice?: string | null;
+  nutrientLine?: string | null;
 }
 
 export interface PlantPhoto {

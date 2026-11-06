@@ -44,6 +44,7 @@ import { PlantHardwareCard } from "@/components/plants/PlantHardwareCard";
 import { IrrigationModal } from "@/components/plants/IrrigationModal";
 import { StageTracker } from "@/components/plants/StageTracker";
 import { SOSModal } from "@/components/plants/SOSModal";
+import { NutrientTargetsCard } from "@/components/plants/NutrientTargetsCard";
 
 interface PlantDetailClientProps {
   plant: PlantWithDetails;
@@ -289,8 +290,8 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
           </div>
 
           {/* Action Buttons grouped and aligned right */}
-<div className="flex items-center gap-2 shrink-0 flex-wrap">
-              <button
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            <button
               onClick={handleOpenEdit}
               className="px-3 py-1.5 text-xs font-bold bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg transition-colors flex items-center gap-1"
             >
@@ -397,6 +398,13 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
         }}
         onAdvance={() => setIsAdvanceStageOpen(true)}
       />
+      {/* Nutrient Targets — Phase A */}
+      {isStandardStage && (
+        <NutrientTargetsCard
+          stage={detectedStage}
+          nutrientLine={currentPlant.nutrientLine ?? null}
+        />
+      )}
       {/* Hardware (Scale, Light, Room Environment) */}
       <PlantHardwareCard
         plantId={currentPlant.id}
