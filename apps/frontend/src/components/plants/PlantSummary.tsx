@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Droplet } from "lucide-react";
+import { Droplet, Loader2, CheckCircle2 } from "lucide-react";
 import { WeightInput } from "@/components/dashboard/WeightInput";
 import type { Plant } from "@/types/plant";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getCureEvents, logCureEvent } from "@/server/actions/cure";
 import { CureLogModal } from "@/components/plants/CureLogModal";
 
 function DryCureSummaryRow({
@@ -21,6 +22,63 @@ function DryCureSummaryRow({
   href: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isBurping, setIsBurping] = useState(false);
+  const [burpsToday, setBurpsToday] = useState<number | null>(null);
+  const [burpError, setBurpError] = useState<string | null>(null);
+
+  // Load burp count on mount
+  useEffect(() => {
+    if (!isCure) return;
+    let cancelled = false;
+    getCureEvents(plant.id)
+      .then((rows) => {
+        if (cancelled) return;
+        const today = new Date().toDateString();
+        const count = rows.filter(
+          (e) =>
+            e.eventType === "burp" &&
+            new Date(e.occurredAt).toDateString() === today,
+        ).length;
+        setBurpsToday(count);
+      })
+      .catch(() => {
+        if (!cancelled) setBurpsToday(0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [plant.id, isCure]);
+
+  const cureDays = plant.currentStageStartedAt
+    ? Math.floor(
+        (Date.now() - new Date(plant.currentStageStartedAt).getTime()) /
+          86_400_000,
+      )
+    : 0;
+  const expectedBurpsToday = cureDays < 7 ? 2 : 1;
+  const burpsRemaining =
+    burpsToday === null
+      ? null
+      : Math.max(0, expectedBurpsToday - burpsToday);
+
+  const handleLogBurp = async () => {
+    setIsBurping(true);
+    setBurpError(null);
+    const res = await logCureEvent({ plantId: plant.id, eventType: "burp" });
+    setIsBurping(false);
+    if (!res.success) {
+      setBurpError(res.error);
+      return;
+    }
+    setBurpsToday((n) => (n ?? 0) + 1);
+  };
+
+  const burpLabel =
+    burpsRemaining === null
+      ? "Log Burp"
+      : burpsRemaining === 0
+        ? "Burped today"
+        : `Log Burp (${burpsRemaining} left)`;
 
   return (
     <>
@@ -69,27 +127,51 @@ function DryCureSummaryRow({
             </div>
           </div>
         </Link>
-        <button
-          onClick={() => setIsOpen(true)}
-          className={`shrink-0 px-2.5 py-1.5 rounded-lg text-white text-xs font-bold transition-colors ${
-            isCure
-              ? "bg-emerald-600 hover:bg-emerald-500"
-              : "bg-amber-600 hover:bg-amber-500"
-          }`}
-        >
-          {isCure ? "Log Burp" : "Log Weight"}
-        </button>
+
+        {isCure ? (
+          <div className="shrink-0 flex flex-col items-end gap-1">
+            <button
+              onClick={handleLogBurp}
+              disabled={isBurping || burpsRemaining === 0}
+              className={`px-2.5 py-1.5 rounded-lg text-white text-xs font-bold transition-colors flex items-center gap-1 ${
+                burpsRemaining === 0
+                  ? "bg-zinc-600 opacity-60 cursor-not-allowed"
+                  : "bg-emerald-600 hover:bg-emerald-500"
+              } disabled:opacity-60`}
+            >
+              {isBurping ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : burpsRemaining === 0 ? (
+                <CheckCircle2 className="size-3.5" />
+              ) : null}
+              {burpLabel}
+            </button>
+            {burpError && (
+              <span className="text-[10px] text-red-500">{burpError}</span>
+            )}
+          </div>
+        ) : (
+          <button
+            onClick={() => setIsOpen(true)}
+            className="shrink-0 px-2.5 py-1.5 rounded-lg text-white text-xs font-bold transition-colors bg-amber-600 hover:bg-amber-500"
+          >
+            Log Weight
+          </button>
+        )}
       </div>
 
-      <CureLogModal
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        plantId={plant.id}
-        plantName={plant.name}
-        stage={isCure ? "cure" : "dry"}
-        lastWeight={latestWeight}
-        cureStartedAt={plant.currentStageStartedAt ?? null}
-      />
+      {/* Dry-only modal for weight logging (still uses tracker) */}
+      {!isCure && (
+        <CureLogModal
+          isOpen={isOpen}
+          onClose={() => setIsOpen(false)}
+          plantId={plant.id}
+          plantName={plant.name}
+          stage="dry"
+          lastWeight={latestWeight}
+          cureStartedAt={plant.currentStageStartedAt ?? null}
+        />
+      )}
     </>
   );
 }
