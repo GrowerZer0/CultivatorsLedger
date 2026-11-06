@@ -166,6 +166,13 @@ const [wateringPlantId, setWateringPlantId] = useState<string | null>(null);
           <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">Dashboard</h1>
           <p className="text-[11px] text-zinc-500 dark:text-zinc-400">{initialData.summary}</p>
         </div>
+        <button
+          onClick={() => setIsStartGrowModalOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
+        >
+          <Sprout className="size-3.5" />
+          Start New Grow
+        </button>
       </div>
 
       <SensorStatusBanner sensors={initialData.sensorStatus} />

@@ -8,18 +8,18 @@ import { z } from "zod";
 export async function getAvailableLoadCells() {
   const userId = await getUserId();
   if (!userId) return [];
-  const sensors = await db.sensorConfig.findMany({
+  
+  return await db.sensorConfig.findMany({
     where: {
       userId,
       isActive: true,
       plantId: null,
+      roomId: null,
+      type: "esp32-loadcell",
     },
     select: { id: true, name: true, type: true },
     orderBy: { name: "asc" },
   });
-  return sensors.filter((s) =>
-    /load|weight|scale|esp32/i.test(`${s.name} ${s.type}`),
-  );
 }
 
 export async function assignSensorToPlant(data: unknown) {

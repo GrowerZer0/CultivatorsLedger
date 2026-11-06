@@ -73,7 +73,8 @@ useEffect(() => {
       const small = rows.find((s) => /small/i.test(s.name));
       if (small) setLoadCellId(small.id);
     })
-    .catch(() => {
+    .catch((err) => {
+        console.error("Failed to fetch load cells:", err);
       if (!cancelled) setSensors([]);
     })
     .finally(() => {
@@ -202,6 +203,8 @@ useEffect(() => {
     router.push(`/plants/${res.plant.id}`);
     router.refresh();
   };
+
+    if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
