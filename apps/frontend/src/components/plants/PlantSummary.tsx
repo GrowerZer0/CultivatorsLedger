@@ -124,6 +124,7 @@ export function PlantSummary({
           plantId={plant.id}
           stage={plant.stage as "dry" | "cure"}
           lastWeight={latestWeight}
+          cureStartedAt={plant.currentStageStartedAt ?? null}
         />
       </div>
     );

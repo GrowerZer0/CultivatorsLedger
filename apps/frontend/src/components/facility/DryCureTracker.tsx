@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import { Scale, Droplet, CheckCircle2, Loader2 } from "lucide-react";
 import { saveSeedlingCheck } from "@/server/actions/seedling";
-import { logCureEvent, getCureEvents } from "@/server/actions/cure";
+import { logCureEvent, getCureEvents, deleteCureEvent } from "@/server/actions/cure";
 
 interface DryCureTrackerProps {
   plantId: string;
   stage: string;
   lastWeight: number | null;
+  cureStartedAt?: string | null;
 }
 
 interface CureEventRow {
@@ -19,11 +20,17 @@ interface CureEventRow {
   notes: string | null;
 }
 
-export function DryCureTracker({ plantId, stage, lastWeight }: DryCureTrackerProps) {
+export function DryCureTracker({
+  plantId,
+  stage,
+  lastWeight,
+  cureStartedAt,
+}: DryCureTrackerProps) {
   const [weight, setWeight] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isBurping, setIsBurping] = useState(false);
   const [burpError, setBurpError] = useState<string | null>(null);
+  const [pendingBurpId, setPendingBurpId] = useState<string | null>(null);
 
   const [cureEvents, setCureEvents] = useState<CureEventRow[]>([]);
   const [eventsLoading, setEventsLoading] = useState(false);
@@ -50,12 +57,22 @@ export function DryCureTracker({ plantId, stage, lastWeight }: DryCureTrackerPro
     };
   }, [plantId, isDry]);
 
+  // Burp counts
+  const burpsToday = cureEvents.filter(
+    (e) =>
+      e.eventType === "burp" &&
+      new Date(e.occurredAt).toDateString() === new Date().toDateString(),
+  ).length;
+
+  const cureDays = cureStartedAt
+    ? Math.floor((Date.now() - new Date(cureStartedAt).getTime()) / 86_400_000)
+    : 0;
+  const expectedBurpsToday = cureDays < 7 ? 2 : 1;
+  const burpsRemaining = Math.max(0, expectedBurpsToday - burpsToday);
+
   const lastBurpAt = cureEvents[0]?.occurredAt
     ? new Date(cureEvents[0].occurredAt)
     : null;
-  const burpedToday =
-    lastBurpAt !== null &&
-    lastBurpAt.toDateString() === new Date().toDateString();
 
   const handleSave = async () => {
     const weightNum = parseFloat(weight);
@@ -82,6 +99,15 @@ export function DryCureTracker({ plantId, stage, lastWeight }: DryCureTrackerPro
       return;
     }
     setCureEvents((prev) => [res.event, ...prev]);
+    setPendingBurpId(res.event.id);
+    setTimeout(() => setPendingBurpId(null), 5000);
+  };
+
+  const handleUndoBurp = async () => {
+    if (!pendingBurpId) return;
+    await deleteCureEvent(pendingBurpId);
+    setCureEvents((prev) => prev.filter((e) => e.id !== pendingBurpId));
+    setPendingBurpId(null);
   };
 
   return (
@@ -120,24 +146,29 @@ export function DryCureTracker({ plantId, stage, lastWeight }: DryCureTrackerPro
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Today's Action — reads burp history */}
+          {/* Today's Action */}
           <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700 flex flex-col justify-center items-center text-center">
             <p className="text-xs font-bold text-zinc-500 uppercase mb-2">Today&apos;s Action</p>
             {eventsLoading ? (
               <Loader2 className="size-4 animate-spin text-zinc-400" />
-            ) : burpedToday ? (
+            ) : burpsToday >= expectedBurpsToday ? (
               <p className="text-sm font-bold text-emerald-500 flex items-center gap-1">
-                <CheckCircle2 className="size-4" /> Burped today
+                <CheckCircle2 className="size-4" /> Done for today ({burpsToday}/{expectedBurpsToday})
               </p>
             ) : (
-              <button
-                onClick={handleBurp}
-                disabled={isBurping}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                {isBurping && <Loader2 className="size-4 animate-spin" />}
-                Log Burp (Open Jars)
-              </button>
+              <div className="space-y-2">
+                <button
+                  onClick={handleBurp}
+                  disabled={isBurping}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50 flex items-center gap-2 mx-auto"
+                >
+                  {isBurping && <Loader2 className="size-4 animate-spin" />}
+                  Log Burp
+                </button>
+                <p className="text-[10px] text-zinc-500">
+                  {burpsToday}/{expectedBurpsToday} today · {burpsRemaining} remaining
+                </p>
+              </div>
             )}
             {lastBurpAt && (
               <p className="text-[10px] text-zinc-400 mt-2">
@@ -155,7 +186,9 @@ export function DryCureTracker({ plantId, stage, lastWeight }: DryCureTrackerPro
             {burpError && (
               <p className="text-[10px] text-red-500 mt-2">{burpError}</p>
             )}
-            <p className="text-[10px] text-zinc-400 mt-2">Burp twice daily in Week 1.</p>
+            <p className="text-[10px] text-zinc-400 mt-2">
+              {cureDays < 7 ? "Burp twice daily in Week 1." : "Burp once daily."}
+            </p>
           </div>
 
           <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700 flex flex-col justify-center">
@@ -178,6 +211,19 @@ export function DryCureTracker({ plantId, stage, lastWeight }: DryCureTrackerPro
         >
           {isSaving ? <Loader2 className="size-5 animate-spin" /> : "Log Weight"}
         </button>
+      )}
+
+      {/* Undo toast */}
+      {pendingBurpId && (
+        <div className="fixed bottom-4 right-4 bg-zinc-900 text-white px-4 py-2 rounded-lg shadow-xl z-50 flex items-center gap-3">
+          <span className="text-sm">Burp logged</span>
+          <button
+            onClick={handleUndoBurp}
+            className="text-emerald-400 font-bold hover:underline text-sm"
+          >
+            Undo
+          </button>
+        </div>
       )}
     </div>
   );

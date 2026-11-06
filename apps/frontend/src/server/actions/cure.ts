@@ -88,3 +88,20 @@ export async function getCureEvents(plantId: string) {
     notes: e.notes,
   }));
 }
+
+export async function deleteCureEvent(eventId: string) {
+  try {
+    const userId = await getUserId();
+    if (!userId) return { success: false as const, error: "Unauthorized" };
+
+    await db.cureEvent.deleteMany({
+      where: { id: eventId, userId },
+    });
+
+    revalidatePath("/dashboard");
+    return { success: true as const };
+  } catch (error) {
+    console.error("deleteCureEvent error:", error);
+    return { success: false as const, error: "Failed to delete burp" };
+  }
+}
