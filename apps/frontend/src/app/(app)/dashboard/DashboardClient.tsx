@@ -35,6 +35,7 @@ interface DashboardClientProps {
     batches: any[];
     lights: any[];
     actionItems: any[];
+    activePlantCount: number;
     roomClimateReadings: Record<string, any>;
     lightsByRoom: Record<string, any[]>;
   };
@@ -185,7 +186,10 @@ const [wateringPlantId, setWateringPlantId] = useState<string | null>(null);
         </div>
       )}
 
-      <ActionCenter items={initialData.actionItems || []} />
+      <ActionCenter 
+      items={initialData.actionItems || []}
+      activePlantCount={initialData.activePlantCount || 0}
+      />
 
       {/* Room Summaries */}
       {rooms.length > 0 && (

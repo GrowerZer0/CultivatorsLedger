@@ -12,13 +12,22 @@ interface ActionItem {
   feed: string;
 }
 
-export function ActionCenter({ items }: { items: ActionItem[] }) {
-  if (items.length === 0) {
+interface ActionCenterProps {
+  items: ActionItem[];
+  activePlantCount: number;
+}
+
+export function ActionCenter({ items, activePlantCount }: ActionCenterProps) {
+ if (items.length === 0) {
     return (
       <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/50 rounded-2xl p-6 text-center">
-        <h3 className="text-emerald-800 dark:text-emerald-300 font-bold text-lg">✅ All caught up</h3>
+        <h3 className="text-emerald-800 dark:text-emerald-300 font-bold text-lg">
+          ✅ All caught up
+        </h3>
         <p className="text-emerald-600 dark:text-emerald-400 text-sm mt-1">
-          No plants need water right now. Your garden is happy.
+          {activePlantCount === 0
+            ? "No active plants. Start a grow to see watering suggestions."
+            : `${activePlantCount} plant${activePlantCount === 1 ? "" : "s"} tracked — none need water right now.`}
         </p>
       </div>
     );

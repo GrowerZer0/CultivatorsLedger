@@ -140,9 +140,9 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
     latestLog?.sourceDevice?.toLowerCase().includes("small") ||
     currentPlant?.stage === "seedling" ||
     false;
-const daysSinceStart = currentPlant?.startDate
-  ? Math.floor((Date.now() - new Date(currentPlant.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1
-  : 0;
+  const daysSinceStart = currentPlant?.startDate
+    ? Math.floor((Date.now() - new Date(currentPlant.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1
+    : 0;
 
   // Growth Stage
   const detectedStage = currentPlant?.stage || getStageFromDays(daysSinceStart);
@@ -261,7 +261,7 @@ const daysSinceStart = currentPlant?.startDate
     <div className="max-w-5xl mx-auto p-4 space-y-6">
       {/* Header */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
           <div className="flex items-center gap-3">
             <Link
               href="/plants"
@@ -292,8 +292,8 @@ const daysSinceStart = currentPlant?.startDate
           </div>
 
           {/* Action Buttons grouped and aligned right */}
-          <div className="flex items-center gap-2 shrink-0">
-            <button
+<div className="flex items-center gap-2 shrink-0 flex-wrap">
+              <button
               onClick={handleOpenEdit}
               className="px-3 py-1.5 text-xs font-bold bg-zinc-700 hover:bg-zinc-600 text-white rounded-lg transition-colors flex items-center gap-1"
             >
@@ -780,11 +780,11 @@ const daysSinceStart = currentPlant?.startDate
         useGrams={useGrams}
       />
       <SOSModal
-  isOpen={isSOSOpen}
-  onClose={() => setIsSOSOpen(false)}
-  plantId={currentPlant.id}
-  plantName={currentPlant.name}
-/>
+        isOpen={isSOSOpen}
+        onClose={() => setIsSOSOpen(false)}
+        plantId={currentPlant.id}
+        plantName={currentPlant.name}
+      />
     </div>
   );
 }

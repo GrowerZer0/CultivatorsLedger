@@ -198,7 +198,8 @@ export default async function DashboardWrapper() {
         rooms: rooms,
         batches: batches,
         lights: lights,
-        actionItems,
+actionItems: actionItems.items,
+activePlantCount: actionItems.activePlantCount,
         roomClimateReadings: roomReadingsByRoom,
         lightsByRoom,
       }}

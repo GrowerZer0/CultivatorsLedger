@@ -6,13 +6,13 @@ import { getWateringStatus, getFeedSchedule } from "@/lib/cultivation-engine"; /
 
 export async function getActionCenterData() {
   const userId = await getUserId();
-  if (!userId) return [];
+  if (!userId) return { items: [], activePlantCount: 0 };
 
   const plants = await db.plant.findMany({
-    where: { 
+    where: {
       userId,
       archivedAt: null,
-      stage: { notIn: ["harvest", "dry", "cure"] }
+      stage: { notIn: ["harvest", "dry", "cure"] },
     },
     include: {
       dryBackLogs: {
@@ -32,27 +32,35 @@ export async function getActionCenterData() {
   for (const plant of plants) {
     const latestLog = plant.dryBackLogs[0];
     const activeEvent = plant.stageEvents[0];
-    
-    if (!activeEvent) continue; // Skip if no active stage is tracked
 
-    // 1. Calculate current week based on the active StageEvent
-    const daysInStage = Math.floor((Date.now() - new Date(activeEvent.startedAt).getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    const currentWeek = Math.floor(daysInStage / 7) + 1;
+    // Week: fall back to days since plant.startDate if no StageEvent
+    let currentWeek: number;
+    if (activeEvent) {
+      const daysInStage =
+        Math.floor(
+          (Date.now() - new Date(activeEvent.startedAt).getTime()) / 86_400_000,
+        ) + 1;
+      currentWeek = Math.floor(daysInStage / 7) + 1;
+    } else if (plant.startDate) {
+      const daysSinceStart =
+        Math.floor(
+          (Date.now() - new Date(plant.startDate).getTime()) / 86_400_000,
+        ) + 1;
+      currentWeek = Math.floor(daysSinceStart / 7) + 1;
+    } else {
+      currentWeek = 1;
+    }
 
-    // 2. Get the dryback percentage
     const dryback = latestLog ? Number(latestLog.dryBackPercent) : null;
-
-    // 3. Run the rules engine
     const waterStatus = getWateringStatus(dryback);
-    
-    // 4. If it doesn't need water, we don't put it in the Action Center (for now)
+
     if (!waterStatus.needsWater) continue;
 
     const feed = getFeedSchedule(
-      plant.substrate || "happy_frog", 
-      plant.nutrientLine || "gh_flora", 
-      plant.stage as any, 
-      currentWeek
+      plant.substrate || "happy_frog",
+      plant.nutrientLine || "gh_flora",
+      plant.stage as any,
+      currentWeek,
     );
 
     actionItems.push({
@@ -67,6 +75,10 @@ export async function getActionCenterData() {
     });
   }
 
-  // Sort by severity (critical first)
-  return actionItems.sort((a, b) => (a.severity === "critical" ? -1 : 1));
+  return {
+    items: actionItems.sort((a, b) =>
+      a.severity === "critical" ? -1 : 1,
+    ),
+    activePlantCount: plants.length,
+  };
 }
