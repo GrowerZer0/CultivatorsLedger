@@ -777,7 +777,9 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
         onClose={() => setIsIrrigationOpen(false)}
         plantId={currentPlant.id}
         plantName={currentPlant.name}
-        currentWeight={weight}
+currentWeight={
+  weight !== null && weight !== undefined ? Number(weight) : null
+}
         useGrams={useGrams}
       />
       <SOSModal

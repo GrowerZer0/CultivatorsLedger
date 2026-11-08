@@ -21,6 +21,10 @@ export function IrrigationModal({
   isOpen,
   onClose,
 }: IrrigationModalProps) {
+  const currentWeightNum: number | null =
+  currentWeight !== null && currentWeight !== undefined
+    ? Number(currentWeight)
+    : null;
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -103,7 +107,11 @@ export function IrrigationModal({
                 step="0.1"
                 value={preWeight}
                 onChange={(e) => setPreWeight(e.target.value)}
-                placeholder={currentWeight ? currentWeight.toFixed(1) : "e.g. 12.5"}
+                placeholder={
+                  currentWeightNum !== null
+                    ? currentWeightNum.toFixed(1)
+                    : "e.g. 12.5"
+                }
                 className="w-full mt-1 px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm font-mono"
               />
             </div>
