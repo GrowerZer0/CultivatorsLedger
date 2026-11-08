@@ -1,16 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import { FlaskConical, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, ArrowDown, ArrowUp } from "lucide-react";
+import {
+  FlaskConical,
+  ChevronDown,
+  ChevronUp,
+  ArrowDown,
+  ArrowUp,
+  CheckCircle2,
+  Sprout,
+} from "lucide-react";
 import {
   NUTRIENT_TARGETS,
   computeSuppliedMgPerL,
   compareToTargets,
   type ComparisonRow,
 } from "@/lib/nutrient-model";
+import {
+  SUBSTRATE_PROFILES,
+  computeSubstrateContribution,
+} from "@/lib/substrate-profiles";
 
-// A few common product lines, predefined. Can be expanded later.
-// Values are from the product labels (guaranteed analysis).
 const PRODUCT_LINES: Record<
   string,
   {
@@ -44,13 +54,41 @@ const PRODUCT_LINES: Record<
 interface NutrientTargetsCardProps {
   stage: string;
   nutrientLine?: string | null;
+  substrate?: string | null;
+  containerGallons?: number | null;
+  weeksIntoGrow?: number | null;
 }
 
-export function NutrientTargetsCard({ stage, nutrientLine }: NutrientTargetsCardProps) {
+export function NutrientTargetsCard({
+  stage,
+  nutrientLine,
+  substrate,
+  containerGallons,
+  weeksIntoGrow,
+}: NutrientTargetsCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [activeLine, setActiveLine] = useState<string>(
     nutrientLine && PRODUCT_LINES[nutrientLine] ? nutrientLine : "gh_flora",
   );
+
+  // Substrate: default to plant's value, fall back to inert (safe default)
+  const [activeSubstrate, setActiveSubstrate] = useState<string>(() => {
+    if (substrate && SUBSTRATE_PROFILES[substrate]) return substrate;
+    // Common plant.substrate values → profile id mapping
+    if (substrate === "happy_frog") return "happy_frog";
+    if (substrate === "coco") return "coco_perlite";
+    // Coco/perlite/vermiculite is the user's actual mix — matches inert profile
+    return "coco_perlite_vermiculite";
+  });
+
+  // Week into grow: default from prop, user can override
+  const [weekOverride, setWeekOverride] = useState<number | null>(
+    weeksIntoGrow ?? null,
+  );
+
+  const effectiveWeek = weekOverride ?? weeksIntoGrow ?? 0;
+  const effectivePotGal = containerGallons ?? 5.0;
+
   const [doses, setDoses] = useState<Record<string, number>>(() => {
     const initial: Record<string, number> = {};
     for (const p of PRODUCT_LINES[activeLine]?.products ?? []) {
@@ -62,9 +100,10 @@ export function NutrientTargetsCard({ stage, nutrientLine }: NutrientTargetsCard
   const stageKey = (stage || "vegetative").toLowerCase();
   const stageData = NUTRIENT_TARGETS[stageKey] ?? NUTRIENT_TARGETS.vegetative;
   const productLine = PRODUCT_LINES[activeLine];
+  const substrateProfile = SUBSTRATE_PROFILES[activeSubstrate];
 
-  // Compute supplied nutrients from all products at user's doses
-  const supplied = productLine.products.reduce(
+  // Product contribution
+  const suppliedFromProducts = productLine.products.reduce(
     (acc, p) => {
       const ml = doses[p.name] ?? 0;
       const s = computeSuppliedMgPerL(p.guaranteedPct, ml);
@@ -79,7 +118,31 @@ export function NutrientTargetsCard({ stage, nutrientLine }: NutrientTargetsCard
     { N: 0, P: 0, K: 0, Ca: 0, Mg: 0 },
   );
 
-  const comparisons = compareToTargets(supplied, stageData.targets);
+  // Substrate contribution
+  const suppliedFromSubstrate = {
+    N: computeSubstrateContribution(substrateProfile, "N", effectiveWeek, effectivePotGal),
+    P: computeSubstrateContribution(substrateProfile, "P", effectiveWeek, effectivePotGal),
+    K: computeSubstrateContribution(substrateProfile, "K", effectiveWeek, effectivePotGal),
+    Ca: computeSubstrateContribution(substrateProfile, "Ca", effectiveWeek, effectivePotGal),
+    Mg: computeSubstrateContribution(substrateProfile, "Mg", effectiveWeek, effectivePotGal),
+  };
+
+  const totalSupplied = {
+    N: suppliedFromProducts.N + suppliedFromSubstrate.N,
+    P: suppliedFromProducts.P + suppliedFromSubstrate.P,
+    K: suppliedFromProducts.K + suppliedFromSubstrate.K,
+    Ca: suppliedFromProducts.Ca + suppliedFromSubstrate.Ca,
+    Mg: suppliedFromProducts.Mg + suppliedFromSubstrate.Mg,
+  };
+
+  const comparisons = compareToTargets(totalSupplied, stageData.targets);
+
+  // Recommendation: scale doses by (target/supplied) if materially under target
+  const nRow = comparisons.find((c) => c.element === "N");
+  const scaleRecommendation =
+    nRow && nRow.verdict === "low" && nRow.supplied > 0
+      ? Math.round((stageData.targets.N / nRow.supplied) * 100) / 100
+      : null;
 
   return (
     <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
@@ -124,10 +187,55 @@ export function NutrientTargetsCard({ stage, nutrientLine }: NutrientTargetsCard
             </div>
           </div>
 
+          {/* Substrate block */}
+          <div>
+            <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+              <Sprout className="size-3" />
+              Substrate
+            </h4>
+            <div className="grid grid-cols-2 gap-2">
+              <select
+                value={activeSubstrate}
+                onChange={(e) => setActiveSubstrate(e.target.value)}
+                className="px-2 py-1.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded text-xs"
+              >
+                {Object.entries(SUBSTRATE_PROFILES).map(([id, p]) => (
+                  <option key={id} value={id}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-zinc-500">Week</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={effectiveWeek}
+                  onChange={(e) => setWeekOverride(Number(e.target.value))}
+                  className="w-14 px-2 py-1.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded text-xs font-mono text-right"
+                />
+                <span className="text-[10px] text-zinc-400">
+                  / {substrateProfile.releaseWeeks || "inert"}
+                </span>
+              </div>
+            </div>
+            {substrateProfile.releaseWeeks > 0 && (
+              <p className="text-[10px] text-zinc-500 mt-1.5">
+                {substrateProfile.notes}
+              </p>
+            )}
+            {substrateProfile.releaseWeeks === 0 && (
+              <p className="text-[10px] text-zinc-500 mt-1.5">
+                Inert substrate — no contribution. All nutrients from feed.
+              </p>
+            )}
+          </div>
+
           {/* Product line + doses */}
           <div>
             <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5">
-              Your mix (mL/gal)
+              Your feed (mL/gal)
             </h4>
             <select
               value={activeLine}
@@ -172,20 +280,36 @@ export function NutrientTargetsCard({ stage, nutrientLine }: NutrientTargetsCard
           {/* Comparison */}
           <div>
             <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5">
-              Supplied vs. target
+              Total supply vs. target
             </h4>
             <div className="space-y-1">
               {comparisons.map((c) => (
-                <ComparisonRowView key={c.element} row={c} />
+                <ComparisonRowView
+                  key={c.element}
+                  row={c}
+                  substrateContribution={suppliedFromSubstrate[c.element]}
+                />
               ))}
             </div>
           </div>
 
+          {/* Scale recommendation */}
+          {scaleRecommendation && scaleRecommendation > 1.15 && (
+            <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 text-xs">
+              <span className="font-bold text-amber-900 dark:text-amber-300">
+                Under-target on N.
+              </span>{" "}
+              <span className="text-amber-800 dark:text-amber-400">
+                Increase all feed doses by ~{Math.round((scaleRecommendation - 1) * 100)}%
+                to hit the target. Re-check runoff EC after the next watering.
+              </span>
+            </div>
+          )}
+
           <p className="text-[10px] text-zinc-500 italic pt-2 border-t border-zinc-100 dark:border-zinc-800">
-            Phase A: this shows whether your current mix matches published targets. It
-            doesn't subtract substrate contribution yet — if you're in Happy Frog
-            or another pre-charged soil, expect to need less than the target for the
-            first few weeks.
+            Phase B heuristic: substrate contribution is a calibrated model, not a
+            lab measurement. Pot size scales the contribution linearly; week drives
+            the release decay. Trust the plant's response over the model.
           </p>
         </div>
       )}
@@ -193,7 +317,13 @@ export function NutrientTargetsCard({ stage, nutrientLine }: NutrientTargetsCard
   );
 }
 
-function ComparisonRowView({ row }: { row: ComparisonRow }) {
+function ComparisonRowView({
+  row,
+  substrateContribution,
+}: {
+  row: ComparisonRow;
+  substrateContribution: number;
+}) {
   const verdictColor =
     row.verdict === "low"
       ? "text-amber-500"
@@ -213,6 +343,11 @@ function ComparisonRowView({ row }: { row: ComparisonRow }) {
       <span className="w-6 font-bold text-zinc-500">{row.element}</span>
       <span className="flex-1 text-zinc-700 dark:text-zinc-300 font-mono">
         {row.supplied.toFixed(0)} / {row.target} mg/L
+        {substrateContribution > 0 && (
+          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 ml-1">
+            (incl. {substrateContribution.toFixed(0)} from substrate)
+          </span>
+        )}
       </span>
       <span className={`font-mono text-[10px] ${verdictColor}`}>
         {row.pctOfTarget.toFixed(0)}%

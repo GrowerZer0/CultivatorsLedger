@@ -400,10 +400,20 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
       />
       {/* Nutrient Targets — Phase A */}
       {isStandardStage && (
-        <NutrientTargetsCard
-          stage={detectedStage}
-          nutrientLine={currentPlant.nutrientLine ?? null}
-        />
+<NutrientTargetsCard
+  stage={detectedStage}
+  nutrientLine={currentPlant.nutrientLine ?? null}
+  substrate={currentPlant.substrate ?? null}
+  containerGallons={currentPlant.containerGallons ?? null}
+  weeksIntoGrow={
+    currentPlant.startDate
+      ? Math.floor(
+          (Date.now() - new Date(currentPlant.startDate).getTime()) /
+            604_800_000,
+        )
+      : null
+  }
+/>
       )}
       {/* Hardware (Scale, Light, Room Environment) */}
       <PlantHardwareCard
