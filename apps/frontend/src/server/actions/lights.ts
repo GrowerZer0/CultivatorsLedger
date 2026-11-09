@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { serializePrisma } from "@/lib/serializePrisma";
 import { getUserId } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -56,8 +57,9 @@ export async function saveLight(data: unknown) {
 export async function getLights() {
   const userId = await getUserId();
   if (!userId) return [];
-  return db.light.findMany({
+  const lights = await db.light.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" },
   });
+  return serializePrisma(lights);
 }

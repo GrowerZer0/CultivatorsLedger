@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { serializePrisma } from "@/lib/serializePrisma";
 import { getUserId } from "@/lib/session";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -8,8 +9,7 @@ import { z } from "zod";
 export async function getAvailableLoadCells() {
   const userId = await getUserId();
   if (!userId) return [];
-  
-  return await db.sensorConfig.findMany({
+  const sensors = await db.sensorConfig.findMany({
     where: {
       userId,
       isActive: true,
@@ -20,6 +20,7 @@ export async function getAvailableLoadCells() {
     select: { id: true, name: true, type: true },
     orderBy: { name: "asc" },
   });
+  return serializePrisma(sensors);
 }
 
 export async function assignSensorToPlant(data: unknown) {

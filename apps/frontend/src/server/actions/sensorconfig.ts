@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getUserId } from "@/lib/session";
 import { randomBytes, createHash } from "crypto";
+import { serializePrisma } from "@/lib/serializePrisma";
 
 // Helper to hash API keys
 function hashKey(key: string): string {
@@ -19,29 +20,27 @@ function generateApiKey(): string {
 // ==========================================
 export async function getSensors() {
   const userId = await getUserId();
-  return await db.sensorConfig.findMany({
+  const sensors = await db.sensorConfig.findMany({
     where: { userId },
     include: {
-      plant: {
-        select: { id: true, name: true },
-      },
-      room: {
-        select: { id: true, name: true },
-      },
+      plant: { select: { id: true, name: true } },
+      room: { select: { id: true, name: true } },
     },
     orderBy: { createdAt: "desc" },
   });
+  return serializePrisma(sensors);
 }
 
 export async function getSensorById(id: string) {
   const userId = await getUserId();
-  return await db.sensorConfig.findFirst({
+  const sensor = await db.sensorConfig.findFirst({
     where: { id, userId },
     include: {
       plant: { select: { id: true, name: true } },
       room: { select: { id: true, name: true } },
     },
   });
+  return serializePrisma(sensor);
 }
 
 export async function createSensor(data: { 

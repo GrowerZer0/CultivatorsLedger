@@ -64,7 +64,7 @@ export function StartGrowModal({
       .then((rows) => {
         if (cancelled) return;
         setSensors(rows);
-        const small = rows.find((s) => /small/i.test(s.name));
+        const small = rows.find((s: SensorOption) => /small/i.test(s.name));
         if (small) setLoadCellId(small.id);
       })
       .catch((err) => {

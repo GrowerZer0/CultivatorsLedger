@@ -1,11 +1,10 @@
 "use server";
-import { db, prisma } from "@/lib/db";
+import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getUserId } from "@/lib/session";
 import { serializePrisma } from "@/lib/serializePrisma";
 import { z } from "zod";
 import { formatZodError, roomSchema } from "@/lib/validation";
-import error from "next/error";
 
 // ==========================================
 // FACILITY MANAGEMENT (ROOMS / TENTS)
@@ -120,9 +119,10 @@ export async function deleteRoom(roomId: unknown) {
 
 export async function fetchRooms() {
   const userId = await getUserId();
-  const rooms = await prisma.room.findMany({
+  const rooms = await db.room.findMany({
     where: { userId, deletedAt: null },
     select: { id: true, name: true, type: true },
+    orderBy: { name: "asc" },
   });
 
   return serializePrisma(rooms);
