@@ -348,7 +348,11 @@ export async function fetchPlants() {
         ...p,
         thumbnailUrl: sp ? urlByPath[sp] ?? null : null,
         photos: undefined,
-        currentWeight: p.currentWeight ?? (p.dryBackLogs[0] ? Number(p.dryBackLogs[0].currentWeightLbs) : null),
+        currentWeight: p.dryBackLogs[0]?.currentWeightLbs != null
+          ? Number(p.dryBackLogs[0].currentWeightLbs)
+          : p.currentWeight
+            ? Number(p.currentWeight)
+            : null,
         currentWeightTimestamp: p.dryBackLogs[0] ? p.dryBackLogs[0].timestamp.toISOString() : null,
         lastSourceDevice: p.dryBackLogs[0]?.sourceDevice ?? null,
         sensorConfigs: p.sensorConfigs || [],
