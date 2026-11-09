@@ -294,11 +294,8 @@ export async function recordIrrigation(data: {
         });
       }
 
-      // 4. Update plant currentWeight — ONLY if this is a "today" event
-      const todayIso = new Date().toISOString().split("T")[0];
-      const eventIsToday = !data.eventDate || data.eventDate === todayIso;
-
-      if (eventIsToday && data.postWeightLbs !== null) {
+      // 4. Update plant currentWeight. Always write — the column is a fallback
+      if (data.postWeightLbs !== null) {
         await tx.plant.update({
           where: { id: data.plantId },
           data: { currentWeight: data.postWeightLbs },
