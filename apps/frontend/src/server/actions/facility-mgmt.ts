@@ -11,10 +11,11 @@ import { formatZodError, roomSchema } from "@/lib/validation";
 // ==========================================
 export async function getRooms() {
   const userId = await getUserId();
-  return await db.room.findMany({
+const rooms = await db.room.findMany({
     where: { userId, deletedAt: null },
     orderBy: { createdAt: "asc" },
   });
+  return serializePrisma(rooms);
 }
 
 export async function createRoom(data: unknown) {
