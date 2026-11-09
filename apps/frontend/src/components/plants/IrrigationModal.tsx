@@ -27,7 +27,14 @@ export function IrrigationModal({
     : null;
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-
+const [eventDate, setEventDate] = useState<string>(() => {
+  const today = new Date();
+  // Local date string (not UTC) — matches what the user sees
+  const y = today.getFullYear();
+  const m = String(today.getMonth() + 1).padStart(2, "0");
+  const d = String(today.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+});
   const [preWeight, setPreWeight] = useState("");
   const [postWeight, setPostWeight] = useState("");
   const [watered, setWatered] = useState(true);
@@ -67,6 +74,7 @@ export function IrrigationModal({
         runoffEc: runoffEc ? parseFloat(runoffEc) : null,
         updateFieldCapacity: updateFc,
         notes: notes.trim() || null,
+        eventDate,
       });
 
       if (res.success) {
@@ -94,7 +102,18 @@ export function IrrigationModal({
             <X className="size-5" />
           </button>
         </div>
-
+<div>
+  <label className="text-xs font-bold text-zinc-600 dark:text-zinc-400 uppercase">
+    Date
+  </label>
+  <input
+    type="date"
+    value={eventDate}
+    max={new Date().toISOString().split("T")[0]}
+    onChange={(e) => setEventDate(e.target.value)}
+    className="w-full mt-1 px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm"
+  />
+</div>
         <form onSubmit={handleSubmit} className="p-4 space-y-4 max-h-[75vh] overflow-y-auto">
           {/* Pre/Post Weights */}
           <div className="grid grid-cols-2 gap-3">

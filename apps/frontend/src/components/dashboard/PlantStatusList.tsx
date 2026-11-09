@@ -10,7 +10,7 @@ interface PlantStatusListProps {
   isLoading?: boolean;
   onRefresh?: () => void;
   lastRefreshTime?: string;
-  onWater: (plantId: string) => void;
+  onWater?: (plantId: string) => void;
 }
 
 export function PlantStatusList({
@@ -67,6 +67,32 @@ export function PlantStatusList({
           )}
         </div>
       </div>
+      {/* Auto-detect: recently-watered-but-not-logged nudge */}
+{plants.some((p) => p.justWateredButNotLogged) && (
+  <div className="mx-4 my-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/40">
+    <div className="text-xs font-semibold text-blue-900 dark:text-blue-300 mb-1">
+      💧 Recent watering detected
+    </div>
+    {plants
+      .filter((p) => p.justWateredButNotLogged)
+      .map((p) => (
+        <div
+          key={p.id}
+          className="flex items-center justify-between py-1 text-xs"
+        >
+          <span className="text-blue-800 dark:text-blue-300 truncate">
+            {p.name}
+          </span>
+          <button
+            onClick={() => onWater?.(p.id)}
+            className="text-blue-600 dark:text-blue-400 font-bold hover:underline ml-2 shrink-0"
+          >
+            Log irrigation →
+          </button>
+        </div>
+      ))}
+  </div>
+)}
 
       {/* Rows */}
       <div className="divide-y divide-zinc-100 dark:divide-zinc-800">

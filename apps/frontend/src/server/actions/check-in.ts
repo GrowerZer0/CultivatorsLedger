@@ -142,8 +142,8 @@ export async function recordDailyCheckInLog(data: unknown) {
 
       const hasActivity = Boolean(
         validated.watered ||
-          validated.fed ||
-          (validated.trainingEvent && validated.trainingEvent !== "None"),
+        validated.fed ||
+        (validated.trainingEvent && validated.trainingEvent !== "None"),
       );
 
       if (hasActivity) {
@@ -193,6 +193,7 @@ export async function recordIrrigation(data: {
   runoffEc?: number | null;
   notes?: string | null;
   updateFieldCapacity?: boolean;
+  eventDate?: string;
 }) {
   try {
     const userId = await getUserId();
@@ -227,10 +228,13 @@ export async function recordIrrigation(data: {
     }
 
     const result = await db.$transaction(async (tx) => {
+      const timestamp = data.eventDate
+        ? new Date(data.eventDate + "T12:00:00") // noon local to avoid TZ edge cases
+        : new Date();
       // 1. Create the primary log (post-water)
       const log = await tx.dryBackLog.create({
         data: {
-          timestamp: new Date(),
+          timestamp: timestamp,
           userId,
           plantId: data.plantId,
           batchId: plant.batchId,
@@ -260,7 +264,7 @@ export async function recordIrrigation(data: {
       if (data.preWeightLbs !== null) {
         await tx.dryBackLog.create({
           data: {
-            timestamp: new Date(Date.now() - 1000), // 1s earlier so it sorts first
+            timestamp: new Date(timestamp.getTime() - 1000), // 1s earlier so it sorts first
             userId,
             plantId: data.plantId,
             batchId: plant.batchId,
@@ -290,11 +294,16 @@ export async function recordIrrigation(data: {
         });
       }
 
-      // 4. Update plant currentWeight
-      await tx.plant.update({
-        where: { id: data.plantId },
-        data: { currentWeight: data.postWeightLbs },
-      });
+      // 4. Update plant currentWeight — ONLY if this is a "today" event
+      const todayIso = new Date().toISOString().split("T")[0];
+      const eventIsToday = !data.eventDate || data.eventDate === todayIso;
+
+      if (eventIsToday && data.postWeightLbs !== null) {
+        await tx.plant.update({
+          where: { id: data.plantId },
+          data: { currentWeight: data.postWeightLbs },
+        });
+      }
 
       return { logId: log.id };
     });

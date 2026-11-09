@@ -28,7 +28,7 @@ export default async function DashboardWrapper() {
       include: {
         dryBackLogs: {
           orderBy: { timestamp: "desc" },
-          take: 1,
+          take: 2,
         },
         light: {
           select: { id: true, name: true, wattage: true, dimmerPercent: true },
@@ -89,7 +89,27 @@ export default async function DashboardWrapper() {
     .filter((p): p is string => !!p);
   const thumbUrls = await getPhotoUrls(thumbPaths);
 
-  const formattedPlants = plants.map((plant) => ({
+const formattedPlants = plants.map((plant) => {
+  const latestLog = plant.dryBackLogs[0];
+  const prevLog = plant.dryBackLogs[1];
+
+  const jumpLbs =
+    latestLog && prevLog && Number(latestLog.currentWeightLbs) > Number(prevLog.currentWeightLbs)
+      ? Number(latestLog.currentWeightLbs) - Number(prevLog.currentWeightLbs)
+      : null;
+  const jumpPct =
+    jumpLbs !== null && prevLog && Number(prevLog.currentWeightLbs) > 0
+      ? (jumpLbs / Number(prevLog.currentWeightLbs)) * 100
+      : null;
+
+  const justWateredButNotLogged =
+    jumpPct !== null &&
+    jumpPct > 15 &&
+    latestLog &&
+    new Date(latestLog.timestamp).getTime() > Date.now() - 3_600_000 &&
+    latestLog.source !== "irrigation";
+
+  return {
     id: plant.id,
     name: plant.name,
     strain: plant.strain,
@@ -103,26 +123,24 @@ export default async function DashboardWrapper() {
     sensorConfigs: plant.sensorConfigs || [],
     flipDate: plant.flipDate ? plant.flipDate.toISOString() : null,
     startDate: plant.startDate ? plant.startDate.toISOString() : null,
-    currentWeight: plant.dryBackLogs[0]
-      ? Number(plant.dryBackLogs[0].currentWeightLbs)
-      : null,
-    currentWeightTimestamp: plant.dryBackLogs[0]
-      ? plant.dryBackLogs[0].timestamp.toISOString()
-      : null,
+    currentWeight: latestLog ? Number(latestLog.currentWeightLbs) : null,
+    currentWeightTimestamp: latestLog ? latestLog.timestamp.toISOString() : null,
     thumbnailUrl: plant.photos[0]?.storagePath
       ? thumbUrls[plant.photos[0].storagePath] ?? null
       : null,
     light: plant.light
       ? {
-        id: plant.light.id,
-        name: plant.light.name,
-        wattage: Number(plant.light.wattage),
-        dimmerPercent: Number(plant.light.dimmerPercent),
-      }
+          id: plant.light.id,
+          name: plant.light.name,
+          wattage: Number(plant.light.wattage),
+          dimmerPercent: Number(plant.light.dimmerPercent),
+        }
       : null,
     updatedAt: plant.updatedAt ? plant.updatedAt.toISOString() : null,
     currentStageStartedAt: plant.stageEvents?.[0]?.startedAt?.toISOString() ?? null,
-  }));
+    justWateredButNotLogged,
+  };
+});
 
   const alerts = plants
     .map((plant) => {
@@ -139,7 +157,7 @@ export default async function DashboardWrapper() {
     description: `Weight: ${Number(log.currentWeightLbs)} lbs (${Number(log.dryBackPercent).toFixed(1)}% dryback)`,
     timestamp: log.timestamp,
   }));
-    // Map latest climate readings by roomId, converting Celsius to Fahrenheit
+  // Map latest climate readings by roomId, converting Celsius to Fahrenheit
   const roomReadingsByRoom: Record<string, any> = {};
   roomClimateReadings.forEach((r) => {
     if (r.roomId) {
@@ -198,8 +216,8 @@ export default async function DashboardWrapper() {
         rooms: rooms,
         batches: batches,
         lights: lights,
-actionItems: actionItems.items,
-activePlantCount: actionItems.activePlantCount,
+        actionItems: actionItems.items,
+        activePlantCount: actionItems.activePlantCount,
         roomClimateReadings: roomReadingsByRoom,
         lightsByRoom,
       }}

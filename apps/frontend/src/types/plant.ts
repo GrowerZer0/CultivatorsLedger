@@ -27,6 +27,7 @@ export interface Plant {
   lightId?: string | null;
   lastSourceDevice?: string | null;
   nutrientLine?: string | null;
+  justWateredButNotLogged?: boolean;
 }
 
 export interface PlantPhoto {
