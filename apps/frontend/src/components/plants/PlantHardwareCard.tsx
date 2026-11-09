@@ -12,12 +12,14 @@ import {
 interface PlantHardwareCardProps {
     plantId: string;
     plantName: string;
+    useGrams: boolean;
     // Scale (per-plant)
     scale: {
         id: string;
         name: string;
         type: string;
     } | null;
+    currentFieldCapacityLbs: number | null;
     // Light (per-plant)
     light: {
         id: string;
@@ -99,13 +101,13 @@ export function PlantHardwareCard({
                             </div>
                         </div>
                     </div>
-                    <Link
-                        href={`/settings/hardware/${scale.id}`}
-                        className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
-                    >
-                        Configure
-                        <ChevronRight className="size-3" />
-                    </Link>
+<button
+  onClick={onAssignScale}
+  className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+>
+  Configure
+  <ChevronRight className="size-3" />
+</button>
                 </div>
             )}
 

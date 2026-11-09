@@ -33,7 +33,7 @@ import {
 import { EditPlantModal } from "@/components/facility/EditPlantModal";
 import { GROWTH_STAGES, getStageFromDays, getStageProgress } from "@/lib/growth-stages";
 import type { PlantWithDetails } from "@/types/plant";
-import { AdvanceStageModal } from "../../../../components/facility/AdvanceStageModal";
+import { ScaleSettingsModal } from "@/components/facility/ScaleSettingsModal";
 import { Light } from "@prisma/client";
 import { DryCureTracker } from "../../../../components/facility/DryCureTracker";
 import { deletePlant } from "@/server/actions/plant-mgmt";
@@ -71,7 +71,7 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
   const weekLabel = getWeekLabel(currentPlant.stage, stageStartedAt);
   const [isIrrigationOpen, setIsIrrigationOpen] = useState(false);
   const [isSOSOpen, setIsSOSOpen] = useState(false);
-
+const [isScaleSettingsOpen, setIsScaleSettingsOpen] = useState(false);
   // Sync the local state with the server whenever the page refreshes
   useEffect(() => {
     setCurrentPlant(plant);
@@ -419,6 +419,7 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
       <PlantHardwareCard
         plantId={currentPlant.id}
         plantName={currentPlant.name}
+          useGrams={useGrams}
         scale={
           currentPlant.sensorConfigs && currentPlant.sensorConfigs.length > 0
             ? {
@@ -428,6 +429,11 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
             }
             : null
         }
+          currentFieldCapacityLbs={
+    currentPlant.wetWeight !== null && currentPlant.wetWeight !== undefined
+      ? Number(currentPlant.wetWeight)
+      : null
+  }
         light={
           currentPlant.light
             ? {
@@ -442,8 +448,8 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
         roomId={currentPlant.room?.id ?? null}
         roomName={currentPlant.room?.name ?? null}
         roomClimate={latestRoomClimate ?? null}
-        onAssignScale={() => router.push("/settings/hardware")}
-      />
+  onAssignScale={() => setIsScaleSettingsOpen(true)}
+        />
 
       {/* Dry / Cure Tracker */}
       {["dry", "cure"].includes(currentPlant?.stage || "") && (
@@ -756,22 +762,29 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
         allPlants={allPlants}
         onPlantUpdated={handlePlantUpdated}
       />
-      <AdvanceStageModal
-        isOpen={isAdvanceStageOpen}
-        onClose={() => setIsAdvanceStageOpen(false)}
-        plantId={currentPlant.id}
-        currentStage={currentPlant.stage || "seedling"}
-        light={
-          currentPlant.light
-            ? {
-              name: currentPlant.light.name,
-              scheduleHoursOn: currentPlant.light.scheduleHoursOn,
-              dimmerPercent: currentPlant.light.dimmerPercent,
-              distanceInches: currentPlant.light.distanceInches ?? null,
-            }
-            : null
-        }
-      />
+<ScaleSettingsModal
+  isOpen={isScaleSettingsOpen}
+  onClose={() => setIsScaleSettingsOpen(false)}
+  plantId={currentPlant.id}
+  plantName={currentPlant.name}
+  useGrams={useGrams}
+  currentFieldCapacityLbs={
+    currentPlant.wetWeight !== null && currentPlant.wetWeight !== undefined
+      ? Number(currentPlant.wetWeight)
+      : null
+  }
+  assignedScaleId={
+    currentPlant.sensorConfigs && currentPlant.sensorConfigs.length > 0
+      ? currentPlant.sensorConfigs[0].id
+      : null
+  }
+  assignedScaleName={
+    currentPlant.sensorConfigs && currentPlant.sensorConfigs.length > 0
+      ? currentPlant.sensorConfigs[0].name
+      : null
+  }
+  onSaved={() => router.refresh()}
+/>
       <IrrigationModal
         isOpen={isIrrigationOpen}
         onClose={() => setIsIrrigationOpen(false)}
