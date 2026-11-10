@@ -7,7 +7,6 @@ import { Prisma } from "@prisma/client";
 
 // Coeff for target dry weight as a fraction of wet weight.
 // 0.22 == 78% target dry-back (weight lost during dry phase).
-// Keep in sync with CROP_STAGE_TARGETS.maxDryBack expectations in cultivation.ts.
 const DRY_TARGET_COEFF = 0.22;
 
 const STAGE_ORDER = ["seedling", "vegetative", "flowering", "dry", "cure", "archived"] as const;
@@ -118,9 +117,6 @@ export async function advancePlantStage(
         plantUpdate.wetWeight = new Prisma.Decimal(wetWeight);
         plantUpdate.dryTarget = new Prisma.Decimal(dryTarget);
         plantUpdate.currentWeight = new Prisma.Decimal(wetWeight);
-        // dryingMethod: requires the new column on Plant (see note above).
-        // If your generated client doesn't have this field yet, comment
-        // this line out until the migration lands.
         plantUpdate.dryingMethod = harvestData.dryingMethod;
 
         // 3a. Seed the first DryBackLog so the tracker isn't empty on day 1.

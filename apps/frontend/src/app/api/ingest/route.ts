@@ -161,57 +161,20 @@ export async function POST(request: NextRequest) {
       }
 
             // === AUTO-FC UPDATE LOGIC ===
-      // If we're in a pending FC update window, check if the weight has stabilized.
-      if (plant.pendingFcUpdate && plant.pendingFcStartTime) {
-        const now = Date.now();
-        const startTime = new Date(plant.pendingFcStartTime).getTime();
-        const minutesElapsed = (now - startTime) / 1000 / 60;
+      // Field capacity (wetWeight) is set ONLY by explicit user action
+      // (Set FC button, scale modal, set-fc route, or check-in with
+      // updateFieldCapacity). Ingest must never write wetWeight: a stable
+      // reading cannot distinguish a saturated pot from a dry one, so any
+      // heuristic here will eventually snap FC to the wrong value. The
+      // pendingFcUpdate/pendingFcStartTime columns are now unused by
+      // ingest; leave them in the schema until a separate cleanup.
 
-        // We need at least 2 readings after the irrigation to confirm stabilization.
-        // Since readings are every 30s, we check if at least 2 minutes have passed.
-        if (minutesElapsed >= 2) {
-          // Check the previous reading to see if the change is small
-          const previousReading = await db.dryBackLog.findFirst({
-            where: { plantId: plant.id, userId: sensor.userId },
-            orderBy: { timestamp: "desc" },
-            skip: 1, // Get the one before the latest
-          });
-
-          if (previousReading) {
-            const weightChange = Math.abs(weight - Number(previousReading.currentWeightLbs));
-            const threshold = 0.1; // 0.1 lbs change is considered stable
-
-            if (weightChange <= threshold) {
-              // Weight has stabilized! Update FC.
-              await db.plant.update({
-                where: { id: plant.id },
-                data: {
-                  wetWeight: weight,
-                  pendingFcUpdate: false,
-                  pendingFcStartTime: null,
-                },
-              });
-              console.log(`✅ AUTO-FC: Stabilized at ${weight.toFixed(2)} lbs for ${plant.name}`);
-            }
-          }
-        }
-      }
-
-      // If an irrigation was just detected, set the pending flag
-      // (Add this inside the irrigation detection block where you create the IrrigationEvent)
-      await db.plant.update({
-        where: { id: plant.id },
-        data: {
-          pendingFcUpdate: true,
-          pendingFcStartTime: new Date(),
-        },
-      });
-
-      // === WET WEIGHT SOURCE PRIORITY ===
-      // 1. plant.wetWeight (source of truth — set by user via "Set FC" button)
-      // 2. ESP32 payload fieldCapacity_g (bootstrap only)
-      // 3. Latest log's wetWeightLbs
-      // 4. Fall back to current weight (last resort)
+            // === WET WEIGHT SOURCE PRIORITY ===
+      // 1. plant.wetWeight (source of truth — set by user via "Set FC")
+      // 2. Latest log's wetWeightLbs (historical fallback for pre-FC plants)
+      // No last-resort fallback to the current reading: if we have never
+      // been told what "saturated" weighs, we cannot compute a meaningful
+      // dryback percent. Skip the calc rather than invent an FC.
 
       let wetWeight = 0;
       let dryTarget = 0;
@@ -219,26 +182,14 @@ export async function POST(request: NextRequest) {
       if (plant.wetWeight !== null && plant.wetWeight !== undefined && Number(plant.wetWeight) > 0) {
         wetWeight = Number(plant.wetWeight);
         dryTarget = Number(plant.dryTarget) || 0;
-      } else {
-        // Bootstrap: read from ESP32 payload
-        // Bootstrap: read from ESP32 payload
-        if (payloadFieldCapacityLbs && payloadFieldCapacityLbs > 0.1) {
-          wetWeight = payloadFieldCapacityLbs;
-        } else if (latestLog) {
-          wetWeight = Number(latestLog.wetWeightLbs) || 0;
-          dryTarget = Number(latestLog.dryTargetWeightLbs) || 0;
-        }
-        if (wetWeight === 0) {
-          wetWeight = weight; // last resort — this reading becomes the WW
-        }
-      }
-      
-      if (wetWeight === 0 && latestLog) {
+      } else if (latestLog) {
         wetWeight = Number(latestLog.wetWeightLbs) || 0;
         dryTarget = Number(latestLog.dryTargetWeightLbs) || 0;
       }
 
       // Calculate dryback percent FROM WET WEIGHT (the correct model for this setup)
+      // If wetWeight is 0 the plant has no FC set; store dryBackPercent = 0
+      // and let the UI show "Set FC" rather than a fabricated percentage.
       let dryBackPercent = 0;
       if (wetWeight > 0) {
         const lost = wetWeight - weight;
