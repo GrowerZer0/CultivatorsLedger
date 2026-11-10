@@ -78,6 +78,7 @@ const [isScaleSettingsOpen, setIsScaleSettingsOpen] = useState(false);
   }, [plant]);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [isAdvanceStageOpen, setIsAdvanceStageOpen] = useState(false);
+  
   const formatWeight = (lbs: number | null, sourceDevice?: string | null) => {
     if (lbs === null || lbs === undefined) return "—";
 
@@ -86,11 +87,12 @@ const [isScaleSettingsOpen, setIsScaleSettingsOpen] = useState(false);
     const isSeedling = currentPlant?.stage === "seedling";
 
     if (isSmallScale || isSeedling) {
-      return `${(lbs * 453.592).toFixed(1)} g`;
+      return `${(lbs * 453.592).toFixed(2)} g`;
     }
 
-    return `${Number(lbs).toFixed(1)} lbs`;
+    return `${Number(lbs).toFixed(2)} lbs`;
   };
+
   // Recompute dryback from weights so we never display a stale stored value.
   const computeDryback = (log: { wetWeightLbs: number; currentWeightLbs: number }) => {
     const wet = Number(log.wetWeightLbs);
