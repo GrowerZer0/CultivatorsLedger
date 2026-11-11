@@ -113,31 +113,19 @@ export async function advancePlantStage(
         plantUpdate.flipDate = now;
       }
 
-      if (newStage === "dry" && harvestData && dryTarget !== null) {
-        plantUpdate.wetWeight = new Prisma.Decimal(wetWeight);
-        plantUpdate.dryTarget = new Prisma.Decimal(dryTarget);
-        plantUpdate.currentWeight = new Prisma.Decimal(wetWeight);
+      if (newStage === "dry" && harvestData) {
+        // At chop, we record the wet weight for yield calculations and stop
+        // the watering/dryback model entirely. Plants are typically hanging
+        // in a tent after this point and cannot be weighed on the pot scale.
+        // There is no dry target and no dryback % after harvest — only an
+        // optional dry weight the user logs when the plant is ready to trim.
+        plantUpdate.harvestWetWeight = new Prisma.Decimal(wetWeight);
         plantUpdate.dryingMethod = harvestData.dryingMethod;
-
-        // 3a. Seed the first DryBackLog so the tracker isn't empty on day 1.
-        // Uses the same calculation path as calculateDryBack(): currentDrop is
-        // (wet - current) = 0 at harvest, so dryBackPercent = 0.
-        await tx.dryBackLog.create({
-          data: {
-            userId,
-            plantId,
-            batchId: plant.batchId ?? null,
-            containerGallons: plant.containerGallons ?? new Prisma.Decimal(0),
-            wetWeightLbs: new Prisma.Decimal(wetWeight),
-            dryTargetWeightLbs: new Prisma.Decimal(dryTarget),
-            currentWeightLbs: new Prisma.Decimal(wetWeight),
-            dryBackPercent: new Prisma.Decimal(0),
-            source: "harvest-seed",
-            watered: false,
-            fed: false,
-            notes: `Harvest seed weight. Drying method: ${harvestData.dryingMethod}`,
-          },
-        });
+        // Clear watering-cycle fields so nothing downstream thinks this
+        // plant still has a watering schedule.
+        plantUpdate.wetWeight = null;
+        plantUpdate.dryTarget = null;
+        plantUpdate.currentWeight = null;
       }
 
       await tx.plant.update({

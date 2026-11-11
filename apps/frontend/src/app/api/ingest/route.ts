@@ -93,21 +93,25 @@ export async function POST(request: NextRequest) {
         });
 
       } else if (sensor.name.toLowerCase().includes("large") || sensor.name.toLowerCase().includes("load cell")) {
-        // Route to the most recently updated veg/flower plant
+        // Route to the most recently updated pot-stage plant. Dry/cure are
+        // excluded: those plants are hanging or jarred and cannot be on the
+        // scale. If nothing matches, the reading is skipped below.
         plant = await db.plant.findFirst({
-          where: { userId: sensor.userId, stage: { in: ["vegetative", "flowering"] } },
+          where: { userId: sensor.userId, stage: { in: ["seedling", "vegetative", "flowering"] } },
           orderBy: { updatedAt: "desc" },
         });
       }
 
-      // Fallback if no plant found
+      // A weight reading only makes sense for a plant that is in a pot.
+      // Dry/cure/archived plants are hanging or jarred and cannot be on a
+      // load cell — a scale reading for one is either stale routing or a
+      // lifted pot. Refuse to write rather than corrupt the plant's data.
+      // Return 200 so the ESP32 does not retry-spam; the body says why.
       if (!plant) {
-        const plants = await db.plant.findMany({ where: { userId: sensor.userId, archivedAt: null }, take: 1 });
-        if (plants.length > 0) plant = plants[0];
-      }
-
-      if (!plant) {
-        return NextResponse.json({ error: 'No plants found to assign weight to.' }, { status: 404 });
+        return NextResponse.json(
+          { success: true, skipped: "no pot-stage plant for this scale" },
+          { status: 200 },
+        );
       }
 
       // Get the latest log to calculate dryback percent
