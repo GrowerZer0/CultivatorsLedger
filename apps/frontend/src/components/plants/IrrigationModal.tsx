@@ -8,6 +8,7 @@ interface IrrigationModalProps {
   plantId: string;
   plantName: string;
   currentWeight: number | null;
+  wetWeight: number | null;
   useGrams: boolean;
   isOpen: boolean;
   onClose: () => void;
@@ -17,24 +18,29 @@ export function IrrigationModal({
   plantId,
   plantName,
   currentWeight,
+  wetWeight,
   useGrams,
   isOpen,
   onClose,
 }: IrrigationModalProps) {
   const currentWeightNum: number | null =
-  currentWeight !== null && currentWeight !== undefined
-    ? Number(currentWeight)
-    : null;
+    currentWeight !== null && currentWeight !== undefined
+      ? Number(currentWeight)
+      : null;
+  const wetWeightNum: number | null =
+    wetWeight !== null && wetWeight !== undefined
+      ? Number(wetWeight)
+      : null;
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-const [eventDate, setEventDate] = useState<string>(() => {
-  const today = new Date();
-  // Local date string (not UTC) — matches what the user sees
-  const y = today.getFullYear();
-  const m = String(today.getMonth() + 1).padStart(2, "0");
-  const d = String(today.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-});
+  const [eventDate, setEventDate] = useState<string>(() => {
+    const today = new Date();
+    // Local date string (not UTC) — matches what the user sees
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, "0");
+    const d = String(today.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  });
   const [preWeight, setPreWeight] = useState("");
   const [postWeight, setPostWeight] = useState("");
   const [watered, setWatered] = useState(true);
@@ -102,18 +108,18 @@ const [eventDate, setEventDate] = useState<string>(() => {
             <X className="size-5" />
           </button>
         </div>
-<div>
-  <label className="text-xs font-bold text-zinc-600 dark:text-zinc-400 uppercase">
-    Date
-  </label>
-  <input
-    type="date"
-    value={eventDate}
-    max={new Date().toISOString().split("T")[0]}
-    onChange={(e) => setEventDate(e.target.value)}
-    className="w-full mt-1 px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm"
-  />
-</div>
+        <div>
+          <label className="text-xs font-bold text-zinc-600 dark:text-zinc-400 uppercase">
+            Date
+          </label>
+          <input
+            type="date"
+            value={eventDate}
+            max={new Date().toISOString().split("T")[0]}
+            onChange={(e) => setEventDate(e.target.value)}
+            className="w-full mt-1 px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm"
+          />
+        </div>
         <form onSubmit={handleSubmit} className="p-4 space-y-4 max-h-[75vh] overflow-y-auto">
           {/* Pre/Post Weights */}
           <div className="grid grid-cols-2 gap-3">
@@ -123,13 +129,13 @@ const [eventDate, setEventDate] = useState<string>(() => {
               </label>
               <input
                 type="number"
-                step="0.1"
+                step="0.01"
                 value={preWeight}
                 onChange={(e) => setPreWeight(e.target.value)}
                 placeholder={
                   currentWeightNum !== null
-                    ? currentWeightNum.toFixed(1)
-                    : "e.g. 12.5"
+                    ? currentWeightNum.toFixed(2)
+                    : "e.g. 12.05"
                 }
                 className="w-full mt-1 px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm font-mono"
               />
@@ -140,11 +146,14 @@ const [eventDate, setEventDate] = useState<string>(() => {
               </label>
               <input
                 type="number"
-                step="0.1"
+                step="0.01"
                 value={postWeight}
                 onChange={(e) => setPostWeight(e.target.value)}
-                placeholder="e.g. 15.2"
-                className="w-full mt-1 px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm font-mono"
+                placeholder={
+                  wetWeight !== null
+                    ? wetWeightNum?.toFixed(2)
+                    : "Field Capacity"
+                } className="w-full mt-1 px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm font-mono"
                 required
               />
             </div>

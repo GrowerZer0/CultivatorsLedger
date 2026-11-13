@@ -45,30 +45,32 @@ export async function getPlants() {
       },
       dryBackLogs: {
         orderBy: { timestamp: "desc" },
-        take: 1,
-        select: { currentWeightLbs: true, timestamp: true, sourceDevice: true },
+        take: 2,
+        select: { currentWeightLbs: true, timestamp: true, sourceDevice: true, isPreWater: true },
       },
     },
   });
   return serializePrisma(
-    plants.map((p) => ({
-      ...p,
-      thumbnailPath: p.photos[0]?.storagePath ?? null,
-      photos: undefined,
-      containerGallons: p.containerGallons ? Number(p.containerGallons) : null,
-      wetWeight: p.wetWeight ? Number(p.wetWeight) : null,
-      dryTarget: p.dryTarget ? Number(p.dryTarget) : null,
-      currentWeight:
-        p.dryBackLogs?.[0]?.currentWeightLbs != null
-          ? Number(p.dryBackLogs[0].currentWeightLbs)
+    plants.map((p) => {
+      const latestLog = p.dryBackLogs.find((l) => !l.isPreWater);
+      return {
+        ...p,
+        thumbnailPath: p.photos[0]?.storagePath ?? null,
+        photos: undefined,
+        containerGallons: p.containerGallons ? Number(p.containerGallons) : null,
+        wetWeight: p.wetWeight ? Number(p.wetWeight) : null,
+        dryTarget: p.dryTarget ? Number(p.dryTarget) : null,
+        currentWeight: latestLog?.currentWeightLbs != null
+          ? Number(latestLog.currentWeightLbs)
           : p.currentWeight
             ? Number(p.currentWeight)
             : null,
-      currentWeightTimestamp: p.dryBackLogs?.[0]?.timestamp?.toISOString() ?? null,
-      lastSourceDevice: p.dryBackLogs?.[0]?.sourceDevice ?? null,
-      currentStageStartedAt: p.stageEvents?.[0]?.startedAt?.toISOString() ?? null,
-      sensorConfigs: p.sensorConfigs || [],
-    }))
+        currentWeightTimestamp: latestLog?.timestamp?.toISOString() ?? null,
+        lastSourceDevice: latestLog?.sourceDevice ?? null,
+        currentStageStartedAt: p.stageEvents?.[0]?.startedAt?.toISOString() ?? null,
+        sensorConfigs: p.sensorConfigs || [],
+      };
+    })
   );
 }
 
@@ -84,8 +86,8 @@ export async function getPlantsForBatch(batchId: unknown) {
         sensorConfigs: { select: { id: true, name: true, type: true } },
         dryBackLogs: {
           orderBy: { timestamp: "desc" },
-          take: 1,
-          select: { currentWeightLbs: true, timestamp: true, sourceDevice: true },
+          take: 2,
+          select: { currentWeightLbs: true, timestamp: true, sourceDevice: true, isPreWater: true },
         },
         stageEvents: {
           where: { endedAt: null },
@@ -101,23 +103,25 @@ export async function getPlantsForBatch(batchId: unknown) {
     });
 
     return serializePrisma(
-      plants.map((p) => ({
-        ...p,
-        photos: undefined,
-        containerGallons: p.containerGallons ? Number(p.containerGallons) : null,
-        wetWeight: p.wetWeight ? Number(p.wetWeight) : null,
-        dryTarget: p.dryTarget ? Number(p.dryTarget) : null,
-        currentWeight:
-          p.dryBackLogs?.[0]?.currentWeightLbs != null
-            ? Number(p.dryBackLogs[0].currentWeightLbs)
+      plants.map((p) => {
+        const latestLog = p.dryBackLogs.find((l) => !l.isPreWater);
+        return {
+          ...p,
+          photos: undefined,
+          containerGallons: p.containerGallons ? Number(p.containerGallons) : null,
+          wetWeight: p.wetWeight ? Number(p.wetWeight) : null,
+          dryTarget: p.dryTarget ? Number(p.dryTarget) : null,
+          currentWeight: latestLog?.currentWeightLbs != null
+            ? Number(latestLog.currentWeightLbs)
             : p.currentWeight
               ? Number(p.currentWeight)
               : null,
-        currentWeightTimestamp: p.dryBackLogs?.[0]?.timestamp?.toISOString() ?? null,
-        lastSourceDevice: p.dryBackLogs?.[0]?.sourceDevice ?? null,
-        currentStageStartedAt: p.stageEvents?.[0]?.startedAt?.toISOString() ?? null,
-        sensorConfigs: p.sensorConfigs || [],
-      }))
+          currentWeightTimestamp: latestLog?.timestamp?.toISOString() ?? null,
+          lastSourceDevice: latestLog?.sourceDevice ?? null,
+          currentStageStartedAt: p.stageEvents?.[0]?.startedAt?.toISOString() ?? null,
+          sensorConfigs: p.sensorConfigs || [],
+        };
+      })
     );
   } catch (error) {
     console.error("getPlantsForBatch error:", error);
@@ -325,8 +329,8 @@ export async function fetchPlants() {
       sensorConfigs: { select: { id: true, name: true, type: true } },
       dryBackLogs: {
         orderBy: { timestamp: "desc" },
-        take: 1,
-        select: { currentWeightLbs: true, timestamp: true, sourceDevice: true },
+        take: 2,
+        select: { currentWeightLbs: true, timestamp: true, sourceDevice: true, isPreWater: true },
       },
       photos: {
         orderBy: { capturedAt: "desc" },
@@ -344,17 +348,18 @@ export async function fetchPlants() {
   return serializePrisma(
     plants.map((p) => {
       const sp = p.photos[0]?.storagePath;
+      const latestLog = p.dryBackLogs.find((l) => !l.isPreWater);
       return {
         ...p,
         thumbnailUrl: sp ? urlByPath[sp] ?? null : null,
         photos: undefined,
-        currentWeight: p.dryBackLogs[0]?.currentWeightLbs != null
-          ? Number(p.dryBackLogs[0].currentWeightLbs)
+        currentWeight: latestLog?.currentWeightLbs != null
+          ? Number(latestLog.currentWeightLbs)
           : p.currentWeight
             ? Number(p.currentWeight)
             : null,
-        currentWeightTimestamp: p.dryBackLogs[0] ? p.dryBackLogs[0].timestamp.toISOString() : null,
-        lastSourceDevice: p.dryBackLogs[0]?.sourceDevice ?? null,
+        currentWeightTimestamp: latestLog ? latestLog.timestamp.toISOString() : null,
+        lastSourceDevice: latestLog?.sourceDevice ?? null,
         sensorConfigs: p.sensorConfigs || [],
         containerGallons: p.containerGallons ? Number(p.containerGallons) : null,
         wetWeight: p.wetWeight ? Number(p.wetWeight) : null,

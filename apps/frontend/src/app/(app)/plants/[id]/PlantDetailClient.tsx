@@ -795,6 +795,7 @@ const [isScaleSettingsOpen, setIsScaleSettingsOpen] = useState(false);
 currentWeight={
   weight !== null && weight !== undefined ? Number(weight) : null
 }
+        wetWeight={currentPlant.wetWeight ?? null}
         useGrams={useGrams}
       />
       <SOSModal

@@ -275,6 +275,7 @@ currentWeight={
     ? Number(plant.currentWeight)
     : null
 }
+wetWeight={plant.wetWeight ?? null}
       useGrams={plant.stage === "seedling"}
     />
   );
