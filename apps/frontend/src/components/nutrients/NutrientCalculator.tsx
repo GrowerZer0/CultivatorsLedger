@@ -21,6 +21,7 @@ interface NutrientCalculatorProps {
   plantStrain?: string;
   plantName?: string;
   weekOfStage?: number | null;
+    defaultFeedLineId?: string | null;
   onClose?: () => void;
   inline?: boolean;
 }
@@ -30,6 +31,7 @@ export function NutrientCalculator({
   plantStrain,
   plantName,
   weekOfStage,
+  defaultFeedLineId,
   onClose,
   inline = false,
 }: NutrientCalculatorProps) {
@@ -44,7 +46,7 @@ export function NutrientCalculator({
     return commercialFeedSchedules[0];
   }, [plantStage]);
 
-  const [activeLineId, setActiveLineId] = useState<string>(defaultSchedule.id);
+  const [activeLineId, setActiveLineId] = useState<string>(defaultFeedLineId ?? defaultSchedule.id);
   const [gallons, setGallons] = useState<number>(3);
   const [copied, setCopied] = useState(false);
 
