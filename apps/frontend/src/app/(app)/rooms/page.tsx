@@ -4,6 +4,7 @@ import { getLights } from "@/server/actions/lights";
 import { db } from "@/lib/db";
 import { getUserId } from "@/lib/session";
 import { RoomsClient } from "./RoomsClient";
+import { getLatestRoomReadings } from "@/server/actions/loggingreadings";
 
 export default async function RoomsPage() {
   const userId = await getUserId();
@@ -14,18 +15,16 @@ export default async function RoomsPage() {
     getLights(),
   ]);
 
+  // Get the latest climate reading for each room (Optimized to return only 3 rows)
+const latestReadingsMap = await getLatestRoomReadings();
+
   // Get the latest climate reading for each room
-  const latestReadings = await db.climateLog.findMany({
-    where: { userId },
-    orderBy: { timestamp: "desc" },
-    distinct: ["roomId"],
-    select: {
-      roomId: true,
-      airTempC: true,
-      relativeHumidity: true,
-      timestamp: true,
-    },
-  });
+const latestReadings = Object.entries(latestReadingsMap).map(([roomId, data]) => ({
+  roomId,
+  airTempC: data.airTempC,
+  relativeHumidity: data.relativeHumidity,
+  timestamp: data.timestamp,
+}));
 
   const readingByRoom: Record<string, any> = {};
   latestReadings.forEach((r) => {

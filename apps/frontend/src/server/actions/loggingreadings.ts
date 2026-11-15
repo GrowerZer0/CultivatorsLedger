@@ -429,6 +429,7 @@ export async function getRecoveryStatus(batchId?: string, plantId?: string) {
       timestamp: { gte: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) },
     },
     orderBy: { timestamp: "asc" },
+    take: 100,
   });
   if (logs.length < 3) {
     return {

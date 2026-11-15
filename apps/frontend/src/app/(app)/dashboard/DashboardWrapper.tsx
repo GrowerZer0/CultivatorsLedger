@@ -75,6 +75,7 @@ export default async function DashboardWrapper() {
       where: { userId },
       orderBy: { timestamp: "desc" },
       distinct: ["roomId"],
+      take: 100,
       select: {
         roomId: true,
         airTempC: true,
