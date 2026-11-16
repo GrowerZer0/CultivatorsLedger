@@ -20,7 +20,11 @@ export type DryBackLog = {
 };
 export type NutrientDose = {
   product: string;
-  mlPerGallon: number;
+    mlPerGallon: number;
+  /** Guaranteed analysis from the manufacturer's label, % by weight.
+   *  Used by NutrientMixCard to compute mg/L supplied. Optional so
+   *  schedules that don't have label data yet still typecheck. */
+  guaranteedPct?: { N: number; P: number; K: number; Ca?: number; Mg?: number };
 };
 export type FeedSchedule = {
   id: string;
@@ -177,11 +181,11 @@ export const commercialFeedSchedules: FeedSchedule[] = [
     label: "Athena Blended — Vegetative",
     targetEc: 1.8,
     targetPh: 5.8,
-    doses: [
-      { product: "Grow A", mlPerGallon: 6 },
-      { product: "Grow B", mlPerGallon: 6 },
-      { product: "Cleanse", mlPerGallon: 2.5 },
-    ],
+doses: [
+  { product: "Grow A", mlPerGallon: 6, guaranteedPct: { N: 5, P: 0, K: 0, Ca: 4.5 } },
+  { product: "Grow B", mlPerGallon: 6, guaranteedPct: { N: 0, P: 4, K: 5, Mg: 1 } },
+  { product: "Cleanse", mlPerGallon: 2.5, guaranteedPct: { N: 0, P: 0, K: 0 } },
+],
   },
   {
     id: "athena-flower",
@@ -190,12 +194,13 @@ export const commercialFeedSchedules: FeedSchedule[] = [
     label: "Athena Blended — Flower",
     targetEc: 2.1,
     targetPh: 5.8,
-    doses: [
-      { product: "Bloom A", mlPerGallon: 13 },
-      { product: "Bloom B", mlPerGallon: 13 },
-      { product: "Cleanse", mlPerGallon: 2.5 },
-      { product: "Cal-Mag (optional — only for RO or unbuffered coco)", mlPerGallon: 2 },
-    ],
+doses: [
+  { product: "Bloom A", mlPerGallon: 13, guaranteedPct: { N: 5, P: 0, K: 0, Ca: 4.5 } },
+  { product: "Bloom B", mlPerGallon: 13, guaranteedPct: { N: 0, P: 4, K: 5, Mg: 1 } },
+  { product: "Cleanse", mlPerGallon: 2.5, guaranteedPct: { N: 0, P: 0, K: 0 } },
+  // Cal-Mag is optional for RO/coco — no label data in PRODUCT_LINES, leave undefined
+  { product: "Cal-Mag (optional — only for RO or unbuffered coco)", mlPerGallon: 2 },
+],
   },
 
   // ============================================================
@@ -276,12 +281,12 @@ export const commercialFeedSchedules: FeedSchedule[] = [
     label: "GH Flora — Vegetative",
     targetEc: 1.6,
     targetPh: 5.8,
-    doses: [
-      { product: "FloraMicro", mlPerGallon: 7.5 },
-      { product: "FloraGro", mlPerGallon: 10 },
-      { product: "FloraBloom", mlPerGallon: 2.5 },
-      { product: "CaliMagic", mlPerGallon: 5 },
-    ],
+doses: [
+  { product: "FloraMicro", mlPerGallon: 7.5, guaranteedPct: { N: 5, P: 0, K: 1, Ca: 5 } },
+  { product: "FloraGro", mlPerGallon: 10, guaranteedPct: { N: 2, P: 1, K: 6 } },
+  { product: "FloraBloom", mlPerGallon: 2.5, guaranteedPct: { N: 0, P: 5, K: 4 } },
+  { product: "CaliMagic", mlPerGallon: 5, guaranteedPct: { N: 2, P: 0, K: 0, Ca: 3.2, Mg: 1.2 } },
+],
   },
   {
     id: "gh-flora-flower",
@@ -290,12 +295,12 @@ export const commercialFeedSchedules: FeedSchedule[] = [
     label: "GH Flora — Flower",
     targetEc: 2.0,
     targetPh: 5.8,
-    doses: [
-      { product: "FloraMicro", mlPerGallon: 10 },
-      { product: "FloraGro", mlPerGallon: 2.5 },
-      { product: "FloraBloom", mlPerGallon: 15 },
-      { product: "CaliMagic", mlPerGallon: 5 },
-    ],
+doses: [
+  { product: "FloraMicro", mlPerGallon: 10, guaranteedPct: { N: 5, P: 0, K: 1, Ca: 5 } },
+  { product: "FloraGro", mlPerGallon: 2.5, guaranteedPct: { N: 2, P: 1, K: 6 } },
+  { product: "FloraBloom", mlPerGallon: 15, guaranteedPct: { N: 0, P: 5, K: 4 } },
+  { product: "CaliMagic", mlPerGallon: 5, guaranteedPct: { N: 2, P: 0, K: 0, Ca: 3.2, Mg: 1.2 } },
+],
   },
 ];
 

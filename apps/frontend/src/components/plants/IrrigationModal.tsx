@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Droplet, FlaskConical, Scale, Loader2, X, Check } from "lucide-react";
 import { recordIrrigation } from "@/server/actions/check-in";
-import { NutrientTargetsCard } from "@/components/plants/NutrientTargetsCard";
+import { NutrientTargetsCard } from "@/components/nutrients/NutrientTargetsCard";
 
 interface IrrigationModalProps {
   plantId: string;

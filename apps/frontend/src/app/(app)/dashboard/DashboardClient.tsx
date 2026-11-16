@@ -15,7 +15,6 @@ import { useTelemetry } from '@/lib/telemetry-context';
 import { fetchRooms } from '@/server/actions/facility-mgmt';
 import { fetchPlants } from '@/server/actions/plant-mgmt';
 import { PlantStatusList } from "@/components/dashboard/PlantStatusList";
-import { NutrientCalculatorModal } from "@/components/nutrients/NutrientCalculatorModal";
 import { SensorStatusBanner, type SensorStatus } from "@/components/dashboard/SensorStatusBanner";
 import { StartGrowModal } from "@/components/dashboard/StartGrowModal";
 import { ActionCenter } from "@/components/dashboard/ActionCenter";
@@ -46,7 +45,6 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [plants, setPlants] = useState<Plant[]>(initialData.plants);
-  const [isNutrientModalOpen, setIsNutrientModalOpen] = useState(false);
   const [isStartGrowModalOpen, setIsStartGrowModalOpen] = useState(false);
   const hasLoaded = useRef(false);
   const [toast, setToast] = useState<{ type: "success"; message: string } | null>(null);
@@ -247,10 +245,6 @@ const [wateringPlantId, setWateringPlantId] = useState<string | null>(null);
         rooms={initialData.rooms || []}
         batches={initialData.batches || []}
         lights={initialData.lights || []}
-      />
-      <NutrientCalculatorModal
-        isOpen={isNutrientModalOpen}
-        onClose={() => setIsNutrientModalOpen(false)}
       />
       {wateringPlantId && (() => {
   const plant = plants.find((p) => p.id === wateringPlantId);

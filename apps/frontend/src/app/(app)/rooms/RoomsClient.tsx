@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Home } from "lucide-react";
-import { AddRoomModal } from "@/components/facility/AddRoomModal";
+import { AddRoomModal } from "@/components/rooms/AddRoomModal";
 import { AddPlantModal } from "@/components/plants/AddPlantModal";
 import { RoomSummary } from "@/components/rooms/RoomSummary";
 import { deleteRoom } from "@/server/actions/facility-mgmt";

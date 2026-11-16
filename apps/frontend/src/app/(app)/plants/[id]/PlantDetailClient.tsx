@@ -44,7 +44,7 @@ import { PlantHardwareCard } from "@/components/plants/PlantHardwareCard";
 import { IrrigationModal } from "@/components/plants/IrrigationModal";
 import { StageTracker } from "@/components/plants/StageTracker";
 import { SOSModal } from "@/components/plants/SOSModal";
-import { NutrientTargetsCard } from "@/components/plants/NutrientTargetsCard";
+import { NutrientTargetsCard } from "@/components/nutrients/NutrientTargetsCard";
 
 interface PlantDetailClientProps {
   plant: PlantWithDetails;

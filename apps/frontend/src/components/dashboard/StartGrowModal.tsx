@@ -8,7 +8,7 @@ import {
   getAvailableLoadCells,
   assignSensorToPlant,
 } from "@/server/actions/sensors";
-import { AddRoomModal } from "@/components/facility/AddRoomModal";
+import { AddRoomModal } from "@/components/rooms/AddRoomModal";
 import { AddLightModal } from "@/components/facility/AddLightModal";
 import { AddSensorModal } from "@/components/facility/AddSensorModal";
 

@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
-import { AddBatchModal } from "@/components/facility/AddBatchModal";
+import { AddBatchModal } from "@/components/batches/AddBatchModal";
 import type { Batch } from "@prisma/client";
 import { Layers } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";

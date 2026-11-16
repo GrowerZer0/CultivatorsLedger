@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Trash2, Edit } from "lucide-react";
 import { commercialFeedSchedules } from "@/lib/cultivation-engine";
-import { getCustomBlueprints, saveOrUpdateBlueprint, deleteCustomBlueprint } from "@/app/actions";
+import { getCustomBlueprints, saveOrUpdateBlueprint, deleteCustomBlueprint } from "@/server/actions/actions";
 import { getUserProfile, updateUserProfile } from "@/server/actions/profile";
 
 export function FeedLinesEditor() {
