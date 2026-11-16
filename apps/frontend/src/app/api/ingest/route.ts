@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { createHash } from 'crypto';
 import { revalidatePath } from 'next/cache';
+import { computeDryback } from '@/lib/dryback';
 
 // Helper to hash API keys
 function hashKey(key: string): string {
@@ -191,14 +192,11 @@ export async function POST(request: NextRequest) {
         dryTarget = Number(latestLog.dryTargetWeightLbs) || 0;
       }
 
-      // Calculate dryback percent FROM WET WEIGHT (the correct model for this setup)
-      // If wetWeight is 0 the plant has no FC set; store dryBackPercent = 0
-      // and let the UI show "Set FC" rather than a fabricated percentage.
-      let dryBackPercent = 0;
-      if (wetWeight > 0) {
-        const lost = wetWeight - weight;
-        dryBackPercent = Math.max(0, Math.min(100, (lost / wetWeight) * 100));
-      }
+      // Canonical dryback via the shared implementation in lib/dryback.ts.
+      // Returns null when there is no usable FC/dry-target/current-weight
+      // (e.g. FC not set yet); store 0 so the UI shows "Set FC" rather than
+      // a fabricated percentage. Do not inline the formula here.
+      const dryBackPercent = computeDryback(wetWeight, weight, dryTarget) ?? 0;
 
       // Save the weight reading
       const dryTargetForLog = dryTarget || 0;

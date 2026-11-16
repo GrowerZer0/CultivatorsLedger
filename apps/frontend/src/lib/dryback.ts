@@ -70,12 +70,35 @@ export function computeDryTarget(wetWeight: number, drybackPercent: number): num
   return Math.round(wetWeight * (1 - drybackPercent / 100) * 100) / 100;
 }
 
+/**
+ * Canonical dryback: how far the pot has moved through its usable water
+ * range, from field capacity (0%) to dry target (100%).
+ *
+ *   dryback% = (wet - current) / (wet - dryTarget) * 100
+ *
+ * This is the ONLY dryback formula in the app. Do not inline a variant
+ * elsewhere; if a call site needs different behavior, change this function.
+ *
+ * Returns null when a meaningful percentage cannot be computed:
+ *   - no/invalid wet weight (FC not set)
+ *   - no/invalid current weight
+ *   - no/invalid dry target, or dryTarget >= wet (no usable range)
+ *
+ * Result is clamped to 0–100. 100% means "at dry target" (water now).
+ */
 export function computeDryback(
   wetWeightLbs: number | null | undefined,
   currentWeightLbs: number | null | undefined,
+  dryTargetLbs: number | null | undefined,
 ): number | null {
   const wet = Number(wetWeightLbs);
   const cur = Number(currentWeightLbs);
-  if (!Number.isFinite(wet) || wet <= 0 || !Number.isFinite(cur)) return null;
-  return Math.max(0, ((wet - cur) / wet) * 100);
+  const dry = Number(dryTargetLbs);
+  if (!Number.isFinite(wet) || wet <= 0) return null;
+  if (!Number.isFinite(cur)) return null;
+  if (!Number.isFinite(dry) || dry < 0 || dry >= wet) return null;
+  const range = wet - dry;
+  if (range <= 0) return null;
+  const pct = ((wet - cur) / range) * 100;
+  return Math.max(0, Math.min(100, pct));
 }
