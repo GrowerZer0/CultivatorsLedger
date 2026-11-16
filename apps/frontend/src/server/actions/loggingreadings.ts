@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { getUserId } from "@/lib/session";
 import type { DryBackLog as PrismaDryBackLog } from "@prisma/client";
 import { TrainingEvent } from "@/lib/cultivation-engine";
+import { computeDryback } from "@/lib/dryback";
 import { trackEvent } from "@/lib/analytics/server";
 
 // Helper: compute VPD (kPa) from temp (°C) and RH (%)
@@ -33,8 +34,10 @@ export async function addDryBackLog(data: {
   trainingEvent?: string;
 }) {
   const userId = await getUserId();
-  const dryBackPercent = ((data.wetWeight - data.weight) / (data.wetWeight - data.dryTarget)) * 100;
-  const clampedPercent = Math.max(0, Math.min(100, dryBackPercent));
+  // Canonical dryback via the shared implementation. Returns null when the
+  // inputs can't produce a meaningful percentage (no FC, no dry target, or
+  // dryTarget >= wet); store 0 in that case — same as the old behavior.
+  const clampedPercent = computeDryback(data.wetWeight, data.weight, data.dryTarget) ?? 0;
   const result = await db.dryBackLog.create({
     data: {
       containerGallons: data.containerGallons,
