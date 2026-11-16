@@ -28,17 +28,18 @@ const latestReadings = Object.entries(latestReadingsMap).map(([roomId, data]) =>
 
   const readingByRoom: Record<string, any> = {};
   latestReadings.forEach((r) => {
-    if (r.roomId) {
-      // Convert Celsius to Fahrenheit for the UI
-      const tempC = Number(r.airTempC);
-      const tempF = (tempC * 9) / 5 + 32;
-      readingByRoom[r.roomId] = {
-        roomId: r.roomId,
-        temperatureF: tempF,
-        humidity: Number(r.relativeHumidity),
-        timestamp: r.timestamp.toISOString(),
-      };
-    }
+    // A room with no climate reading has no roomId/timestamp pair to
+    // display. Skip it rather than fabricate a reading.
+    if (!r.roomId || !r.timestamp) return;
+    // Convert Celsius to Fahrenheit for the UI
+    const tempC = Number(r.airTempC);
+    const tempF = (tempC * 9) / 5 + 32;
+    readingByRoom[r.roomId] = {
+      roomId: r.roomId,
+      temperatureF: tempF,
+      humidity: Number(r.relativeHumidity),
+      timestamp: r.timestamp.toISOString(),
+    };
   });
 
   // Count plants per room
