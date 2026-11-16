@@ -185,11 +185,10 @@ export const commercialFeedSchedules: FeedSchedule[] = [
     targetEc: 1.8,
     targetPh: 5.8,
 doses: [
+    { product: "Cal-Mag", category: "calmag", mlPerGallon: 0, guaranteedPct: { N: 2, P: 0, K: 0, Ca: 3.2, Mg: 1.2 } },
   { product: "Grow A", mlPerGallon: 6, guaranteedPct: { N: 5, P: 0, K: 0, Ca: 4.5 } },
   { product: "Grow B", mlPerGallon: 6, guaranteedPct: { N: 0, P: 4, K: 5, Mg: 1 } },
   { product: "Cleanse", mlPerGallon: 2.5, guaranteedPct: { N: 0, P: 0, K: 0 } },
-    // Cal-Mag is optional for RO/coco — no label data in PRODUCT_LINES, leave undefined
-  { product: "Cal-Mag (optional — only for RO or unbuffered coco)", category: "calmag", mlPerGallon: 2 },
 ],
   },
   {
@@ -200,11 +199,10 @@ doses: [
     targetEc: 2.1,
     targetPh: 5.8,
 doses: [
+      { product: "Cal-Mag", category: "calmag", mlPerGallon: 0, guaranteedPct: { N: 2, P: 0, K: 0, Ca: 3.2, Mg: 1.2 } },
   { product: "Bloom A", mlPerGallon: 13, guaranteedPct: { N: 5, P: 0, K: 0, Ca: 4.5 } },
   { product: "Bloom B", mlPerGallon: 13, guaranteedPct: { N: 0, P: 4, K: 5, Mg: 1 } },
   { product: "Cleanse", mlPerGallon: 2.5, guaranteedPct: { N: 0, P: 0, K: 0 } },
-  // Cal-Mag is optional for RO/coco — no label data in PRODUCT_LINES, leave undefined
-  { product: "Cal-Mag (optional — only for RO or unbuffered coco)", category: "calmag", mlPerGallon: 2 },
 ],
   },
 
