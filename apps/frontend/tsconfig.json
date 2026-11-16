@@ -18,6 +18,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "../../Archive/Components/MorningBrief.tsx", "../../Archive/Components/BackLink.tsx"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "../../Archive/Components/MorningBrief.tsx", "../../Archive/Components/BackLink.tsx", "../../Archive/Components/NutrientTargetsCard.tsx", "../../Archive/Components/NutrientCalculatorModal.tsx", "../../Archive/Components/NutrientCalculator.tsx"],
   "exclude": ["node_modules"]
 }

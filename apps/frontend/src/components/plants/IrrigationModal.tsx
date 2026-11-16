@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Droplet, FlaskConical, Scale, Loader2, X, Check } from "lucide-react";
 import { recordIrrigation } from "@/server/actions/check-in";
-import { NutrientTargetsCard } from "@/components/nutrients/NutrientTargetsCard";
+import { NutrientMixCard } from "@/components/nutrients/NutrientMixCard";
 
 interface IrrigationModalProps {
   plantId: string;
@@ -140,13 +140,15 @@ export function IrrigationModal({
                 "Nutrients mixed, ready to feed."
               </p>
             </div>
-            <NutrientTargetsCard
-              stage={stage}
-              onMixReady={(data) => {
-                setFeedData(data);
-                setPhase("post");
-              }}
-            />
+<NutrientMixCard
+  defaultFeedLineId={null}
+  plantStage={stage}
+  containerGallons={null}
+  onMixReady={(data) => {
+    setFeedData(data);
+    setPhase("post");
+  }}
+/>
           </div>
         )}
 

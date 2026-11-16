@@ -44,7 +44,6 @@ import { PlantHardwareCard } from "@/components/plants/PlantHardwareCard";
 import { IrrigationModal } from "@/components/plants/IrrigationModal";
 import { StageTracker } from "@/components/plants/StageTracker";
 import { SOSModal } from "@/components/plants/SOSModal";
-import { NutrientTargetsCard } from "@/components/nutrients/NutrientTargetsCard";
 
 interface PlantDetailClientProps {
   plant: PlantWithDetails;
@@ -400,23 +399,6 @@ const [isScaleSettingsOpen, setIsScaleSettingsOpen] = useState(false);
         }}
         onAdvance={() => setIsAdvanceStageOpen(true)}
       />
-      {/* Nutrient Targets — Phase A */}
-      {isStandardStage && (
-<NutrientTargetsCard
-  stage={detectedStage}
-  nutrientLine={currentPlant.nutrientLine ?? null}
-  substrate={currentPlant.substrate ?? null}
-  containerGallons={currentPlant.containerGallons ?? null}
-  weeksIntoGrow={
-    currentPlant.startDate
-      ? Math.floor(
-          (Date.now() - new Date(currentPlant.startDate).getTime()) /
-            604_800_000,
-        )
-      : null
-  }
-/>
-      )}
       {/* Hardware (Scale, Light, Room Environment) */}
       <PlantHardwareCard
         plantId={currentPlant.id}
