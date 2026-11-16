@@ -94,10 +94,10 @@ export function IrrigationModal({
         eventDate,
         feedData: feedData
           ? {
-              feedLineId: feedData.feedLineId,
-              doses: feedData.doses,
-              gallons: feedData.gallons,
-            }
+            feedLineId: feedData.feedLineId,
+            doses: feedData.doses,
+            gallons: feedData.gallons,
+          }
           : null,
       });
 
@@ -140,15 +140,15 @@ export function IrrigationModal({
                 "Nutrients mixed, ready to feed."
               </p>
             </div>
-<NutrientMixCard
-  defaultFeedLineId={null}
-  plantStage={stage}
-  containerGallons={null}
-  onMixReady={(data) => {
-    setFeedData(data);
-    setPhase("post");
-  }}
-/>
+            <NutrientMixCard
+              defaultFeedLineId={null}
+              plantStage={stage}
+              containerGallons={null}
+              onMixReady={(data) => {
+                setFeedData(data);
+                setPhase("post");
+              }}
+            />
           </div>
         )}
 
@@ -227,62 +227,6 @@ export function IrrigationModal({
                 />
               </div>
             </div>
-
-            {/* Watered / Fed toggles */}
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={watered}
-                  onChange={(e) => setWatered(e.target.checked)}
-                  className="rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
-                />
-                <Droplet className="size-4 text-blue-500" />
-                Watered
-              </label>
-              <label className="flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={fed}
-                  onChange={(e) => setFed(e.target.checked)}
-                  className="rounded border-zinc-300 text-amber-600 focus:ring-amber-500"
-                />
-                <FlaskConical className="size-4 text-amber-500" />
-                Fed
-              </label>
-            </div>
-
-            {/* Optional Feeding Data */}
-            {fed && (
-              <div className="grid grid-cols-2 gap-3 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-900/40">
-                <div>
-                  <label className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase">
-                    Feed pH
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={feedPh}
-                    onChange={(e) => setFeedPh(e.target.value)}
-                    placeholder="6.2"
-                    className="w-full mt-1 px-2 py-1.5 bg-white dark:bg-zinc-900 border border-amber-200 dark:border-amber-900/40 rounded text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase">
-                    Feed EC
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={feedEc}
-                    onChange={(e) => setFeedEc(e.target.value)}
-                    placeholder="1.8"
-                    className="w-full mt-1 px-2 py-1.5 bg-white dark:bg-zinc-900 border border-amber-200 dark:border-amber-900/40 rounded text-sm"
-                  />
-                </div>
-              </div>
-            )}
 
             {/* Runoff EC */}
             <div>
