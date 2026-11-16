@@ -105,10 +105,7 @@ export async function logIrrigation(data: {
   }
   wetWeight = wetWeight ?? 18.4;
   dryTarget = dryTarget ?? 13.2;
-  const dryBackPercent = Math.max(
-    0,
-    Math.min(100, ((wetWeight - data.weight) / (wetWeight - dryTarget)) * 100)
-  );
+  const dryBackPercent = computeDryback(wetWeight, data.weight, dryTarget) ?? 0;
   const dryBackLog = await db.dryBackLog.create({
     data: {
       timestamp: new Date(),
@@ -211,10 +208,7 @@ export async function addManualClimateAndWeight(data: {
 
   let dryBackResult = null;
   if (data.weight !== undefined && data.weight !== null) {
-    const dryBackPercent = Math.max(
-      0,
-      Math.min(100, ((wet - data.weight) / (wet - dryTarget)) * 100)
-    );
+    const dryBackPercent = computeDryback(wet, data.weight, dryTarget) ?? 0;
     dryBackResult = await db.dryBackLog.create({
       data: {
         timestamp: new Date(),

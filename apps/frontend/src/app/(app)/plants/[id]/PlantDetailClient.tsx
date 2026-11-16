@@ -45,6 +45,7 @@ import { IrrigationModal } from "@/components/plants/IrrigationModal";
 import { StageTracker } from "@/components/plants/StageTracker";
 import { SOSModal } from "@/components/plants/SOSModal";
 import { getUserProfile } from "@/server/actions/profile";
+import { computeDryback as computeDrybackCanonical } from "@/lib/dryback";
 
 interface PlantDetailClientProps {
   plant: PlantWithDetails;
@@ -100,12 +101,20 @@ useEffect(() => {
   };
 
   // Recompute dryback from weights so we never display a stale stored value.
-  const computeDryback = (log: { wetWeightLbs: number; currentWeightLbs: number }) => {
-    const wet = Number(log.wetWeightLbs);
-    const cur = Number(log.currentWeightLbs);
-    if (!Number.isFinite(wet) || wet <= 0 || !Number.isFinite(cur)) return null;
-    return Math.max(0, ((wet - cur) / wet) * 100);
+  // Delegates to the canonical implementation in lib/dryback.ts so this
+  // screen agrees with every writer and every other reader.
+  const computeDryback = (log: {
+    wetWeightLbs: number;
+    currentWeightLbs: number;
+    dryTargetWeightLbs?: number | null;
+  }) => {
+    return computeDrybackCanonical(
+      Number(log.wetWeightLbs),
+      Number(log.currentWeightLbs),
+      Number(log.dryTargetWeightLbs ?? NaN),
+    );
   };
+
   const handleDelete = async () => {
     if (!confirm(`Delete "${plant.name}"? This will permanently delete the plant and all its data.`)) return;
 

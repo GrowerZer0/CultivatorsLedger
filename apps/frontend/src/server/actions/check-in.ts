@@ -1,5 +1,6 @@
 "use server";
 import { db } from "@/lib/db";
+import { computeDryback } from "@/lib/dryback";
 import { revalidatePath } from "next/cache";
 import { getUserId } from "@/lib/session";
 import { z } from "zod";
@@ -88,14 +89,11 @@ export async function recordDailyCheckInLog(data: unknown) {
     }
 
     // 4. Compute dryback — MUST match PlantStatusList / PlantDetailClient:
-    //      dryback = ((wet - current) / wet) * 100
-    // Not ((wet - current) / (wet - dryTarget)).
-    let dryBackPercent = 0;
-    if (hasWeight) {
-      dryBackPercent = Math.max(0, ((wet - weightLbs!) / wet) * 100);
-      // No upper clamp — dryback > 100% means the plant went below its
-      // dry target, which is useful information, not something to hide.
-    }
+    // Canonical dryback via the shared implementation. `dry` is resolved
+    // above from the plant's dry target. Clamped 0–100 by the function.
+    const dryBackPercent = hasWeight
+      ? (computeDryback(wet, weightLbs!, dryTarget) ?? 0)
+      : 0;
 
     // 5. Compile notes
     const noteParts: string[] = [];
@@ -194,11 +192,11 @@ export async function recordIrrigation(data: {
   notes?: string | null;
   updateFieldCapacity?: boolean;
   eventDate?: string;
-   feedData?: {
+  feedData?: {
     feedLineId: string;
     doses: Record<string, number>;
     gallons: number;
-  } | null;  
+  } | null;
 }) {
   try {
     const userId = await getUserId();
@@ -226,11 +224,11 @@ export async function recordIrrigation(data: {
       waterVolumeMl = Math.round(deltaLbs * 453.592);
     }
 
-    // Compute dryback % from post-weight
-    let dryBackPercent = 0;
-    if (wet > 0 && data.postWeightLbs !== null) {
-      dryBackPercent = Math.max(0, ((wet - data.postWeightLbs) / wet) * 100);
-    }
+    // Compute dryback % from post-weight via the shared implementation.
+    const dryBackPercent =
+      data.postWeightLbs !== null
+        ? (computeDryback(wet, data.postWeightLbs, dry) ?? 0)
+        : 0;
 
     const result = await db.$transaction(async (tx) => {
       const timestamp = data.eventDate
@@ -278,7 +276,7 @@ export async function recordIrrigation(data: {
             wetWeightLbs: wet,
             dryTargetWeightLbs: dry,
             currentWeightLbs: data.preWeightLbs,
-            dryBackPercent: wet > 0 ? Math.max(0, ((wet - data.preWeightLbs) / wet) * 100) : 0,
+            dryBackPercent: computeDryback(wet, data.preWeightLbs, dry) ?? 0,
             watered: false,
             fed: false,
             trainingEvent: null,
