@@ -10,6 +10,7 @@ import type { Plant } from "@/types/plant";
 import { PlantSummary } from "@/components/plants/PlantSummary";
 import { stageLabel as getStageLabel, weekLabel as getWeekLabel } from "@/lib/stage-label";
 import { IrrigationModal } from "@/components/plants/IrrigationModal";
+import { getUserProfile } from "@/server/actions/profile";
 
 type Room = { id: string; name: string };
 type Batch = { id: string; name: string };
@@ -33,6 +34,12 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
   const [addPlantOpen, setAddPlantOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [wateringPlantId, setWateringPlantId] = useState<string | null>(null);
+  const [activeFeedLine, setActiveFeedLine] = useState<string | null>(null);
+useEffect(() => {
+  getUserProfile().then((p) => {
+    if (p?.activeFeedLine) setActiveFeedLine(p.activeFeedLine);
+  });
+}, []);
   const handleDeletePlant = async (plantId: string, plantName: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -276,6 +283,12 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
                 ? Number(plant.currentWeight)
                 : null
             }
+            defaultFeedLineId={activeFeedLine}
+containerGallons={
+  plant.containerGallons !== null && plant.containerGallons !== undefined
+    ? Number(plant.containerGallons)
+    : null
+}
             wetWeight={plant.wetWeight ?? null}
             useGrams={plant.stage === "seedling"}
           />

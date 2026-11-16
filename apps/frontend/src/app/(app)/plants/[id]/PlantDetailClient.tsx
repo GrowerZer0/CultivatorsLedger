@@ -44,6 +44,7 @@ import { PlantHardwareCard } from "@/components/plants/PlantHardwareCard";
 import { IrrigationModal } from "@/components/plants/IrrigationModal";
 import { StageTracker } from "@/components/plants/StageTracker";
 import { SOSModal } from "@/components/plants/SOSModal";
+import { getUserProfile } from "@/server/actions/profile";
 
 interface PlantDetailClientProps {
   plant: PlantWithDetails;
@@ -71,6 +72,12 @@ export function PlantDetailClient({ plant, seedlingContext, lights, latestClimat
   const [isIrrigationOpen, setIsIrrigationOpen] = useState(false);
   const [isSOSOpen, setIsSOSOpen] = useState(false);
 const [isScaleSettingsOpen, setIsScaleSettingsOpen] = useState(false);
+  const [activeFeedLine, setActiveFeedLine] = useState<string | null>(null);
+useEffect(() => {
+  getUserProfile().then((p) => {
+    if (p?.activeFeedLine) setActiveFeedLine(p.activeFeedLine);
+  });
+}, []);
   // Sync the local state with the server whenever the page refreshes
   useEffect(() => {
     setCurrentPlant(plant);
@@ -780,6 +787,12 @@ currentWeight={
 }
         wetWeight={currentPlant.wetWeight ?? null}
         useGrams={useGrams}
+                    defaultFeedLineId={activeFeedLine}
+containerGallons={
+  plant.containerGallons !== null && plant.containerGallons !== undefined
+    ? Number(plant.containerGallons)
+    : null
+}
       />
       <SOSModal
         isOpen={isSOSOpen}

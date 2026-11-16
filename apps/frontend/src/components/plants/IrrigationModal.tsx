@@ -12,6 +12,8 @@ interface IrrigationModalProps {
   wetWeight: number | null;
   useGrams: boolean;
   stage: string;
+  defaultFeedLineId?: string | null;
+  containerGallons?: number | null;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -23,6 +25,8 @@ export function IrrigationModal({
   wetWeight,
   useGrams,
   stage,
+  defaultFeedLineId,
+  containerGallons,
   isOpen,
   onClose,
 }: IrrigationModalProps) {
@@ -141,9 +145,9 @@ export function IrrigationModal({
               </p>
             </div>
             <NutrientMixCard
-              defaultFeedLineId={null}
+              defaultFeedLineId={defaultFeedLineId ?? null}
               plantStage={stage}
-              containerGallons={null}
+              containerGallons={containerGallons ?? null}
               onMixReady={(data) => {
                 setFeedData(data);
                 setPhase("post");
