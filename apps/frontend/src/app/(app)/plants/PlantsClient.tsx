@@ -32,7 +32,7 @@ export function PlantsClient({ initialPlants, rooms, batches }: PlantsClientProp
   const [view, setView] = useState<"grid" | "list">("list");
   const [addPlantOpen, setAddPlantOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-const [wateringPlantId, setWateringPlantId] = useState<string | null>(null);
+  const [wateringPlantId, setWateringPlantId] = useState<string | null>(null);
   const handleDeletePlant = async (plantId: string, plantName: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -205,7 +205,7 @@ const [wateringPlantId, setWateringPlantId] = useState<string | null>(null);
                 useGrams={useGrams}
                 thumbnailUrl={plant.thumbnailUrl}
                 variant="row"
-                  onWater={(plantId) => setWateringPlantId(plantId)}
+                onWater={(plantId) => setWateringPlantId(plantId)}
               />
             );
           })}
@@ -243,7 +243,7 @@ const [wateringPlantId, setWateringPlantId] = useState<string | null>(null);
                 useGrams={useGrams}
                 thumbnailUrl={plant.thumbnailUrl}
                 variant="card"
-                  onWater={(plantId) => setWateringPlantId(plantId)}
+                onWater={(plantId) => setWateringPlantId(plantId)}
               />
             );
           })}
@@ -262,24 +262,25 @@ const [wateringPlantId, setWateringPlantId] = useState<string | null>(null);
         }}
       />
       {wateringPlantId && (() => {
-  const plant = plants.find((p) => p.id === wateringPlantId);
-  if (!plant) return null;
-  return (
-    <IrrigationModal
-      isOpen={true}
-      onClose={() => setWateringPlantId(null)}
-      plantId={plant.id}
-      plantName={plant.name}
-currentWeight={
-  plant.currentWeight !== null && plant.currentWeight !== undefined
-    ? Number(plant.currentWeight)
-    : null
-}
-wetWeight={plant.wetWeight ?? null}
-      useGrams={plant.stage === "seedling"}
-    />
-  );
-})()}
+        const plant = plants.find((p) => p.id === wateringPlantId);
+        if (!plant) return null;
+        return (
+          <IrrigationModal
+            isOpen={true}
+            onClose={() => setWateringPlantId(null)}
+            plantId={plant.id}
+            plantName={plant.name}
+            stage={plant.stage ?? "vegetative"}
+            currentWeight={
+              plant.currentWeight !== null && plant.currentWeight !== undefined
+                ? Number(plant.currentWeight)
+                : null
+            }
+            wetWeight={plant.wetWeight ?? null}
+            useGrams={plant.stage === "seedling"}
+          />
+        );
+      })()}
     </div>
   );
 }

@@ -261,6 +261,7 @@ const [wateringPlantId, setWateringPlantId] = useState<string | null>(null);
       onClose={() => setWateringPlantId(null)}
       plantId={plant.id}
       plantName={plant.name}
+      stage={plant.stage ?? "vegetative"}
 currentWeight={
   plant.currentWeight !== null && plant.currentWeight !== undefined
     ? Number(plant.currentWeight)

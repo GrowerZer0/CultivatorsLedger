@@ -57,6 +57,11 @@ interface NutrientTargetsCardProps {
   substrate?: string | null;
   containerGallons?: number | null;
   weeksIntoGrow?: number | null;
+    onMixReady?: (data: {
+    feedLineId: string;
+    doses: Record<string, number>;
+    gallons: number;
+  }) => void;
 }
 
 export function NutrientTargetsCard({
@@ -65,6 +70,7 @@ export function NutrientTargetsCard({
   substrate,
   containerGallons,
   weeksIntoGrow,
+  onMixReady,
 }: NutrientTargetsCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [activeLine, setActiveLine] = useState<string>(
@@ -311,6 +317,19 @@ export function NutrientTargetsCard({
             lab measurement. Pot size scales the contribution linearly; week drives
             the release decay. Trust the plant's response over the model.
           </p>
+          {onMixReady && (
+  <button
+    type="button"
+    onClick={() => onMixReady({
+      feedLineId: activeLine,
+      doses,
+      gallons: effectivePotGal,
+    })}
+    className="w-full mt-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-lg transition-colors"
+  >
+    Nutrients mixed, ready to feed
+  </button>
+)}
         </div>
       )}
     </div>

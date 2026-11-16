@@ -194,6 +194,11 @@ export async function recordIrrigation(data: {
   notes?: string | null;
   updateFieldCapacity?: boolean;
   eventDate?: string;
+   feedData?: {
+    feedLineId: string;
+    doses: Record<string, number>;
+    gallons: number;
+  } | null;  
 }) {
   try {
     const userId = await getUserId();
@@ -257,6 +262,7 @@ export async function recordIrrigation(data: {
           runoffVolumeMl: data.runoffVolumeMl ?? null,
           runoffPh: data.runoffPh ?? null,
           runoffEc: data.runoffEc ?? null,
+          sourceMetadata: data.feedData ? { feed: data.feedData } : undefined,
         },
       });
 

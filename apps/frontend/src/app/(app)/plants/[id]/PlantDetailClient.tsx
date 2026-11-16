@@ -792,6 +792,7 @@ const [isScaleSettingsOpen, setIsScaleSettingsOpen] = useState(false);
         onClose={() => setIsIrrigationOpen(false)}
         plantId={currentPlant.id}
         plantName={currentPlant.name}
+        stage={currentPlant.stage ?? "vegetative"}
 currentWeight={
   weight !== null && weight !== undefined ? Number(weight) : null
 }

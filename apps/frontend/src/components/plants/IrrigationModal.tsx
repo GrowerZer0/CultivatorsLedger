@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Droplet, FlaskConical, Scale, Loader2, X, Check } from "lucide-react";
 import { recordIrrigation } from "@/server/actions/check-in";
+import { NutrientTargetsCard } from "@/components/plants/NutrientTargetsCard";
 
 interface IrrigationModalProps {
   plantId: string;
@@ -10,6 +11,7 @@ interface IrrigationModalProps {
   currentWeight: number | null;
   wetWeight: number | null;
   useGrams: boolean;
+  stage: string;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -20,9 +22,18 @@ export function IrrigationModal({
   currentWeight,
   wetWeight,
   useGrams,
+  stage,
   isOpen,
   onClose,
 }: IrrigationModalProps) {
+  type Phase = "pre" | "post";
+  const [phase, setPhase] = useState<Phase>("pre");
+  const [feedData, setFeedData] = useState<{
+    feedLineId: string;
+    doses: Record<string, number>;
+    gallons: number;
+  } | null>(null);
+
   const currentWeightNum: number | null =
     currentWeight !== null && currentWeight !== undefined
       ? Number(currentWeight)
@@ -31,11 +42,11 @@ export function IrrigationModal({
     wetWeight !== null && wetWeight !== undefined
       ? Number(wetWeight)
       : null;
+
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [eventDate, setEventDate] = useState<string>(() => {
     const today = new Date();
-    // Local date string (not UTC) — matches what the user sees
     const y = today.getFullYear();
     const m = String(today.getMonth() + 1).padStart(2, "0");
     const d = String(today.getDate()).padStart(2, "0");
@@ -65,8 +76,8 @@ export function IrrigationModal({
       return;
     }
 
-    // Convert to lbs if the user is entering grams
-    const toLbs = (val: number | null) => (val === null ? null : useGrams ? val / 453.592 : val);
+    const toLbs = (val: number | null) =>
+      val === null ? null : useGrams ? val / 453.592 : val;
 
     startTransition(async () => {
       const res = await recordIrrigation({
@@ -81,11 +92,18 @@ export function IrrigationModal({
         updateFieldCapacity: updateFc,
         notes: notes.trim() || null,
         eventDate,
+        feedData: feedData
+          ? {
+              feedLineId: feedData.feedLineId,
+              doses: feedData.doses,
+              gallons: feedData.gallons,
+            }
+          : null,
       });
 
       if (res.success) {
         onClose();
-        window.location.reload(); // Force a refresh to update the charts
+        window.location.reload();
       } else {
         setError(res.error || "Failed to log irrigation");
       }
@@ -97,6 +115,7 @@ export function IrrigationModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
       <div className="w-full max-w-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl">
+        {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-800">
           <div className="flex items-center gap-2">
             <Droplet className="size-5 text-blue-500" />
@@ -108,180 +127,229 @@ export function IrrigationModal({
             <X className="size-5" />
           </button>
         </div>
-        <div>
-          <label className="text-xs font-bold text-zinc-600 dark:text-zinc-400 uppercase">
-            Date
-          </label>
-          <input
-            type="date"
-            value={eventDate}
-            max={new Date().toISOString().split("T")[0]}
-            onChange={(e) => setEventDate(e.target.value)}
-            className="w-full mt-1 px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm"
-          />
-        </div>
-        <form onSubmit={handleSubmit} className="p-4 space-y-4 max-h-[75vh] overflow-y-auto">
-          {/* Pre/Post Weights */}
-          <div className="grid grid-cols-2 gap-3">
+
+        {/* PRE PHASE — feed mixing */}
+        {phase === "pre" && (
+          <div className="p-4 max-h-[75vh] overflow-y-auto">
+            <div className="mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/40 text-xs">
+              <p className="font-bold text-blue-900 dark:text-blue-300 mb-1">
+                Before you water
+              </p>
+              <p className="text-blue-800 dark:text-blue-400">
+                Mix your feed below. When you're ready to water, tap
+                "Nutrients mixed, ready to feed."
+              </p>
+            </div>
+            <NutrientTargetsCard
+              stage={stage}
+              onMixReady={(data) => {
+                setFeedData(data);
+                setPhase("post");
+              }}
+            />
+          </div>
+        )}
+
+        {/* POST PHASE — log weights and feed */}
+        {phase === "post" && (
+          <form
+            onSubmit={handleSubmit}
+            className="p-4 space-y-4 max-h-[75vh] overflow-y-auto"
+          >
+            {/* Date */}
             <div>
               <label className="text-xs font-bold text-zinc-600 dark:text-zinc-400 uppercase">
-                Pre-Water ({inputUnit})
+                Date
               </label>
               <input
-                type="number"
-                step="0.01"
-                value={preWeight}
-                onChange={(e) => setPreWeight(e.target.value)}
-                placeholder={
-                  currentWeightNum !== null
-                    ? currentWeightNum.toFixed(2)
-                    : "e.g. 12.05"
-                }
-                className="w-full mt-1 px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm font-mono"
+                type="date"
+                value={eventDate}
+                max={new Date().toISOString().split("T")[0]}
+                onChange={(e) => setEventDate(e.target.value)}
+                className="w-full mt-1 px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm"
               />
             </div>
-            <div>
-              <label className="text-xs font-bold text-zinc-600 dark:text-zinc-400 uppercase">
-                Post-Water ({inputUnit}) *
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={postWeight}
-                onChange={(e) => setPostWeight(e.target.value)}
-                placeholder={
-                  wetWeight !== null
-                    ? wetWeightNum?.toFixed(2)
-                    : "Field Capacity"
-                } className="w-full mt-1 px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm font-mono"
-                required
-              />
-            </div>
-          </div>
 
-          {/* Watered / Fed toggles */}
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={watered}
-                onChange={(e) => setWatered(e.target.checked)}
-                className="rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
-              />
-              <Droplet className="size-4 text-blue-500" />
-              Watered
-            </label>
-            <label className="flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={fed}
-                onChange={(e) => setFed(e.target.checked)}
-                className="rounded border-zinc-300 text-amber-600 focus:ring-amber-500"
-              />
-              <FlaskConical className="size-4 text-amber-500" />
-              Fed
-            </label>
-          </div>
-
-          {/* Optional Feeding Data */}
-          {fed && (
-            <div className="grid grid-cols-2 gap-3 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-900/40">
-              <div>
-                <label className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase">
-                  Feed pH
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={feedPh}
-                  onChange={(e) => setFeedPh(e.target.value)}
-                  placeholder="6.2"
-                  className="w-full mt-1 px-2 py-1.5 bg-white dark:bg-zinc-900 border border-amber-200 dark:border-amber-900/40 rounded text-sm"
-                />
+            {/* Feed summary card */}
+            {feedData && (
+              <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/40 text-xs">
+                <p className="font-bold text-emerald-900 dark:text-emerald-300 mb-1">
+                  Feed: {feedData.feedLineId}
+                </p>
+                <div className="text-emerald-800 dark:text-emerald-400 space-y-0.5">
+                  {Object.entries(feedData.doses).map(([name, ml]) => (
+                    <div key={name} className="flex justify-between">
+                      <span>{name}</span>
+                      <span className="font-mono">{ml} mL/gal</span>
+                    </div>
+                  ))}
+                </div>
               </div>
+            )}
+
+            {/* Pre/Post Weights */}
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase">
-                  Feed EC
+                <label className="text-xs font-bold text-zinc-600 dark:text-zinc-400 uppercase">
+                  Pre-Water ({inputUnit})
                 </label>
                 <input
                   type="number"
                   step="0.01"
-                  value={feedEc}
-                  onChange={(e) => setFeedEc(e.target.value)}
-                  placeholder="1.8"
-                  className="w-full mt-1 px-2 py-1.5 bg-white dark:bg-zinc-900 border border-amber-200 dark:border-amber-900/40 rounded text-sm"
+                  value={preWeight}
+                  onChange={(e) => setPreWeight(e.target.value)}
+                  placeholder={
+                    currentWeightNum !== null
+                      ? currentWeightNum.toFixed(2)
+                      : "e.g. 12.05"
+                  }
+                  className="w-full mt-1 px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm font-mono"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-zinc-600 dark:text-zinc-400 uppercase">
+                  Post-Water ({inputUnit}) *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={postWeight}
+                  onChange={(e) => setPostWeight(e.target.value)}
+                  placeholder={
+                    wetWeightNum !== null
+                      ? wetWeightNum.toFixed(2)
+                      : "Field Capacity"
+                  }
+                  className="w-full mt-1 px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm font-mono"
+                  required
                 />
               </div>
             </div>
-          )}
 
-          {/* Runoff EC */}
-          <div>
-            <label className="text-xs font-bold text-zinc-600 dark:text-zinc-400 uppercase">
-              Runoff EC (optional)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              value={runoffEc}
-              onChange={(e) => setRunoffEc(e.target.value)}
-              placeholder="If you measured it"
-              className="w-full mt-1 px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm font-mono"
-            />
-          </div>
+            {/* Watered / Fed toggles */}
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={watered}
+                  onChange={(e) => setWatered(e.target.checked)}
+                  className="rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
+                />
+                <Droplet className="size-4 text-blue-500" />
+                Watered
+              </label>
+              <label className="flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={fed}
+                  onChange={(e) => setFed(e.target.checked)}
+                  className="rounded border-zinc-300 text-amber-600 focus:ring-amber-500"
+                />
+                <FlaskConical className="size-4 text-amber-500" />
+                Fed
+              </label>
+            </div>
 
-          {/* Update FC toggle */}
-          <div className="flex items-start gap-2 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
-            <input
-              type="checkbox"
-              id="updateFc"
-              checked={updateFc}
-              onChange={(e) => setUpdateFc(e.target.checked)}
-              className="mt-0.5 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
-            />
-            <label htmlFor="updateFc" className="text-xs text-zinc-600 dark:text-zinc-400">
-              <span className="font-bold text-zinc-900 dark:text-white">Update Field Capacity</span>
-              <br />
-              Check this if the post-water weight represents a fully saturated pot. Updates FC for future dryback calculations.
-            </label>
-          </div>
+            {/* Optional Feeding Data */}
+            {fed && (
+              <div className="grid grid-cols-2 gap-3 p-3 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-900/40">
+                <div>
+                  <label className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase">
+                    Feed pH
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={feedPh}
+                    onChange={(e) => setFeedPh(e.target.value)}
+                    placeholder="6.2"
+                    className="w-full mt-1 px-2 py-1.5 bg-white dark:bg-zinc-900 border border-amber-200 dark:border-amber-900/40 rounded text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase">
+                    Feed EC
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={feedEc}
+                    onChange={(e) => setFeedEc(e.target.value)}
+                    placeholder="1.8"
+                    className="w-full mt-1 px-2 py-1.5 bg-white dark:bg-zinc-900 border border-amber-200 dark:border-amber-900/40 rounded text-sm"
+                  />
+                </div>
+              </div>
+            )}
 
-          {/* Notes */}
-          <div>
-            <label className="text-xs font-bold text-zinc-600 dark:text-zinc-400 uppercase">
-              Notes (optional)
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={2}
-              placeholder="e.g. Added Cal-Mag, pH adjusted to 6.3"
-              className="w-full mt-1 px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm resize-none"
-            />
-          </div>
+            {/* Runoff EC */}
+            <div>
+              <label className="text-xs font-bold text-zinc-600 dark:text-zinc-400 uppercase">
+                Runoff EC (optional)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={runoffEc}
+                onChange={(e) => setRunoffEc(e.target.value)}
+                placeholder="If you measured it"
+                className="w-full mt-1 px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm font-mono"
+              />
+            </div>
 
-          {error && (
-            <p className="text-xs font-bold text-red-500 text-center">{error}</p>
-          )}
+            {/* Update FC toggle */}
+            <div className="flex items-start gap-2 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
+              <input
+                type="checkbox"
+                id="updateFc"
+                checked={updateFc}
+                onChange={(e) => setUpdateFc(e.target.checked)}
+                className="mt-0.5 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
+              />
+              <label htmlFor="updateFc" className="text-xs text-zinc-600 dark:text-zinc-400">
+                <span className="font-bold text-zinc-900 dark:text-white">Update Field Capacity</span>
+                <br />
+                Check this if the post-water weight represents a fully saturated pot. Updates FC for future dryback calculations.
+              </label>
+            </div>
 
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-semibold text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isPending}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-lg transition-colors disabled:opacity-50"
-            >
-              {isPending ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
-              Log Irrigation
-            </button>
-          </div>
-        </form>
+            {/* Notes */}
+            <div>
+              <label className="text-xs font-bold text-zinc-600 dark:text-zinc-400 uppercase">
+                Notes (optional)
+              </label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={2}
+                placeholder="e.g. Added Cal-Mag, pH adjusted to 6.3"
+                className="w-full mt-1 px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm resize-none"
+              />
+            </div>
+
+            {error && (
+              <p className="text-xs font-bold text-red-500 text-center">{error}</p>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-sm font-semibold text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isPending}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-lg transition-colors disabled:opacity-50"
+              >
+                {isPending ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
+                Log Irrigation
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );
