@@ -30,22 +30,24 @@ import {
 } from "@/lib/substrate-profiles";
 
 interface NutrientMixCardProps {
-  /** Default feed line — typically profile.activeFeedLine. Falls back to
-   *  the first stage-matched schedule when null. */
   defaultFeedLineId?: string | null;
   plantStage?: string;
-  /** Default substrate profile id. Falls back to coco_perlite_vermiculite. */
   substrate?: string | null;
-  /** Pot size, used by the substrate model. Falls back to 5.0. */
   containerGallons?: number | null;
   weeksIntoGrow?: number | null;
-  /** Called when the user confirms the mix. Carries the actual mix volume
-   *  (gallons), the selected feed line id, and the per-product mL/gal doses. */
   onMixReady?: (data: {
     feedLineId: string;
     doses: Record<string, number>;
     gallons: number;
   }) => void;
+}
+
+/** Sort doses into mix order: calmag first, then base, then additive.
+ *  Undefined category is treated as "base". Stable within a category. */
+function sortDosesForMix(doses: NutrientDose[]): NutrientDose[] {
+  const rank = (d: NutrientDose) =>
+    d.category === "calmag" ? 0 : d.category === "additive" ? 2 : 1;
+  return [...doses].sort((a, b) => rank(a) - rank(b));
 }
 
 export function NutrientMixCard({
@@ -76,6 +78,8 @@ export function NutrientMixCard({
     () => commercialFeedSchedules.find((s) => s.id === activeLineId) || defaultSchedule,
     [activeLineId, defaultSchedule],
   );
+
+  const orderedDoses = useMemo(() => sortDosesForMix(activeSchedule.doses), [activeSchedule]);
 
   // ---------- Mix volume ----------
   const [gallons, setGallons] = useState<number>(3);
@@ -156,31 +160,43 @@ export function NutrientMixCard({
       ? Math.round((stageData.targets.N / nRow.supplied) * 100) / 100
       : null;
 
-  // ---------- Mix steps ----------
+  // ---------- Mix steps (order fixed: calmag → base → additive) ----------
   const steps = useMemo(() => {
-    const result: Array<{ order: number; text: string; detail?: string }> = [];
-    result.push({ order: 1, text: `Fill ${gallons.toFixed(1)} gallons of water` });
-    activeSchedule.doses.forEach((dose: NutrientDose, i: number) => {
+    const result: Array<{
+      order: number;
+      text: string;
+      detail?: string;
+      product?: string;
+      mlPerGal?: number;
+      totalMl?: number;
+    }> = [];
+    result.push({
+      order: 1,
+      text: `Fill ${gallons.toFixed(1)} gallons of water`,
+    });
+    orderedDoses.forEach((dose, i) => {
       const ml = doses[dose.product] ?? dose.mlPerGallon;
       const totalMl = ml * gallons;
       result.push({
         order: i + 2,
         text: `Add ${dose.product}`,
-        detail: `${totalMl.toFixed(1)} mL  (${ml} mL/gal)`,
+        product: dose.product,
+        mlPerGal: ml,
+        totalMl,
       });
     });
     result.push({
-      order: activeSchedule.doses.length + 2,
+      order: orderedDoses.length + 2,
       text: `Check pH`,
       detail: `Target ${activeSchedule.targetPh?.toFixed(1) ?? "5.8"}`,
     });
     result.push({
-      order: activeSchedule.doses.length + 3,
+      order: orderedDoses.length + 3,
       text: `Check EC`,
       detail: `Target ${activeSchedule.targetEc.toFixed(1)}`,
     });
     return result;
-  }, [activeSchedule, doses, gallons]);
+  }, [activeSchedule, orderedDoses, doses, gallons]);
 
   // ---------- Copy ----------
   const [copied, setCopied] = useState(false);
@@ -189,7 +205,12 @@ export function NutrientMixCard({
       activeSchedule.label,
       `Mix ${gallons.toFixed(1)} gallons`,
       "",
-      ...steps.map((s) => `${s.order}. ${s.text}${s.detail ? " — " + s.detail : ""}`),
+      ...steps.map(
+        (s) =>
+          `${s.order}. ${s.text}` +
+          (s.totalMl !== undefined ? ` — ${s.totalMl.toFixed(1)} mL (${s.mlPerGal} mL/gal)` : "") +
+          (s.detail ? ` — ${s.detail}` : ""),
+      ),
     ].join("\n");
     try {
       await navigator.clipboard.writeText(text);
@@ -228,6 +249,49 @@ export function NutrientMixCard({
           <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-3">
             {stageData.notes}
           </p>
+
+          {/* Substrate — FIRST, because it changes the interpretation of everything below */}
+          <div>
+            <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+              <Sprout className="size-3" />
+              Substrate
+            </h4>
+            <div className="grid grid-cols-2 gap-2">
+              <select
+                value={activeSubstrate}
+                onChange={(e) => setActiveSubstrate(e.target.value)}
+                className="px-2 py-1.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded text-xs"
+              >
+                {Object.entries(SUBSTRATE_PROFILES).map(([id, p]) => (
+                  <option key={id} value={id}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-zinc-500">Week</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={effectiveWeek}
+                  onChange={(e) => setWeekOverride(Number(e.target.value))}
+                  className="w-14 px-2 py-1.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded text-xs font-mono text-right"
+                />
+                <span className="text-[10px] text-zinc-400">
+                  / {substrateProfile.releaseWeeks || "inert"}
+                </span>
+              </div>
+            </div>
+            {substrateProfile.releaseWeeks > 0 && (
+              <p className="text-[10px] text-zinc-500 mt-1.5">{substrateProfile.notes}</p>
+            )}
+            {substrateProfile.releaseWeeks === 0 && (
+              <p className="text-[10px] text-zinc-500 mt-1.5">
+                Inert substrate — no contribution. All nutrients from feed.
+              </p>
+            )}
+          </div>
 
           {/* Feed line + gallons */}
           <div className="grid grid-cols-2 gap-2">
@@ -281,10 +345,16 @@ export function NutrientMixCard({
           {/* pH/EC targets */}
           <div className="flex items-center gap-3 text-[10px] text-zinc-500">
             <span>
-              pH target <span className="font-mono font-bold text-zinc-700 dark:text-zinc-300">{activeSchedule.targetPh?.toFixed(1) ?? "5.8"}</span>
+              pH target{" "}
+              <span className="font-mono font-bold text-zinc-700 dark:text-zinc-300">
+                {activeSchedule.targetPh?.toFixed(1) ?? "5.8"}
+              </span>
             </span>
             <span>
-              EC target <span className="font-mono font-bold text-zinc-700 dark:text-zinc-300">{activeSchedule.targetEc.toFixed(1)}</span>
+              EC target{" "}
+              <span className="font-mono font-bold text-zinc-700 dark:text-zinc-300">
+                {activeSchedule.targetEc.toFixed(1)}
+              </span>
             </span>
             <button
               type="button"
@@ -296,21 +366,43 @@ export function NutrientMixCard({
             </button>
           </div>
 
-          {/* Mix order */}
+          {/* Mix order — doses are editable inline here */}
           <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/40 dark:bg-zinc-950/30 p-3">
             <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-2">
               Mix order
             </div>
             <ol className="space-y-2">
               {steps.map((step) => (
-                <li key={step.order} className="flex gap-2">
+                <li key={step.order} className="flex items-start gap-2">
                   <div className="shrink-0 size-5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-[10px] font-bold">
                     {step.order}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-zinc-900 dark:text-white">
-                      {step.text}
-                    </p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-medium text-zinc-900 dark:text-white">
+                        {step.text}
+                      </p>
+                      {step.product && (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            step="0.5"
+                            min="0"
+                            value={doses[step.product] ?? 0}
+                            onChange={(e) =>
+                              setDoses({ ...doses, [step.product!]: Number(e.target.value) })
+                            }
+                            className="w-16 px-1.5 py-0.5 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded text-[11px] font-mono text-right"
+                          />
+                          <span className="text-[10px] text-zinc-500">mL/gal</span>
+                        </div>
+                      )}
+                    </div>
+                    {step.totalMl !== undefined && (
+                      <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono">
+                        {step.totalMl.toFixed(1)} mL total
+                      </p>
+                    )}
                     {step.detail && (
                       <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono">
                         {step.detail}
@@ -320,82 +412,6 @@ export function NutrientMixCard({
                 </li>
               ))}
             </ol>
-          </div>
-
-          {/* Substrate */}
-          <div>
-            <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
-              <Sprout className="size-3" />
-              Substrate
-            </h4>
-            <div className="grid grid-cols-2 gap-2">
-              <select
-                value={activeSubstrate}
-                onChange={(e) => setActiveSubstrate(e.target.value)}
-                className="px-2 py-1.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded text-xs"
-              >
-                {Object.entries(SUBSTRATE_PROFILES).map(([id, p]) => (
-                  <option key={id} value={id}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
-              <div className="flex items-center gap-1">
-                <span className="text-[10px] text-zinc-500">Week</span>
-                <input
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={effectiveWeek}
-                  onChange={(e) => setWeekOverride(Number(e.target.value))}
-                  className="w-14 px-2 py-1.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded text-xs font-mono text-right"
-                />
-                <span className="text-[10px] text-zinc-400">
-                  / {substrateProfile.releaseWeeks || "inert"}
-                </span>
-              </div>
-            </div>
-            {substrateProfile.releaseWeeks > 0 && (
-              <p className="text-[10px] text-zinc-500 mt-1.5">{substrateProfile.notes}</p>
-            )}
-            {substrateProfile.releaseWeeks === 0 && (
-              <p className="text-[10px] text-zinc-500 mt-1.5">
-                Inert substrate — no contribution. All nutrients from feed.
-              </p>
-            )}
-          </div>
-
-          {/* Per-product editable doses */}
-          <div>
-            <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5">
-              Your feed (mL/gal, editable)
-            </h4>
-            <div className="space-y-1.5">
-              {activeSchedule.doses.map((p) => (
-                <div key={p.product} className="flex items-center gap-2">
-                  <span className="text-xs text-zinc-700 dark:text-zinc-300 flex-1 truncate">
-                    {p.product}
-                  </span>
-                  <input
-                    type="number"
-                    step="0.5"
-                    min="0"
-                    value={doses[p.product] ?? 0}
-                    onChange={(e) =>
-                      setDoses({ ...doses, [p.product]: Number(e.target.value) })
-                    }
-                    className="w-16 px-2 py-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded text-xs font-mono text-right"
-                  />
-                  <span className="text-[10px] text-zinc-500 w-10">mL/gal</span>
-                </div>
-              ))}
-            </div>
-            {hasMissingLabels && (
-              <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1.5">
-                Some products in this feed line have no label data yet — their mg/L
-                contribution is not counted in the totals below.
-              </p>
-            )}
           </div>
 
           {/* Target comparison */}
@@ -412,6 +428,12 @@ export function NutrientMixCard({
                 />
               ))}
             </div>
+            {hasMissingLabels && (
+              <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1.5">
+                Some products in this feed line have no label data yet — their mg/L
+                contribution is not counted above.
+              </p>
+            )}
           </div>
 
           {scaleRecommendation && scaleRecommendation > 1.15 && (
@@ -442,9 +464,7 @@ export function NutrientMixCard({
           {onMixReady && (
             <button
               type="button"
-              onClick={() =>
-                onMixReady({ feedLineId: activeLineId, doses, gallons })
-              }
+              onClick={() => onMixReady({ feedLineId: activeLineId, doses, gallons })}
               className="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-lg transition-colors"
             >
               Nutrients mixed, ready to feed

@@ -21,6 +21,9 @@ export type DryBackLog = {
 export type NutrientDose = {
   product: string;
     mlPerGallon: number;
+      /** Mix-order category. "calmag" products go first (after water), then
+   *  "base" minerals, then "additive". Undefined = "base". */
+  category?: "calmag" | "base" | "additive";
   /** Guaranteed analysis from the manufacturer's label, % by weight.
    *  Used by NutrientMixCard to compute mg/L supplied. Optional so
    *  schedules that don't have label data yet still typecheck. */
@@ -185,6 +188,8 @@ doses: [
   { product: "Grow A", mlPerGallon: 6, guaranteedPct: { N: 5, P: 0, K: 0, Ca: 4.5 } },
   { product: "Grow B", mlPerGallon: 6, guaranteedPct: { N: 0, P: 4, K: 5, Mg: 1 } },
   { product: "Cleanse", mlPerGallon: 2.5, guaranteedPct: { N: 0, P: 0, K: 0 } },
+    // Cal-Mag is optional for RO/coco — no label data in PRODUCT_LINES, leave undefined
+  { product: "Cal-Mag (optional — only for RO or unbuffered coco)", category: "calmag", mlPerGallon: 2 },
 ],
   },
   {
@@ -199,7 +204,7 @@ doses: [
   { product: "Bloom B", mlPerGallon: 13, guaranteedPct: { N: 0, P: 4, K: 5, Mg: 1 } },
   { product: "Cleanse", mlPerGallon: 2.5, guaranteedPct: { N: 0, P: 0, K: 0 } },
   // Cal-Mag is optional for RO/coco — no label data in PRODUCT_LINES, leave undefined
-  { product: "Cal-Mag (optional — only for RO or unbuffered coco)", mlPerGallon: 2 },
+  { product: "Cal-Mag (optional — only for RO or unbuffered coco)", category: "calmag", mlPerGallon: 2 },
 ],
   },
 
@@ -218,7 +223,7 @@ doses: [
     doses: [
       { product: "Grow Big", mlPerGallon: 10 },
       { product: "Big Bloom", mlPerGallon: 15 },
-      { product: "Cal-Mag", mlPerGallon: 3 },
+      { product: "Cal-Mag", category: "calmag", mlPerGallon: 3 },
     ],
   },
   {
@@ -232,7 +237,7 @@ doses: [
       { product: "Tiger Bloom", mlPerGallon: 10 },
       { product: "Big Bloom", mlPerGallon: 15 },
       { product: "Grow Big", mlPerGallon: 5 },
-      { product: "Cal-Mag", mlPerGallon: 5 },
+      { product: "Cal-Mag", category: "calmag", mlPerGallon: 5 },
     ],
   },
 
@@ -285,7 +290,7 @@ doses: [
   { product: "FloraMicro", mlPerGallon: 7.5, guaranteedPct: { N: 5, P: 0, K: 1, Ca: 5 } },
   { product: "FloraGro", mlPerGallon: 10, guaranteedPct: { N: 2, P: 1, K: 6 } },
   { product: "FloraBloom", mlPerGallon: 2.5, guaranteedPct: { N: 0, P: 5, K: 4 } },
-  { product: "CaliMagic", mlPerGallon: 5, guaranteedPct: { N: 2, P: 0, K: 0, Ca: 3.2, Mg: 1.2 } },
+  { product: "CaliMagic", mlPerGallon: 5, category: "calmag", guaranteedPct: { N: 2, P: 0, K: 0, Ca: 3.2, Mg: 1.2 } },
 ],
   },
   {
@@ -299,7 +304,7 @@ doses: [
   { product: "FloraMicro", mlPerGallon: 10, guaranteedPct: { N: 5, P: 0, K: 1, Ca: 5 } },
   { product: "FloraGro", mlPerGallon: 2.5, guaranteedPct: { N: 2, P: 1, K: 6 } },
   { product: "FloraBloom", mlPerGallon: 15, guaranteedPct: { N: 0, P: 5, K: 4 } },
-  { product: "CaliMagic", mlPerGallon: 5, guaranteedPct: { N: 2, P: 0, K: 0, Ca: 3.2, Mg: 1.2 } },
+  { product: "CaliMagic", mlPerGallon: 5, category: "calmag", guaranteedPct: { N: 2, P: 0, K: 0, Ca: 3.2, Mg: 1.2 } },
 ],
   },
 ];
