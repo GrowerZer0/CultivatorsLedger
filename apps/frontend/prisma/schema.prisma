@@ -513,3 +513,71 @@ model PlantIssue {
   @@index([plantId, createdAt(sort: Desc)])
   @@map("plant_issues")
 }
+
+// ============================================================
+// NUTRIENT & PROTOCOL MODELS
+// ============================================================
+
+model NutrientProduct {
+  id             String   @id @default(cuid())
+  brand          String   
+  name           String   @unique 
+  category       String   
+  
+  pctN           Decimal? @db.Decimal(5, 2)
+  pctP           Decimal? @db.Decimal(5, 2)
+  pctK           Decimal? @db.Decimal(5, 2)
+  pctCa          Decimal? @db.Decimal(5, 2)
+  pctMg          Decimal? @db.Decimal(5, 2)
+  pctS          Decimal? @db.Decimal(5, 2)
+  pctFe          Decimal? @db.Decimal(5, 2)
+  pctB          Decimal? @db.Decimal(5, 2)
+  pctMn          Decimal? @db.Decimal(5, 2)
+  pctMo          Decimal? @db.Decimal(5, 2)
+  pctZn          Decimal? @db.Decimal(5, 2)
+  pctCu          Decimal? @db.Decimal(5, 2)
+
+
+  labelSourceUrl String?  @map("label_source_url")
+  labelVersion   String?  @map("label_version") 
+  
+  protocolDoses  ProtocolDose[]
+  
+  @@map("nutrient_products")
+}
+
+model FeedProtocol {
+  id             String   @id @default(cuid())
+  brand          String   
+  name           String   
+  mediumTarget   String   
+  
+  chartSourceUrl String?  @map("chart_source_url")
+  chartVersion   String?  @map("chart_version") 
+  
+  doses          ProtocolDose[]
+  
+  @@map("feed_protocols")
+}
+
+model ProtocolDose {
+  id             String   @id @default(cuid())
+  
+  protocolId     String   @map("protocol_id")
+  protocol       FeedProtocol   @relation(fields: [protocolId], references: [id], onDelete: Cascade)
+  
+  productId      String   @map("product_id")
+  product        NutrientProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  stage          String   
+  week           Int      
+  
+  mlPerGallon    Decimal  @map("ml_per_gallon") @db.Decimal(5, 2)
+  
+  targetPhMin    Decimal? @map("target_ph_min") @db.Decimal(3, 1)
+  targetPhMax    Decimal? @map("target_ph_max") @db.Decimal(3, 1)
+  targetEc       Decimal? @map("target_ec") @db.Decimal(3, 1)
+  
+  @@unique([protocolId, productId, stage, week])
+  @@map("protocol_doses")
+}

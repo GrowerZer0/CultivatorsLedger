@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   FlaskConical,
   ChevronDown,
@@ -13,11 +13,8 @@ import {
   Check,
   Minus,
 } from "lucide-react";
-import {
-  commercialFeedSchedules,
-  type FeedSchedule,
-  type NutrientDose,
-} from "@/lib/cultivation-engine";
+import { type NutrientDose } from "@/lib/cultivation-engine";
+import { getFeedScheduleForWeek, type DbFeedSchedule } from "@/server/actions/nutrient-schedules";
 import {
   NUTRIENT_TARGETS,
   computeSuppliedMgPerL,
@@ -58,46 +55,65 @@ export function NutrientMixCard({
   weeksIntoGrow,
   onMixReady,
 }: NutrientMixCardProps) {
-  // ---------- Schedule selection ----------
-  const defaultSchedule = useMemo<FeedSchedule>(() => {
-    if (defaultFeedLineId) {
-      const match = commercialFeedSchedules.find((s) => s.id === defaultFeedLineId);
-      if (match) return match;
-    }
-    if (plantStage) {
-      const match = commercialFeedSchedules.find(
-        (s) => s.stage?.toLowerCase() === plantStage.toLowerCase(),
-      );
-      if (match) return match;
-    }
-    return commercialFeedSchedules[0];
-  }, [defaultFeedLineId, plantStage]);
+  // ---------- Schedule selection & Fetching ----------
+  const [activeSchedule, setActiveSchedule] = useState<DbFeedSchedule | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [activeLineId, setActiveLineId] = useState<string>(defaultSchedule.id);
-  const activeSchedule = useMemo<FeedSchedule>(
-    () => commercialFeedSchedules.find((s) => s.id === activeLineId) || defaultSchedule,
-    [activeLineId, defaultSchedule],
-  );
+  const stageKey = (plantStage || "vegetative").toLowerCase();
+  const dbStage = stageKey === "flowering" ? "flower" : "veg";
+  const currentWeek = weeksIntoGrow && weeksIntoGrow > 0 ? weeksIntoGrow : 1;
+  
+  // Hardcoded protocol ID for now until the UI supports switching
+  const activeLineId = "athena-blended";
 
-  const orderedDoses = useMemo(() => sortDosesForMix(activeSchedule.doses), [activeSchedule]);
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+    getFeedScheduleForWeek(activeLineId, dbStage, currentWeek)
+      .then((schedule) => {
+        if (isMounted) {
+          setActiveSchedule(schedule);
+          setIsLoading(false);
+        }
+      });
+    return () => { isMounted = false; };
+  }, [activeLineId, dbStage, currentWeek]);
+
+  // Map the DB shape to the shape the rest of the component expects
+  const mappedSchedule = useMemo(() => {
+    if (!activeSchedule) return null;
+    return {
+      ...activeSchedule,
+      label: `${activeSchedule.brand} ${activeSchedule.name}`,
+      targetPh: activeSchedule.targetPhMin || 5.8,
+      doses: activeSchedule.doses.map(d => ({
+        product: d.productName,
+        mlPerGallon: d.mlPerGallon,
+        category: d.category as "calmag" | "base" | "additive",
+        guaranteedPct: d.guaranteedPct,
+      }))
+    };
+  }, [activeSchedule]);
+
+  const orderedDoses = useMemo(() => mappedSchedule ? sortDosesForMix(mappedSchedule.doses) : [], [mappedSchedule]);
 
   // ---------- Mix volume ----------
   const [gallons, setGallons] = useState<number>(3);
 
   // ---------- Per-product doses (mL/gal), editable ----------
-  const [doses, setDoses] = useState<Record<string, number>>(() => {
-    const initial: Record<string, number> = {};
-    for (const d of defaultSchedule.doses) initial[d.product] = d.mlPerGallon;
-    return initial;
-  });
+  const [doses, setDoses] = useState<Record<string, number>>({});
+
+  // Sync the editable doses when the schedule loads from DB
+  useEffect(() => {
+    if (mappedSchedule) {
+      const initial: Record<string, number> = {};
+      for (const d of mappedSchedule.doses) initial[d.product] = d.mlPerGallon;
+      setDoses(initial);
+    }
+  }, [mappedSchedule]);
 
   const handleLineChange = (newId: string) => {
-    setActiveLineId(newId);
-    const schedule = commercialFeedSchedules.find((s) => s.id === newId);
-    if (!schedule) return;
-    const newDoses: Record<string, number> = {};
-    for (const d of schedule.doses) newDoses[d.product] = d.mlPerGallon;
-    setDoses(newDoses);
+    console.log("Brand switching via DB not yet implemented:", newId);
   };
 
   // ---------- Substrate ----------
@@ -113,11 +129,11 @@ export function NutrientMixCard({
   const substrateProfile = SUBSTRATE_PROFILES[activeSubstrate];
 
   // ---------- Nutrient math ----------
-  const stageKey = (plantStage || "vegetative").toLowerCase();
   const stageData = NUTRIENT_TARGETS[stageKey] ?? NUTRIENT_TARGETS.vegetative;
 
   const suppliedFromProducts = useMemo(() => {
-    return activeSchedule.doses.reduce(
+    if (!mappedSchedule) return { N: 0, P: 0, K: 0, Ca: 0, Mg: 0 };
+    return mappedSchedule.doses.reduce(
       (acc, d) => {
         if (!d.guaranteedPct) return acc;
         const ml = doses[d.product] ?? 0;
@@ -132,7 +148,7 @@ export function NutrientMixCard({
       },
       { N: 0, P: 0, K: 0, Ca: 0, Mg: 0 },
     );
-  }, [activeSchedule, doses]);
+  }, [mappedSchedule, doses]);
 
   const suppliedFromSubstrate = {
     N: computeSubstrateContribution(substrateProfile, "N", effectiveWeek, effectivePotGal),
@@ -151,8 +167,7 @@ export function NutrientMixCard({
   };
 
   const comparisons = compareToTargets(totalSupplied, stageData.targets);
-
-  const hasMissingLabels = activeSchedule.doses.some((d) => !d.guaranteedPct);
+  const hasMissingLabels = mappedSchedule ? mappedSchedule.doses.some((d) => !d.guaranteedPct) : false;
 
   const nRow = comparisons.find((c) => c.element === "N");
   const scaleRecommendation =
@@ -162,6 +177,7 @@ export function NutrientMixCard({
 
   // ---------- Mix steps (order fixed: calmag → base → additive) ----------
   const steps = useMemo(() => {
+    if (!mappedSchedule) return [];
     const result: Array<{
       order: number;
       text: string;
@@ -188,21 +204,22 @@ export function NutrientMixCard({
     result.push({
       order: orderedDoses.length + 2,
       text: `Check pH`,
-      detail: `Target ${activeSchedule.targetPh?.toFixed(1) ?? "5.8"}`,
+      detail: `Target ${mappedSchedule.targetPh?.toFixed(1) ?? "5.8"}`,
     });
     result.push({
       order: orderedDoses.length + 3,
       text: `Check EC`,
-      detail: `Target ${activeSchedule.targetEc.toFixed(1)}`,
+      detail: `Target ${mappedSchedule.targetEc.toFixed(1)}`,
     });
     return result;
-  }, [activeSchedule, orderedDoses, doses, gallons]);
+  }, [mappedSchedule, orderedDoses, doses, gallons]);
 
   // ---------- Copy ----------
   const [copied, setCopied] = useState(false);
   const handleCopy = async () => {
+    if (!mappedSchedule) return;
     const text = [
-      activeSchedule.label,
+      mappedSchedule.label,
       `Mix ${gallons.toFixed(1)} gallons`,
       "",
       ...steps.map(
@@ -223,6 +240,14 @@ export function NutrientMixCard({
 
   const [expanded, setExpanded] = useState(false);
   const isLastWeek = weeksIntoGrow !== null && weeksIntoGrow !== undefined && weeksIntoGrow >= 8;
+
+  if (isLoading) {
+    return <div className="p-4 text-center text-sm text-zinc-500">Loading feed schedule...</div>;
+  }
+  
+  if (!mappedSchedule) {
+    return <div className="p-4 text-center text-sm text-zinc-500">No feed schedule found for this week.</div>;
+  }
 
   return (
     <div className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
@@ -250,7 +275,7 @@ export function NutrientMixCard({
             {stageData.notes}
           </p>
 
-          {/* Substrate — FIRST, because it changes the interpretation of everything below */}
+          {/* Substrate */}
           <div>
             <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
               <Sprout className="size-3" />
@@ -300,15 +325,10 @@ export function NutrientMixCard({
                 Feed line
               </label>
               <select
-                value={activeLineId}
-                onChange={(e) => handleLineChange(e.target.value)}
-                className="w-full px-2 py-1.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded text-xs font-semibold"
+                disabled
+                className="w-full px-2 py-1.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded text-xs font-semibold opacity-70"
               >
-                {commercialFeedSchedules.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.label}
-                  </option>
-                ))}
+                <option value="athena-blended">{mappedSchedule.label}</option>
               </select>
             </div>
             <div>
@@ -347,13 +367,13 @@ export function NutrientMixCard({
             <span>
               pH target{" "}
               <span className="font-mono font-bold text-zinc-700 dark:text-zinc-300">
-                {activeSchedule.targetPh?.toFixed(1) ?? "5.8"}
+                {mappedSchedule.targetPh?.toFixed(1)}
               </span>
             </span>
             <span>
               EC target{" "}
               <span className="font-mono font-bold text-zinc-700 dark:text-zinc-300">
-                {activeSchedule.targetEc.toFixed(1)}
+                {mappedSchedule.targetEc.toFixed(1)}
               </span>
             </span>
             <button
@@ -366,7 +386,7 @@ export function NutrientMixCard({
             </button>
           </div>
 
-          {/* Mix order — doses are editable inline here */}
+          {/* Mix order */}
           <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/40 dark:bg-zinc-950/30 p-3">
             <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-2">
               Mix order
@@ -464,7 +484,7 @@ export function NutrientMixCard({
           {onMixReady && (
             <button
               type="button"
-              onClick={() => onMixReady({ feedLineId: activeLineId, doses, gallons })}
+              onClick={() => onMixReady({ feedLineId: mappedSchedule.id, doses, gallons })}
               className="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-lg transition-colors"
             >
               Nutrients mixed, ready to feed
